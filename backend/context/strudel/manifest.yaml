@@ -1,0 +1,60 @@
+# Context Manifest — Strudel Modality
+#
+# Controls which context sources are loaded and injected into LLM prompts.
+# Each source has:
+#   - enabled: true/false to toggle inclusion
+#   - category: "tutorial" | "examples"
+#   - path: relative path from this modality's context folder
+#   - description: human-readable note
+#   - inject_into: list of prompt sections where this context is used
+#       "system"  — always included in the system prompt
+#       "seed"    — included when generating seed (gen-0) programs
+#       "evolve"  — included when evolving from parents
+
+sources:
+
+# ── Tutorials ──
+
+- id: language_reference
+  enabled: true
+  category: tutorial
+  path: tutorials/language_reference.md
+  description: "Core Strudel functions, methods, synths, and signals"
+  inject_into: [ system ]
+
+- id: mini_notation
+  enabled: true
+  category: tutorial
+  path: tutorials/mini_notation.md
+  description: "Mini-notation syntax for writing patterns"
+  inject_into: [ system ]
+
+- id: audio_effects
+  enabled: true
+  category: tutorial
+  path: tutorials/audio_effects.md
+  description: "Audio effects: filters, reverb, delay, distortion, etc."
+  inject_into: [ system ]
+
+- id: pattern_effects
+  enabled: true
+  category: tutorial
+  path: tutorials/pattern_effects.md
+  description: "Pattern-level effects: jux, off, ply, euclidean, etc."
+  inject_into: [ system ]
+
+# ── Examples ──
+
+- id: community_examples
+  enabled: true
+  category: examples
+  path: examples/community_examples.md
+  description: "Curated community compositions showing diverse styles"
+  inject_into: [ seed, evolve ]
+
+- id: simple_patterns
+  enabled: true
+  category: examples
+  path: examples/simple_patterns.md
+  description: "Short atomic patterns ideal for seed generation"
+  inject_into: [ seed ]

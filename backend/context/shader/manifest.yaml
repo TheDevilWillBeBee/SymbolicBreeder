@@ -1,0 +1,45 @@
+# Context Manifest — Shader Modality
+#
+# Controls which context sources are loaded and injected into LLM prompts
+# for the WebGL shader breeding modality.
+
+sources:
+
+# ── Tutorials ──
+
+- id: glsl_reference
+  enabled: true
+  category: tutorial
+  path: tutorials/glsl_reference.md
+  description: "GLSL ES 1.0 basics: types, built-in functions, swizzling"
+  inject_into: [ system ]
+
+- id: shadertoy_conventions
+  enabled: true
+  category: tutorial
+  path: tutorials/shadertoy_conventions.md
+  description: "mainImage convention, coordinate systems, uniform usage"
+  inject_into: [ system ]
+
+- id: animation_patterns
+  enabled: true
+  category: tutorial
+  path: tutorials/animation_patterns.md
+  description: "Using uSin/uCos for animation, color tricks, common math patterns"
+  inject_into: [ system ]
+
+# ── Examples ──
+
+- id: example_shaders
+  enabled: true
+  category: examples
+  path: examples/example_shaders.md
+  description: "Diverse seed shaders demonstrating different visual styles"
+  inject_into: [ seed, evolve ]
+
+- id: simple_patterns
+  enabled: true
+  category: examples
+  path: examples/simple_patterns.md
+  description: "Minimal atomic visual patterns for seed generation"
+  inject_into: [ seed ]
