@@ -54,23 +54,25 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
             "Shadertoy-compatible mainImage convention. You output ONLY valid GLSL code, "
             "one shader per block, wrapped in ```glsl``` fences.\n\n"
             "IMPORTANT RULES:\n"
-            "- Write ONLY the mainImage function: void mainImage(out vec4 fragColor, in vec2 fragCoord)\n"
+            "- Your code block must contain the mainImage function: void mainImage(out vec4 fragColor, in vec2 fragCoord)\n"
+            "- You MAY define helper functions (e.g. noise, palette, sdf shapes) ABOVE mainImage in the same code block\n"
             "- Available uniforms: uniform vec2 iResolution; uniform float uSin; uniform float uCos;\n"
             "- uSin = sin(2*PI*t/5), uCos = cos(2*PI*t/5) where t is time — use these for 5-second looping animation\n"
-            "- Keep programs SHORT: 10-60 lines maximum. Prefer concise, elegant math.\n"
+            "- Keep programs SHORT: 10-80 lines maximum including any helper functions. Prefer concise, elegant math.\n"
             "- Do NOT declare your own uniforms or attributes\n"
-            "- Do NOT include a main() function — only mainImage()\n"
+            "- Do NOT include a main() function — only mainImage() and optional helpers\n"
             "- Do NOT use textures, iChannel inputs, or iMouse\n"
             "- Prefer visually striking, colorful output\n"
             "- Use standard GLSL ES 1.0 functions only\n\n"
-            "The wrapper around your code is:\n"
+            "The wrapper around your code block is:\n"
             "```\n"
             "precision mediump float;\n"
             "uniform vec2  iResolution;\n"
             "uniform float uSin;\n"
             "uniform float uCos;\n"
             "\n"
-            "// YOUR mainImage CODE IS INSERTED HERE\n"
+            "// YOUR CODE IS INSERTED HERE\n"
+            "// (helper functions first, then mainImage)\n"
             "\n"
             "void main() {\n"
             "  vec4 col = vec4(0.0);\n"
@@ -85,17 +87,22 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
             "Generate {n} diverse GLSL fragment shaders using the mainImage convention. "
             "Each should produce a visually distinct animated output using uSin and uCos uniforms. "
             "Include a variety of styles: geometric patterns, color gradients, noise-based textures, "
-            "pulsing shapes, spiral forms, and abstract art. Keep each shader under 60 lines."
+            "pulsing shapes, spiral forms, and abstract art. "
+            "You may define helper functions (e.g. a noise(), palette(), or sdf function) above mainImage "
+            "when they improve clarity or enable more complex effects. Keep each shader under 80 lines total."
         ),
         "evolve_prompt": (
             "Generate {n} new GLSL shaders that are mutations or crossovers of the parents. "
             "Each should be visually related to the parents but distinctly different. "
-            "Try variations in color, geometry, animation speed, and mathematical transformations."
+            "Try variations in color, geometry, animation speed, and mathematical transformations. "
+            "You may introduce or remove helper functions as part of the mutation — for example, "
+            "extracting a repeated expression into a palette() or noise() helper, or inlining an "
+            "existing helper to make room for a new visual idea."
         ),
         "variety_suffix": (
-            "\n\nVary your output: some simple geometric patterns, some complex animated effects, "
-            "one experimental wildcard. Output ONLY ```glsl``` code blocks containing mainImage functions, "
-            "no explanations."
+            "\n\nVary your output: some simple single-function shaders, some using helpers for "
+            "complex effects, one experimental wildcard. Output ONLY ```glsl``` code blocks "
+            "containing helper functions (if any) followed by mainImage. No explanations."
         ),
     },
 }
@@ -115,7 +122,9 @@ async def generate_programs(
             population_size,
             modality,
         )
-        return await _llm_generate(modality, parent_codes, population_size, guidance, api_key)
+        return await _llm_generate(
+            modality, parent_codes, population_size, guidance, api_key
+        )
     logger.info("No ANTHROPIC_API_KEY set — using mock generation for %s", modality)
     return _mock_generate(modality, parent_codes, population_size)
 
@@ -156,32 +165,22 @@ async def _llm_generate(
         examples_section = ""
         if evolve_context:
             examples_section = (
-                "\n\n## Example Programs for Inspiration\n\n"
-                + evolve_context
-                + "\n\n"
+                "\n\n## Example Programs for Inspiration\n\n" + evolve_context + "\n\n"
             )
 
         prompt = (
             f"Here are the parent programs the user selected:\n\n"
             f"{parent_section}\n\n"
-            f"{examples_section}"
-            + config["evolve_prompt"].format(n=population_size)
+            f"{examples_section}" + config["evolve_prompt"].format(n=population_size)
         )
     else:
         # ── Seed mode ──
         seed_context = get_seed_context(modality)
         examples_section = ""
         if seed_context:
-            examples_section = (
-                "\n\n## Example Programs\n\n"
-                + seed_context
-                + "\n\n"
-            )
+            examples_section = "\n\n## Example Programs\n\n" + seed_context + "\n\n"
 
-        prompt = (
-            f"{examples_section}"
-            + config["seed_prompt"].format(n=population_size)
-        )
+        prompt = f"{examples_section}" + config["seed_prompt"].format(n=population_size)
 
     if guidance:
         prompt += f'\n\nThe user requested: "{guidance}"'
@@ -203,7 +202,9 @@ async def _llm_generate(
         messages=[{"role": "user", "content": prompt}],
     )
 
-    return _parse_code_blocks(response.content[0].text, fence, population_size, modality)
+    return _parse_code_blocks(
+        response.content[0].text, fence, population_size, modality
+    )
 
 
 def _parse_code_blocks(
@@ -375,7 +376,9 @@ _MOCK_POOLS: dict[str, list[str]] = {
 }
 
 
-def _mock_generate(modality: str, parent_codes: list[str], population_size: int) -> list[str]:
+def _mock_generate(
+    modality: str, parent_codes: list[str], population_size: int
+) -> list[str]:
     pool = _MOCK_POOLS.get(modality, _MOCK_POOLS["strudel"])
     parent_set = set(parent_codes)
     available = [p for p in pool if p not in parent_set]
