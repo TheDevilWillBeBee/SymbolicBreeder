@@ -130,5 +130,6 @@ uv += 0.1 * vec2(sin(uv.y * 5.0 + uSin * 3.0), cos(uv.x * 5.0 + uCos * 3.0));
 3. **Combine `sin`/`cos` with distances** for radial patterns
 4. **Use `fract()` for tiling** — repeats patterns efficiently
 5. **The cosine palette trick** (`0.5 + 0.5 * cos(…)`) creates beautiful colors with minimal code
-6. **Keep shaders under 40 lines** — clarity trumps complexity
+6. **Keep shaders under 100 lines** — clarity trumps complexity.
 7. **Layer simple effects** — combine 2-3 simple ideas rather than one complex one
+8. **Define simple helper functions** — helper functions can simplify the code a lot and allow creating more complex shaders.
