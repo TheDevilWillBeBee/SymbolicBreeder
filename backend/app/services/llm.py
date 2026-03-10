@@ -7,11 +7,9 @@ import random
 from typing import Optional
 
 from .context import get_system_context, get_seed_context, get_evolve_context
+from .providers import get_provider, LLMRequest
 
 logger = logging.getLogger(__name__)
-
-# Override via env var
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "claude-sonnet-4-20250514")
 
 
 # ── Modality-specific prompt configuration ──
@@ -113,19 +111,27 @@ async def generate_programs(
     parent_codes: list[str],
     population_size: int = 6,
     guidance: Optional[str] = None,
+    provider_key: str = "anthropic",
+    model: str = "claude-sonnet-4-20250514",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
 ) -> list[str]:
-    """Generate new programs for the given modality. Uses LLM if API key is set, else mock."""
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    """Generate new programs for the given modality. Uses LLM if API key is available, else mock."""
+    if not api_key:
+        api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY")
     if api_key:
         logger.info(
-            "Using LLM (Anthropic) to generate %d %s programs",
+            "Using LLM (%s/%s) to generate %d %s programs",
+            provider_key,
+            model,
             population_size,
             modality,
         )
         return await _llm_generate(
-            modality, parent_codes, population_size, guidance, api_key
+            modality, parent_codes, population_size, guidance,
+            provider_key, model, api_key, base_url,
         )
-    logger.info("No ANTHROPIC_API_KEY set — using mock generation for %s", modality)
+    logger.info("No API key available — using mock generation for %s", modality)
     return _mock_generate(modality, parent_codes, population_size)
 
 
@@ -145,11 +151,12 @@ async def _llm_generate(
     parent_codes: list[str],
     population_size: int,
     guidance: Optional[str],
+    provider_key: str,
+    model: str,
     api_key: str,
+    base_url: Optional[str],
 ) -> list[str]:
-    import anthropic
-
-    client = anthropic.AsyncAnthropic(api_key=api_key)
+    provider = get_provider(provider_key, model, base_url)
     config = _MODALITY_PROMPTS.get(modality, _MODALITY_PROMPTS["strudel"])
     system_prompt = _build_system_prompt(modality)
     fence = config["fence"]
@@ -188,22 +195,19 @@ async def _llm_generate(
     prompt += config.get("variety_suffix", "")
 
     logger.info(
-        "Sending LLM request (model=%s, modality=%s, system=%d chars, user=%d chars)",
-        DEFAULT_MODEL,
+        "Sending LLM request (provider=%s, model=%s, modality=%s, system=%d chars, user=%d chars)",
+        provider_key,
+        model,
         modality,
         len(system_prompt),
         len(prompt),
     )
 
-    response = await client.messages.create(
-        model=DEFAULT_MODEL,
-        max_tokens=4096,
-        system=system_prompt,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    llm_request = LLMRequest(system=system_prompt, user=prompt)
+    response = await provider.complete(llm_request, api_key)
 
     return _parse_code_blocks(
-        response.content[0].text, fence, population_size, modality
+        response.text, fence, population_size, modality
     )
 
 

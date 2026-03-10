@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ModalitySelector } from './components/ModalitySelector';
+import { ModelSelector } from './components/ModelSelector';
 import { ProgramGrid } from './components/ProgramGrid';
 import { GuidanceInput } from './components/GuidanceInput';
 import { GenerationNav } from './components/GenerationNav';
@@ -102,6 +103,7 @@ export default function App() {
               }}
             />
           </div>
+          <ModelSelector />
           <ModalitySelector onSelect={handleSelectModality} />
         </div>
       ) : (

@@ -1,0 +1,138 @@
+import { useEffect, useState } from 'react';
+import { useSessionStore } from '../store/sessionStore';
+import { api } from '../api/client';
+
+interface ProviderInfo {
+  key: string;
+  label: string;
+  models: string[];
+}
+
+interface ProvidersResponse {
+  server_key_available: boolean;
+  providers: ProviderInfo[];
+}
+
+export function ModelSelector() {
+  const llmConfig = useSessionStore((s) => s.llmConfig);
+  const setLLMConfig = useSessionStore((s) => s.setLLMConfig);
+
+  const [providers, setProviders] = useState<ProviderInfo[]>([]);
+  const [serverKeyAvailable, setServerKeyAvailable] = useState(false);
+  const [useCustomEndpoint, setUseCustomEndpoint] = useState(false);
+
+  useEffect(() => {
+    api
+      .get<ProvidersResponse>('/api/providers')
+      .then((res) => {
+        setProviders(res.providers);
+        setServerKeyAvailable(res.server_key_available);
+      })
+      .catch(() => {
+        // Fallback if backend is unreachable
+        setProviders([
+          { key: 'anthropic', label: 'Anthropic', models: ['claude-sonnet-4-20250514', 'claude-opus-4-5', 'claude-haiku-4-5-20251001'] },
+          { key: 'openai', label: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'o3-mini'] },
+        ]);
+      });
+  }, []);
+
+  const selectedProvider = providers.find((p) => p.key === llmConfig.provider);
+  const models = selectedProvider?.models ?? [];
+
+  const handleProviderChange = (key: string) => {
+    if (key === '__custom__') {
+      setUseCustomEndpoint(true);
+      setLLMConfig({ provider: 'openai', model: '', baseUrl: '' });
+    } else {
+      setUseCustomEndpoint(false);
+      const prov = providers.find((p) => p.key === key);
+      setLLMConfig({
+        provider: key,
+        model: prov?.models[0] ?? '',
+        baseUrl: undefined,
+      });
+    }
+  };
+
+  return (
+    <div className="model-selector">
+      <div className="model-selector-row">
+        <label className="model-selector-label">Provider</label>
+        <select
+          className="model-selector-select"
+          value={useCustomEndpoint ? '__custom__' : llmConfig.provider}
+          onChange={(e) => handleProviderChange(e.target.value)}
+        >
+          {providers.map((p) => (
+            <option key={p.key} value={p.key}>
+              {p.label}
+            </option>
+          ))}
+          <option value="__custom__">Custom (OpenAI-compatible)</option>
+        </select>
+      </div>
+
+      {useCustomEndpoint && (
+        <div className="model-selector-row">
+          <label className="model-selector-label">Base URL</label>
+          <input
+            type="url"
+            className="model-selector-input"
+            placeholder="https://api.groq.com/openai/v1"
+            value={llmConfig.baseUrl ?? ''}
+            onChange={(e) => setLLMConfig({ baseUrl: e.target.value })}
+          />
+        </div>
+      )}
+
+      <div className="model-selector-row">
+        <label className="model-selector-label">Model</label>
+        {useCustomEndpoint ? (
+          <input
+            type="text"
+            className="model-selector-input"
+            placeholder="model-name"
+            value={llmConfig.model}
+            onChange={(e) => setLLMConfig({ model: e.target.value })}
+          />
+        ) : (
+          <select
+            className="model-selector-select"
+            value={llmConfig.model}
+            onChange={(e) => setLLMConfig({ model: e.target.value })}
+          >
+            {models.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {serverKeyAvailable ? (
+        <p className="model-selector-notice">
+          ✓ Using server-provided API key
+        </p>
+      ) : (
+        <>
+          <div className="model-selector-row">
+            <label className="model-selector-label">API Key</label>
+            <input
+              type="password"
+              className="model-selector-input"
+              placeholder="sk-..."
+              autoComplete="off"
+              value={llmConfig.apiKey}
+              onChange={(e) => setLLMConfig({ apiKey: e.target.value })}
+            />
+          </div>
+          <p className="model-selector-notice">
+            🔒 Your API key is used only for this session and is never stored or sent to our servers.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}

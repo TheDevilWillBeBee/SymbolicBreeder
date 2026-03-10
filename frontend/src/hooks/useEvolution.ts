@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSessionStore } from '../store/sessionStore';
-import { api } from '../api/client';
+import { api, setApiLLMConfig } from '../api/client';
 import { Program } from '../types';
 
 // ── Mock pools (per modality) ──
@@ -96,12 +96,17 @@ function mockEvolve(
 export function useEvolution() {
   const startNewSession = useCallback(
     async (modality: string, initialPrompt?: string) => {
+      // Capture config before reset so it is never lost
+      const llmConfig = useSessionStore.getState().llmConfig;
+      setApiLLMConfig(llmConfig);
+
       const store = useSessionStore.getState();
       store.reset();
       store.setModality(modality);
       store.setIsLoading(true);
 
       try {
+        const { provider, model, baseUrl } = llmConfig;
         const res = await api.post<{
           id: string;
           name: string;
@@ -119,6 +124,9 @@ export function useEvolution() {
         }>('/api/sessions', {
           modality,
           prompt: initialPrompt || undefined,
+          provider,
+          model,
+          ...(baseUrl ? { base_url: baseUrl } : {}),
         });
 
         store.setSession({
@@ -165,6 +173,9 @@ export function useEvolution() {
       const customized = store.customizedPrograms;
       store.setIsEvolving(true);
 
+      // Sync LLM config to API client for header injection
+      setApiLLMConfig(store.llmConfig);
+
       // Use customized code when available
       const parentPayload = parents.map((p) => ({
         id: p.id,
@@ -172,6 +183,7 @@ export function useEvolution() {
       }));
 
       try {
+        const { provider, model, baseUrl } = store.llmConfig;
         const res = await api.post<{
           programs: Array<{
             id: string;
@@ -189,6 +201,9 @@ export function useEvolution() {
           guidance,
           population_size: 6,
           session_id: store.session?.id,
+          provider,
+          model,
+          ...(baseUrl ? { base_url: baseUrl } : {}),
         });
 
         store.addGeneration(

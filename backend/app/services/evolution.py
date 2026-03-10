@@ -19,9 +19,16 @@ async def create_seed_generation(
     modality: str,
     db: DBSession,
     guidance: Optional[str] = None,
+    provider_key: str = "anthropic",
+    model: str = "claude-sonnet-4-20250514",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
 ) -> list[models.Program]:
     """Create generation-0 programs for a brand-new session."""
-    codes = await generate_programs(modality, [], population_size=6, guidance=guidance)
+    codes = await generate_programs(
+        modality, [], population_size=6, guidance=guidance,
+        provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
+    )
 
     programs: list[models.Program] = []
     for code in codes:
@@ -49,6 +56,10 @@ async def evolve_programs(
     population_size: int,
     session_id: Optional[str],
     db: DBSession,
+    provider_key: str = "anthropic",
+    model: str = "claude-sonnet-4-20250514",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
 ) -> EvolveResponse:
     """Evolve the next generation from selected parents."""
     parent_codes = [p.code for p in parents]
@@ -66,7 +77,10 @@ async def evolve_programs(
         if row:
             generation = row[0] + 1
 
-    codes = await generate_programs(modality, parent_codes, population_size, guidance)
+    codes = await generate_programs(
+        modality, parent_codes, population_size, guidance,
+        provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
+    )
 
     programs: list[models.Program] = []
     for code in codes:

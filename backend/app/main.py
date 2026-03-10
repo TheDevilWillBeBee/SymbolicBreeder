@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routers import evolve, sessions
+from .routers import evolve, sessions, providers
 
 # Create tables on startup
 Base.metadata.create_all(bind=engine)
@@ -19,6 +19,7 @@ app.add_middleware(
 
 app.include_router(evolve.router, prefix="/api")
 app.include_router(sessions.router, prefix="/api")
+app.include_router(providers.router, prefix="/api")
 
 
 @app.get("/api/health")
