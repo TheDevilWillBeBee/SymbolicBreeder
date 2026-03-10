@@ -27,6 +27,9 @@ class EvolveRequest(BaseModel):
     guidance: Optional[str] = None
     population_size: int = Field(default=6, ge=1, le=20)
     session_id: Optional[str] = None
+    provider: str = "anthropic"
+    model: str = "claude-sonnet-4-20250514"
+    base_url: Optional[str] = None
 
 
 class EvolveResponse(BaseModel):
@@ -38,6 +41,9 @@ class CreateSessionRequest(BaseModel):
     modality: str = "strudel"
     name: Optional[str] = "Untitled Session"
     prompt: Optional[str] = None
+    provider: str = "anthropic"
+    model: str = "claude-sonnet-4-20250514"
+    base_url: Optional[str] = None
 
 
 class SessionResponse(BaseModel):

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session as DBSession
 
 from ..database import get_db
@@ -13,6 +13,7 @@ router = APIRouter()
 async def create_session(
     request: CreateSessionRequest,
     db: DBSession = Depends(get_db),
+    x_api_key: str | None = Header(default=None),
 ):
     session = models.Session(
         name=request.name or "Untitled Session",
@@ -27,6 +28,10 @@ async def create_session(
         modality=request.modality,
         db=db,
         guidance=request.prompt,
+        provider_key=request.provider,
+        model=request.model,
+        api_key=x_api_key,
+        base_url=request.base_url,
     )
 
     return SessionResponse(
