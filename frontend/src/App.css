@@ -772,3 +772,58 @@ body {
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
+
+/* ── Model Selector ── */
+
+.model-selector {
+  max-width: 400px;
+  margin: 1.5rem auto;
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.model-selector-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.model-selector-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.model-selector-select,
+.model-selector-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.model-selector-select:focus,
+.model-selector-input:focus {
+  border-color: var(--accent);
+}
+
+.model-selector-notice {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  line-height: 1.4;
+}

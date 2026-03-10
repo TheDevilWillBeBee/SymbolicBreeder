@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { Program, Session } from '../types';
 
+export interface LLMConfig {
+  provider: string;
+  model: string;
+  apiKey: string;
+  baseUrl?: string;
+}
+
 interface SessionState {
   // Core state
   session: Session | null;
@@ -13,6 +20,7 @@ interface SessionState {
   isEvolving: boolean;
   isLoading: boolean;
   customizedPrograms: Record<string, string>;
+  llmConfig: LLMConfig;
 
   // Actions
   setSession: (session: Session) => void;
@@ -26,8 +34,15 @@ interface SessionState {
   setIsEvolving: (v: boolean) => void;
   setIsLoading: (v: boolean) => void;
   setCustomizedCode: (programId: string, code: string) => void;
+  setLLMConfig: (config: Partial<LLMConfig>) => void;
   reset: () => void;
 }
+
+const initialLLMConfig: LLMConfig = {
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-20250514',
+  apiKey: '',
+};
 
 const initialState = {
   session: null,
@@ -40,6 +55,7 @@ const initialState = {
   isEvolving: false,
   isLoading: false,
   customizedPrograms: {} as Record<string, string>,
+  llmConfig: { ...initialLLMConfig },
 };
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -81,5 +97,17 @@ export const useSessionStore = create<SessionState>((set) => ({
       customizedPrograms: { ...state.customizedPrograms, [programId]: code },
     })),
 
-  reset: () => set({ ...initialState, selectedProgramIds: new Set<string>() }),
+  setLLMConfig: (config) =>
+    set((state) => ({
+      llmConfig: { ...state.llmConfig, ...config },
+    })),
+
+  reset: () =>
+    set((state) => ({
+      ...initialState,
+      selectedProgramIds: new Set<string>(),
+      // Preserve llmConfig across session resets — the API key is a user
+      // preference for the browser session and must not be cleared here.
+      llmConfig: state.llmConfig,
+    })),
 }));
