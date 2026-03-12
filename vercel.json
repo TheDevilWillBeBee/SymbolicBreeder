@@ -1,0 +1,18 @@
+{
+  "installCommand": "cd frontend && npm install",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/[...path].py": {
+      "runtime": "python3.11",
+      "maxDuration": 60,
+      "includeFiles": "backend/context/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(?!api(?:/|$))(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

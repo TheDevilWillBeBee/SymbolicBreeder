@@ -62,20 +62,30 @@ async def evolve_programs(
     base_url: Optional[str] = None,
 ) -> EvolveResponse:
     """Evolve the next generation from selected parents."""
+    if not session_id:
+        session_id = _id()
+        db.add(
+            models.Session(
+                id=session_id,
+                name="Untitled Session",
+                modality=modality,
+            )
+        )
+        db.flush()
+
     parent_codes = [p.code for p in parents]
     parent_ids = [p.id for p in parents]
 
     # Determine next generation number
     generation = 1
-    if session_id:
-        row = (
-            db.query(models.Program.generation)
-            .filter(models.Program.session_id == session_id)
-            .order_by(models.Program.generation.desc())
-            .first()
-        )
-        if row:
-            generation = row[0] + 1
+    row = (
+        db.query(models.Program.generation)
+        .filter(models.Program.session_id == session_id)
+        .order_by(models.Program.generation.desc())
+        .first()
+    )
+    if row:
+        generation = row[0] + 1
 
     codes = await generate_programs(
         modality, parent_codes, population_size, guidance,
@@ -90,7 +100,7 @@ async def evolve_programs(
             modality=modality,
             generation=generation,
             parent_ids=parent_ids,
-            session_id=session_id or _id(),
+            session_id=session_id,
         )
         db.add(program)
         programs.append(program)

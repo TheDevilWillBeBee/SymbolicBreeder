@@ -19,6 +19,7 @@ More modalities (p5.js, Tone.js, SVG, etc.) can be added without touching core l
 
 - Python 3.11+
 - Node.js 18+
+- PostgreSQL (managed Vercel Postgres recommended)
 - An Anthropic API key _(optional — a mock fallback works without one)_
 
 ### Backend
@@ -28,6 +29,12 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -e .
+
+# Required: set a PostgreSQL connection URL
+export DATABASE_URL=postgresql+psycopg://user:pass@host:5432/dbname
+
+# Apply schema migrations
+alembic upgrade head
 
 # Optional: set your API key
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -53,7 +60,8 @@ The Vite dev server proxies all `/api` requests to `http://localhost:8000` autom
 |---|---|---|
 | `ANTHROPIC_API_KEY` | _(unset)_ | If unset, built-in mock programs are used for all modalities |
 | `LLM_MODEL` | `claude-sonnet-4-20250514` | Anthropic model identifier |
-| `DATABASE_URL` | `sqlite:///./symbolic_breeder.db` | SQLAlchemy connection string |
+| `DATABASE_URL` | _(required)_ | PostgreSQL connection string (Vercel Postgres or compatible) |
+| `CORS_ALLOW_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated CORS origins |
 | `VITE_API_URL` | `""` (same origin) | Frontend API base URL override |
 
 ## Documentation
@@ -73,9 +81,9 @@ SymbolicBreeder/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI app, CORS, router registration
-│   │   ├── database.py         # SQLAlchemy engine + session factory
+│   │   ├── database.py         # PostgreSQL engine + session factory
 │   │   ├── models/
-│   │   │   ├── db.py           # Session + Program ORM models
+│   │   │   ├── db.py           # User, Session, Program, Reaction ORM models
 │   │   │   └── schemas.py      # Pydantic request/response schemas
 │   │   ├── routers/
 │   │   │   ├── sessions.py     # POST/GET /api/sessions
@@ -87,7 +95,12 @@ SymbolicBreeder/
 │   ├── context/
 │   │   ├── strudel/            # Strudel tutorials + examples
 │   │   └── shader/             # GLSL tutorials + examples
+│   ├── alembic/                # Database migration scripts
 │   └── pyproject.toml
+├── api/
+│   ├── [...path].py            # Vercel Python serverless entrypoint
+│   └── requirements.txt        # Vercel function dependencies
+├── vercel.json                 # Vercel build + routing config
 └── frontend/
     ├── src/
     │   ├── App.tsx

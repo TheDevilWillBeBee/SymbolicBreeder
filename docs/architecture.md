@@ -33,13 +33,13 @@ Symbolic Breeder has a classic client-server architecture. The React frontend ha
                │
     ┌──────────┴──────────┐
     │                     │
-┌───▼──────┐   ┌──────────▼─────────────────────────────┐
-│ SQLite   │   │  LLM Service (Anthropic)                │
-│ sessions │   │  ModalityContextRegistry                │
-│ programs │   │    strudel/manifest.yaml + .md files    │
-└──────────┘   │    shader/manifest.yaml  + .md files    │
-               │  Prompt assembly (system/seed/evolve)   │
-               └────────────────────────────────────────┘
+┌───▼──────────────┐   ┌──────────▼─────────────────────────────┐
+│ PostgreSQL       │   │  LLM Service (Anthropic/OpenAI)         │
+│ users            │   │  ModalityContextRegistry                │
+│ sessions         │   │    strudel/manifest.yaml + .md files    │
+│ programs         │   │    shader/manifest.yaml  + .md files    │
+│ program_reactions│   │  Prompt assembly (system/seed/evolve)   │
+└──────────────────┘   └────────────────────────────────────────┘
 ```
 
 ---
@@ -48,11 +48,23 @@ Symbolic Breeder has a classic client-server architecture. The React frontend ha
 
 ### FastAPI Application
 
-`app/main.py` bootstraps the FastAPI app, registers CORS middleware, creates the SQLite tables on startup, and mounts two routers under `/api`.
+`app/main.py` bootstraps the FastAPI app and registers CORS + routers. The app is created via an app factory so it can run both locally and as a Vercel Python serverless function.
+
+Schema creation is migration-driven (Alembic), not startup-driven.
 
 ### Data Model
 
-Two SQLAlchemy ORM models, defined in `app/models/db.py`:
+SQLAlchemy ORM models, defined in `app/models/db.py`:
+
+**User** — future-proof identity table for login and personalization.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | string (UUID) | Primary key |
+| `external_id` | string | Provider identity subject; unique |
+| `email` | string | Optional; unique |
+| `display_name` | string | Optional |
+| `created_at` / `updated_at` | datetime | Audit timestamps |
 
 **Session** — groups all programs created in one breeding run.
 
@@ -61,6 +73,7 @@ Two SQLAlchemy ORM models, defined in `app/models/db.py`:
 | `id` | string (UUID) | Primary key |
 | `name` | string | Optional label |
 | `modality` | string | `"strudel"` or `"shader"` |
+| `owner_user_id` | string | Optional FK → User |
 | `created_at` | datetime | Auto-set on creation |
 
 **Program** — a single piece of code produced by seeding or evolution.
@@ -73,7 +86,20 @@ Two SQLAlchemy ORM models, defined in `app/models/db.py`:
 | `generation` | int | 0 = seed, 1+ = evolved |
 | `parent_ids` | JSON | List of parent Program UUIDs |
 | `session_id` | string | FK → Session |
+| `creator_user_id` | string | Optional FK → User |
 | `created_at` | datetime | Auto-set on creation |
+
+**ProgramReaction** — stores like/dislike-style per-user reactions.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | string (UUID) | Primary key |
+| `user_id` | string | FK → User |
+| `program_id` | string | FK → Program |
+| `reaction` | int | Constrained to `-1` or `1` |
+| `created_at` / `updated_at` | datetime | Audit timestamps |
+
+Unique constraint: `(user_id, program_id)` ensures one reaction per user per program.
 
 ### Routers
 
