@@ -31,6 +31,15 @@ body {
   min-height: 100vh;
 }
 
+body.modality-non-strudel strudel-editor,
+body.modality-non-strudel .cm-editor,
+body.modality-non-strudel .cm-content,
+body.modality-non-strudel .cm-scroller,
+body.modality-non-strudel .cm-tooltip,
+body.modality-non-strudel .cm-panels {
+  display: none !important;
+}
+
 /* ── Layout ── */
 
 .app {
@@ -473,6 +482,13 @@ body {
   transition: all 0.15s;
 }
 
+.code-btn {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 .customize-btn:hover,
 .code-btn:hover {
   background: var(--accent);
@@ -607,6 +623,20 @@ body {
   word-break: break-all;
 }
 
+.modal-code.code-highlight-static {
+  margin: 0;
+  background: var(--code-bg);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: auto;
+}
+
+.modal-code.code-highlight-static code {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .modal-meta {
   padding: 0.6rem 1rem;
   border-top: 1px solid var(--border);
@@ -739,6 +769,74 @@ body {
   line-height: 1.6;
   outline: none;
   tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.code-editor-stack {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--code-bg);
+}
+
+.code-highlight {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  pointer-events: none;
+  white-space: pre;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.code-highlight code {
+  display: block;
+  min-height: 100%;
+  min-width: max-content;
+}
+
+.code-textarea-overlay {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text-primary);
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.code-textarea-overlay::selection {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.tok-keyword {
+  color: #f472b6;
+}
+
+.tok-builtin {
+  color: #22d3ee;
+}
+
+.tok-string {
+  color: #86efac;
+}
+
+.tok-number {
+  color: #fcd34d;
+}
+
+.tok-comment {
+  color: #64748b;
+}
+
+.tok-punctuation {
+  color: #cbd5e1;
 }
 
 .customize-preview {

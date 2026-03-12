@@ -269,175 +269,21 @@ _MOCK_POOLS: dict[str, list[str]] = {
         's("hh*16").gain("[1 0.5 0.7 0.3]*4")',
     ],
     "shader": [
-        # 1 — Pulsing circle
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    vec2 center = vec2(0.5);\n"
-            "    float d = length(uv - center);\n"
-            "    float r = 0.25 + 0.1 * sin(iTime);\n"
-            "    float glow = smoothstep(r, r - 0.05, d);\n"
-            "    vec3 col = glow * vec3(0.2, 0.6, 1.0);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 2 — Rainbow gradient
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    float t = uv.x + iTime * 0.3;\n"
-            "    vec3 col = 0.5 + 0.5 * cos(6.2831 * (t + vec3(0.0, 0.33, 0.67)));\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 3 — Concentric rings
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    float d = length(uv);\n"
-            "    float wave = sin(d * 30.0 - iTime * 4.0);\n"
-            "    vec3 col = vec3(wave * 0.5 + 0.5) * vec3(0.9, 0.3, 0.6);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 4 — Plasma with cosine palette
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = fragCoord / iResolution.xy * 4.0;\n"
-            "    float v = sin(uv.x * 3.0 + iTime * 2.0);\n"
-            "    v += sin(uv.y * 3.0 + iTime * 1.5);\n"
-            "    v += sin((uv.x + uv.y) * 2.0 + iTime);\n"
-            "    v += sin(length(uv) * 3.0);\n"
-            "    vec3 col = 0.5 + 0.5 * cos(v + iTime + vec3(0.0, 2.0, 4.0));\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 5 — Spiral galaxy
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    float a = atan(uv.y, uv.x);\n"
-            "    float r = length(uv);\n"
-            "    float spiral = sin(a * 3.0 + r * 20.0 - iTime * 3.0);\n"
-            "    float brightness = 0.03 / (r + 0.03);\n"
-            "    vec3 col = (spiral * 0.5 + 0.5) * vec3(0.4, 0.6, 1.0) * brightness;\n"
-            "    col += 0.01 / (r + 0.01) * vec3(1.0, 0.9, 0.7);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 6 — FBM noise with helper
-        (
-            "float hash(vec2 p) {\n"
-            "    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n"
-            "}\n\n"
-            "float noise(vec2 p) {\n"
-            "    vec2 i = floor(p);\n"
-            "    vec2 f = fract(p);\n"
-            "    f = f * f * (3.0 - 2.0 * f);\n"
-            "    float a = hash(i);\n"
-            "    float b = hash(i + vec2(1.0, 0.0));\n"
-            "    float c = hash(i + vec2(0.0, 1.0));\n"
-            "    float d = hash(i + vec2(1.0, 1.0));\n"
-            "    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n"
-            "}\n\n"
-            "float fbm(vec2 p) {\n"
-            "    float v = 0.0;\n"
-            "    float a = 0.5;\n"
-            "    for (int i = 0; i < 5; i++) {\n"
-            "        v += a * noise(p);\n"
-            "        p *= 2.0;\n"
-            "        a *= 0.5;\n"
-            "    }\n"
-            "    return v;\n"
-            "}\n\n"
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    float n = fbm(uv * 5.0 + iTime * 0.3);\n"
-            "    vec3 col = 0.5 + 0.5 * cos(n * 6.0 + iTime + vec3(0.0, 2.0, 4.0));\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 7 — Metaballs with loop
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    float v = 0.0;\n"
-            "    for (int i = 0; i < 6; i++) {\n"
-            "        float fi = float(i);\n"
-            "        vec2 p = vec2(sin(iTime * 0.7 + fi * 1.3), cos(iTime * 0.5 + fi * 1.7)) * 0.4;\n"
-            "        v += 0.02 / length(uv - p);\n"
-            "    }\n"
-            "    vec3 col = 0.5 + 0.5 * cos(v * 0.5 + iTime + vec3(0.0, 2.0, 4.0));\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 8 — Iterative folding art
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    vec3 col = vec3(0.0);\n"
-            "    for (int i = 0; i < 8; i++) {\n"
-            "        float t = iTime * 0.5 + float(i) * 0.4;\n"
-            "        uv = abs(uv) - 0.5;\n"
-            "        uv *= mat2(cos(t), -sin(t), sin(t), cos(t));\n"
-            "        col += 0.02 / abs(uv.x) * (0.5 + 0.5 * cos(float(i) * 0.5 + vec3(0.0, 2.0, 4.0)));\n"
-            "    }\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 9 — Kaleidoscope
-        (
-            "mat2 rot(float a) {\n"
-            "    float c = cos(a), s = sin(a);\n"
-            "    return mat2(c, -s, s, c);\n"
-            "}\n\n"
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    uv *= rot(iTime * 0.2);\n"
-            "    float a = atan(uv.y, uv.x);\n"
-            "    float r = length(uv);\n"
-            "    a = mod(a, 6.2831 / 6.0) - 3.1415 / 6.0;\n"
-            "    vec2 p = vec2(cos(a), sin(a)) * r;\n"
-            "    float pat = sin(p.x * 15.0 + iTime * 2.0) * cos(p.y * 15.0 + iTime * 1.5);\n"
-            "    vec3 col = 0.5 + 0.5 * cos(pat * 3.0 + r * 5.0 + iTime + vec3(0.0, 2.0, 4.0));\n"
-            "    col *= smoothstep(0.8, 0.0, r);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 10 — Domain warped stripes
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    uv += 0.1 * vec2(sin(uv.y * 10.0 + iTime), cos(uv.x * 10.0 + iTime * 0.7));\n"
-            "    float stripe = sin(uv.y * 40.0 + iTime * 2.0) * 0.5 + 0.5;\n"
-            "    vec3 col = mix(vec3(0.0, 0.1, 0.3), vec3(0.0, 0.9, 0.7), stripe);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 11 — Breathing orb with rays
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    float d = length(uv);\n"
-            "    float breath = 0.7 + 0.3 * sin(iTime * 1.5);\n"
-            "    float core = 0.05 / (d + 0.05) * breath;\n"
-            "    float halo = 0.02 / (d + 0.02) * (1.0 - breath) * 0.5;\n"
-            "    vec3 col = core * vec3(1.0, 0.3, 0.1) + halo * vec3(0.3, 0.5, 1.0);\n"
-            "    float rays = sin(atan(uv.y, uv.x) * 8.0 + iTime * 2.0) * 0.5 + 0.5;\n"
-            "    col += rays * 0.02 / (d + 0.1) * vec3(1.0, 0.8, 0.3);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 12 — Checkerboard warp
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    uv *= 5.0 + sin(iTime) * 2.0;\n"
-            "    float c = mod(floor(uv.x) + floor(uv.y), 2.0);\n"
-            "    vec3 col = mix(vec3(0.1, 0.1, 0.2), vec3(1.0, 0.8, 0.3), c);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    vec2 center = vec2(0.5);\n    float d = length(uv - center);\n    float r = 0.25 + 0.1 * sin(iTime);\n    float glow = smoothstep(r, r - 0.05, d);\n    vec3 col = glow * vec3(0.2, 0.6, 1.0);\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    float t = uv.x + iTime * 0.3;\n    vec3 col = 0.5 + 0.5 * cos(6.2831 * (t + vec3(0.0, 0.33, 0.67)));\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float d = length(uv);\n    float wave = sin(d * 30.0 - iTime * 4.0);\n    vec3 col = vec3(wave * 0.5 + 0.5) * vec3(0.9, 0.3, 0.6);\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float a = atan(uv.y, uv.x) + iTime * 0.5;\n    float r = length(uv);\n    float pat = sin(a * 6.0) * cos(r * 20.0 + iTime * 2.0);\n    vec3 col = vec3(pat * 0.5 + 0.5, r, 0.8 - r);\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy * 4.0;\n    float v = sin(uv.x * 3.0 + iTime * 2.0);\n    v += sin(uv.y * 3.0 + iTime * 1.5);\n    v += sin((uv.x + uv.y) * 2.0 + iTime);\n    v += sin(length(uv) * 3.0);\n    vec3 col = 0.5 + 0.5 * cos(v + iTime + vec3(0.0, 2.0, 4.0));\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    uv *= 5.0 + sin(iTime) * 2.0;\n    float c = mod(floor(uv.x) + floor(uv.y), 2.0);\n    vec3 col = mix(vec3(0.1, 0.1, 0.2), vec3(1.0, 0.8, 0.3), c);\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float a = atan(uv.y, uv.x);\n    float r = length(uv);\n    float spiral = sin(a * 3.0 + r * 20.0 - iTime * 3.0);\n    float brightness = 0.03 / (r + 0.03);\n    vec3 col = (spiral * 0.5 + 0.5) * vec3(0.4, 0.6, 1.0) * brightness;\n    col += 0.01 / (r + 0.01) * vec3(1.0, 0.9, 0.7);\n    fragColor = vec4(col, 1.0);\n}',
+        'float hash(vec2 p) {\n    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash(i);\n    float b = hash(i + vec2(1.0, 0.0));\n    float c = hash(i + vec2(0.0, 1.0));\n    float d = hash(i + vec2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\n\nfloat fbm(vec2 p) {\n    float v = 0.0;\n    float a = 0.5;\n    for (int i = 0; i < 5; i++) {\n        v += a * noise(p);\n        p *= 2.0;\n        a *= 0.5;\n    }\n    return v;\n}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    float n = fbm(uv * 5.0 + iTime * 0.3);\n    vec3 col = 0.5 + 0.5 * cos(n * 6.0 + iTime + vec3(0.0, 2.0, 4.0));\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float v = 0.0;\n    for (int i = 0; i < 6; i++) {\n        float fi = float(i);\n        vec2 p = vec2(sin(iTime * 0.7 + fi * 1.3), cos(iTime * 0.5 + fi * 1.7)) * 0.4;\n        v += 0.02 / length(uv - p);\n    }\n    vec3 col = 0.5 + 0.5 * cos(v * 0.5 + iTime + vec3(0.0, 2.0, 4.0));\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    vec3 col = vec3(0.0);\n    for (int i = 0; i < 8; i++) {\n        float t = iTime * 0.5 + float(i) * 0.4;\n        uv = abs(uv) - 0.5;\n        uv *= mat2(cos(t), -sin(t), sin(t), cos(t));\n        col += 0.02 / abs(uv.x) * (0.5 + 0.5 * cos(float(i) * 0.5 + vec3(0.0, 2.0, 4.0)));\n    }\n    fragColor = vec4(col, 1.0);\n}',
+        'mat2 rot(float a) {\n    float c = cos(a), s = sin(a);\n    return mat2(c, -s, s, c);\n}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    uv *= rot(iTime * 0.2);\n    float a = atan(uv.y, uv.x);\n    float r = length(uv);\n    a = mod(a, 6.2831 / 6.0) - 3.1415 / 6.0;\n    vec2 p = vec2(cos(a), sin(a)) * r;\n    float pat = sin(p.x * 15.0 + iTime * 2.0) * cos(p.y * 15.0 + iTime * 1.5);\n    vec3 col = 0.5 + 0.5 * cos(pat * 3.0 + r * 5.0 + iTime + vec3(0.0, 2.0, 4.0));\n    col *= smoothstep(0.8, 0.0, r);\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    uv += 0.1 * vec2(sin(uv.y * 10.0 + iTime), cos(uv.x * 10.0 + iTime * 0.7));\n    float stripe = sin(uv.y * 40.0 + iTime * 2.0) * 0.5 + 0.5;\n    vec3 col = mix(vec3(0.0, 0.1, 0.3), vec3(0.0, 0.9, 0.7), stripe);\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float d = length(uv);\n    float breath = 0.7 + 0.3 * sin(iTime * 1.5);\n    float core = 0.05 / (d + 0.05) * breath;\n    float halo = 0.02 / (d + 0.02) * (1.0 - breath) * 0.5;\n    vec3 col = core * vec3(1.0, 0.3, 0.1) + halo * vec3(0.3, 0.5, 1.0);\n    float rays = sin(atan(uv.y, uv.x) * 8.0 + iTime * 2.0) * 0.5 + 0.5;\n    col += rays * 0.02 / (d + 0.1) * vec3(1.0, 0.8, 0.3);\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    float bx = floor(uv.x * 4.0);\n    float by = floor(uv.y * 4.0);\n    float id = bx + by * 4.0;\n    vec3 col = 0.5 + 0.5 * cos(id * 0.7 + iTime * 1.5 + vec3(0.0, 2.0, 4.0));\n    fragColor = vec4(col, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float d = abs(uv.x) + abs(uv.y);\n    float wave = sin(d * 15.0 - iTime * 3.0) * 0.5 + 0.5;\n    vec3 col = mix(vec3(0.1, 0.0, 0.3), vec3(1.0, 0.5, 0.0), wave);\n    fragColor = vec4(col, 1.0);\n}',
     ],
 }
 

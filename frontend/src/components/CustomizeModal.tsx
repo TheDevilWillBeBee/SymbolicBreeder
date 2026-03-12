@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Program } from '../types';
 import { getPlugin } from '../modalityRegistry';
 import { useSessionStore } from '../store/sessionStore';
+import { highlightCode } from '../utils/syntaxHighlight';
 
 interface Props {
   program: Program;
@@ -20,8 +21,14 @@ export function CustomizeModal({ program, onClose }: Props) {
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLPreElement>(null);
 
   const plugin = modality ? getPlugin(modality) : null;
+  const codeModality = modality ?? program.modality;
+  const highlightedCode = useMemo(
+    () => highlightCode(code.endsWith('\n') ? code : `${code}\n`, codeModality),
+    [code, codeModality],
+  );
 
   // Auto-focus the textarea
   useEffect(() => {
@@ -56,6 +63,12 @@ export function CustomizeModal({ program, onClose }: Props) {
     setCustomizedCode(program.id, code);
     onClose();
   }, [code, program.id, setCustomizedCode, onClose]);
+
+  const handleEditorScroll = useCallback(() => {
+    if (!textareaRef.current || !highlightRef.current) return;
+    highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+    highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
+  }, []);
 
   // Handle Escape key
   useEffect(() => {
@@ -104,13 +117,24 @@ export function CustomizeModal({ program, onClose }: Props) {
 
         <div className="customize-body">
           <div className="customize-editor">
-            <textarea
-              ref={textareaRef}
-              className="code-textarea"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              spellCheck={false}
-            />
+            <div className="code-editor-stack">
+              <pre
+                ref={highlightRef}
+                className="code-highlight"
+                aria-hidden
+              >
+                <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+              </pre>
+              <textarea
+                ref={textareaRef}
+                className="code-textarea code-textarea-overlay"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                onScroll={handleEditorScroll}
+                wrap="off"
+                spellCheck={false}
+              />
+            </div>
           </div>
           <div className="customize-preview">
             {previewError && (

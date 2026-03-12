@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ModalitySelector } from './components/ModalitySelector';
 import { ModelSelector } from './components/ModelSelector';
 import { ProgramGrid } from './components/ProgramGrid';
@@ -14,7 +14,8 @@ import { Program } from './types';
 import './App.css';
 
 export default function App() {
-  const { play, stop, isReady } = useStrudelPlayer();
+  const modality = useSessionStore((s) => s.modality);
+  const { play, stop, isReady } = useStrudelPlayer(modality === 'strudel');
   const { startNewSession, evolve } = useEvolution();
 
   const [modalProgram, setModalProgram] = useState<Program | null>(null);
@@ -26,7 +27,6 @@ export default function App() {
   const selectedProgramIds = useSessionStore((s) => s.selectedProgramIds);
   const guidance = useSessionStore((s) => s.guidance);
   const session = useSessionStore((s) => s.session);
-  const modality = useSessionStore((s) => s.modality);
   const isEvolving = useSessionStore((s) => s.isEvolving);
   const isLoading = useSessionStore((s) => s.isLoading);
   const customizedPrograms = useSessionStore((s) => s.customizedPrograms);
@@ -34,6 +34,19 @@ export default function App() {
 
   const hasSession = session !== null;
   const hasModality = modality !== null;
+
+  useEffect(() => {
+    const cls = 'modality-non-strudel';
+    if (modality !== 'strudel') {
+      document.body.classList.add(cls);
+    } else {
+      document.body.classList.remove(cls);
+    }
+
+    return () => {
+      document.body.classList.remove(cls);
+    };
+  }, [modality]);
 
   const handlePlay = useCallback(
     (program: Program) => {

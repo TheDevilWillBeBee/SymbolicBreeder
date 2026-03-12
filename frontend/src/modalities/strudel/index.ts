@@ -71,6 +71,23 @@ async function stopPlayback(): Promise<void> {
   }
 }
 
+function destroyEditor(): void {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  stopPlayback();
+
+  if (editorElement?.parentNode) {
+    editorElement.parentNode.removeChild(editorElement);
+  }
+
+  editorElement = null;
+  editorInstance = null;
+  editorReady = false;
+}
+
 // ── Plugin implementation ──
 
 export const strudelPlugin: ModalityPlugin = {
@@ -124,4 +141,4 @@ export const strudelPlugin: ModalityPlugin = {
 };
 
 // Export helpers for useStrudelPlayer hook compatibility
-export { ensureEditor, editorReady, playCode, stopPlayback };
+export { ensureEditor, destroyEditor, editorReady, playCode, stopPlayback };

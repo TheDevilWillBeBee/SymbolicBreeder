@@ -109,8 +109,9 @@ export function ProgramCard({
             className="code-btn"
             onClick={() => onShowCode(program)}
             title="View code"
+            aria-label="View code"
           >
-            { }
+            {'</>'}
           </button>
         </div>
       </div>

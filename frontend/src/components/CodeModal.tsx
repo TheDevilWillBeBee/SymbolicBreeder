@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Program } from '../types';
 import { useSessionStore } from '../store/sessionStore';
+import { highlightCode } from '../utils/syntaxHighlight';
 
 interface Props {
   program: Program | null;
@@ -11,6 +13,10 @@ export function CodeModal({ program, onClose }: Props) {
 
   const customizedPrograms = useSessionStore.getState().customizedPrograms;
   const displayCode = customizedPrograms[program.id] ?? program.code;
+  const highlightedCode = useMemo(
+    () => highlightCode(displayCode.endsWith('\n') ? displayCode : `${displayCode}\n`, program.modality),
+    [displayCode, program.modality],
+  );
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -19,8 +25,8 @@ export function CodeModal({ program, onClose }: Props) {
           <h3>Program Code</h3>
           <button onClick={onClose}>✕</button>
         </div>
-        <pre className="modal-code">
-          <code>{displayCode}</code>
+        <pre className="modal-code code-highlight-static">
+          <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
         </pre>
         <div className="modal-meta">
           <span>Generation {program.generation + 1}</span>
