@@ -4,7 +4,6 @@
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/[...path].py": {
-      "runtime": "python3.11",
       "maxDuration": 60,
       "includeFiles": "backend/context/**"
     }
