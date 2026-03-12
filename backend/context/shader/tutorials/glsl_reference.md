@@ -70,11 +70,34 @@ vec2 d = vec2(a.xy);          // (1.0, 1.0)
 | `normalize(v)` | Unit vector |
 | `reflect(I, N)` | Reflection vector |
 
+## For Loops
+
+Loops must have compile-time-known bounds in GLSL ES 1.0:
+
+```glsl
+// Valid — constant bounds
+for (int i = 0; i < 8; i++) {
+    // iterative computation
+}
+
+// Valid — nested loops
+for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+        // grid iteration
+    }
+}
+
+// INVALID — variable bounds
+int n = 8;
+for (int i = 0; i < n; i++) { }  // won't compile
+```
+
+Common uses: FBM octaves, raymarching steps, fractal iteration, metaball accumulation, geometric folding.
+
 ## Important Notes
 
 - All float literals must include a decimal point: `1.0` not `1`
 - Division by zero produces undefined results — guard with small epsilon
 - `atan(y, x)` returns angle in radians (-π to π)
 - `mod()` handles negative values differently than some languages
-- Loops must have compile-time-known bounds in GLSL ES 1.0
 - No recursive functions allowed

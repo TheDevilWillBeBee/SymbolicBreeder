@@ -25,7 +25,7 @@ sources:
   enabled: true
   category: tutorial
   path: tutorials/animation_patterns.md
-  description: "Using uSin/uCos for animation, color tricks, common math patterns"
+  description: "Animation with iTime, color tricks, for loops, SDF, FBM, domain warping"
   inject_into: [ system ]
 
 # ── Examples ──

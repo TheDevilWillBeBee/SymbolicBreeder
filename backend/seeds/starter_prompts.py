@@ -18,11 +18,11 @@ SEED_PROMPTS = {
         "Include:\n"
         "1. A geometric pattern (circles, grids, or polygons)\n"
         "2. A color gradient animation\n"
-        "3. A noise/organic texture\n"
+        "3. A noise/organic texture using FBM with a for loop\n"
         "4. A spiral or radial pattern\n"
-        "5. An abstract composition\n"
+        "5. An abstract composition with helper functions\n"
         "6. An experimental/wild visual\n\n"
-        "Each should be under 40 lines with animated uSin/uCos uniforms.\n"
+        "Use iTime for animation. Helper functions and for loops are encouraged.\n"
         "Output each in a ```glsl``` code block."
     ),
 }

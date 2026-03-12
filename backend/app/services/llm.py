@@ -48,26 +48,42 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
     },
     "shader": {
         "role": (
-            "You are a shader programmer. You write GLSL fragment shaders using the "
+            "You are an expert shader programmer and creative coder. You write GLSL fragment shaders using the "
             "Shadertoy-compatible mainImage convention. You output ONLY valid GLSL code, "
             "one shader per block, wrapped in ```glsl``` fences.\n\n"
             "IMPORTANT RULES:\n"
             "- Your code block must contain the mainImage function: void mainImage(out vec4 fragColor, in vec2 fragCoord)\n"
-            "- You MAY define helper functions (e.g. noise, palette, sdf shapes) ABOVE mainImage in the same code block\n"
-            "- Available uniforms: uniform vec2 iResolution; uniform float uSin; uniform float uCos;\n"
-            "- uSin = sin(2*PI*t/5), uCos = cos(2*PI*t/5) where t is time — use these for 5-second looping animation\n"
-            "- Keep programs SHORT: 10-80 lines maximum including any helper functions. Prefer concise, elegant math.\n"
+            "- You SHOULD define helper functions (e.g. noise, fbm, palette, sdf shapes, rotation) ABOVE mainImage in the same code block\n"
+            "- Available uniforms: uniform vec2 iResolution; uniform float iTime;\n"
+            "- iTime is elapsed time in seconds — use it freely for animation (sin(iTime), cos(iTime*0.5), fract(iTime), etc.)\n"
+            "- Prefer concise, elegant code but don't sacrifice visual complexity for brevity\n"
+            "- Use for loops for iterative effects: FBM noise octaves, raymarching steps, fractal iterations, repeated geometry\n"
+            "- Use helper functions to keep mainImage readable and enable complex effects\n"
             "- Do NOT declare your own uniforms or attributes\n"
             "- Do NOT include a main() function — only mainImage() and optional helpers\n"
             "- Do NOT use textures, iChannel inputs, or iMouse\n"
-            "- Prefer visually striking, colorful output\n"
-            "- Use standard GLSL ES 1.0 functions only\n\n"
+            "- Prefer visually striking, colorful, artistic output — aim for Shadertoy quality\n"
+            "- Use standard GLSL ES 1.0 functions only\n"
+            "- For loops must have compile-time-known bounds (e.g. for(int i=0;i<8;i++))\n\n"
+            "TECHNIQUES TO USE:\n"
+            "- Cosine palettes: 0.5+0.5*cos(t+vec3(0,2,4))\n"
+            "- FBM (fractal Brownian motion) for organic noise textures\n"
+            "- Signed distance functions (SDFs) for crisp geometric shapes\n"
+            "- Raymarching for 3D scenes\n"
+            "- Domain repetition with mod() for infinite patterns\n"
+            "- Domain warping for fluid, organic distortion\n"
+            "- Polar coordinates for radial symmetry\n"
+            "- Iterative geometric folding for fractal-like patterns\n"
+            "- Compact math art using minimal code\n\n"
+            "ORIGINALITY:\n"
+            "- Do NOT copy or closely replicate the provided examples — they show valid syntax and techniques, but your output must be original\n"
+            "- Combine techniques in novel ways, use different parameter values, and create your own visual ideas\n"
+            "- Each shader should feel like a unique composition, not a variation of an example\n\n"
             "The wrapper around your code block is:\n"
             "```\n"
             "precision mediump float;\n"
             "uniform vec2  iResolution;\n"
-            "uniform float uSin;\n"
-            "uniform float uCos;\n"
+            "uniform float iTime;\n"
             "\n"
             "// YOUR CODE IS INSERTED HERE\n"
             "// (helper functions first, then mainImage)\n"
@@ -83,24 +99,27 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
         "reference_header": "GLSL Reference",
         "seed_prompt": (
             "Generate {n} diverse GLSL fragment shaders using the mainImage convention. "
-            "Each should produce a visually distinct animated output using uSin and uCos uniforms. "
-            "Include a variety of styles: geometric patterns, color gradients, noise-based textures, "
-            "pulsing shapes, spiral forms, and abstract art. "
-            "You may define helper functions (e.g. a noise(), palette(), or sdf function) above mainImage "
-            "when they improve clarity or enable more complex effects. Keep each shader under 80 lines total."
+            "Each should produce a visually distinct animated output using iTime. "
+            "Include a variety of styles and techniques: "
+            "FBM noise landscapes, raymarched 3D SDF scenes, fractal patterns (Julia/Mandelbrot), "
+            "geometric patterns with domain repetition, plasma and domain warping, "
+            "kaleidoscopes, particle-like effects, and abstract math art. "
+            "Define helper functions (noise, fbm, sdf, palette, rotation) to enable complex effects. "
+            "Use for loops where appropriate (FBM octaves, raymarching, fractal iteration)."
         ),
         "evolve_prompt": (
             "Generate {n} new GLSL shaders that are mutations or crossovers of the parents. "
             "Each should be visually related to the parents but distinctly different. "
-            "Try variations in color, geometry, animation speed, and mathematical transformations. "
-            "You may introduce or remove helper functions as part of the mutation — for example, "
-            "extracting a repeated expression into a palette() or noise() helper, or inlining an "
-            "existing helper to make room for a new visual idea."
+            "Try variations in color palettes, geometry, animation speed, mathematical transformations, "
+            "and complexity. You may introduce or remove helper functions, add for loops for "
+            "iterative effects (FBM, raymarching, fractal iteration), change SDF shapes, "
+            "alter domain warping, or combine techniques from multiple parents."
         ),
         "variety_suffix": (
-            "\n\nVary your output: some simple single-function shaders, some using helpers for "
-            "complex effects, one experimental wildcard. Output ONLY ```glsl``` code blocks "
-            "containing helper functions (if any) followed by mainImage. No explanations."
+            "\n\nVary your output: some simple elegant shaders, some using helpers and for loops for "
+            "complex effects (FBM, raymarching, fractals), one experimental wildcard pushing creative boundaries. "
+            "Output ONLY ```glsl``` code blocks containing helper functions (if any) followed by mainImage. "
+            "No explanations."
         ),
     },
 }
@@ -172,7 +191,7 @@ async def _llm_generate(
         examples_section = ""
         if evolve_context:
             examples_section = (
-                "\n\n## Example Programs for Inspiration\n\n" + evolve_context + "\n\n"
+                "\n\n## Technique Reference (do NOT replicate — create original variations of the parents)\n\n" + evolve_context + "\n\n"
             )
 
         prompt = (
@@ -185,7 +204,7 @@ async def _llm_generate(
         seed_context = get_seed_context(modality)
         examples_section = ""
         if seed_context:
-            examples_section = "\n\n## Example Programs\n\n" + seed_context + "\n\n"
+            examples_section = "\n\n## Reference Programs (for syntax and technique reference only — do NOT copy these)\n\n" + seed_context + "\n\n"
 
         prompt = f"{examples_section}" + config["seed_prompt"].format(n=population_size)
 
@@ -256,7 +275,7 @@ _MOCK_POOLS: dict[str, list[str]] = {
             "    vec2 uv = fragCoord / iResolution.xy;\n"
             "    vec2 center = vec2(0.5);\n"
             "    float d = length(uv - center);\n"
-            "    float r = 0.25 + 0.1 * uSin;\n"
+            "    float r = 0.25 + 0.1 * sin(iTime);\n"
             "    float glow = smoothstep(r, r - 0.05, d);\n"
             "    vec3 col = glow * vec3(0.2, 0.6, 1.0);\n"
             "    fragColor = vec4(col, 1.0);\n"
@@ -266,7 +285,7 @@ _MOCK_POOLS: dict[str, list[str]] = {
         (
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
             "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    float t = uv.x + uSin * 0.3;\n"
+            "    float t = uv.x + iTime * 0.3;\n"
             "    vec3 col = 0.5 + 0.5 * cos(6.2831 * (t + vec3(0.0, 0.33, 0.67)));\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
@@ -276,103 +295,146 @@ _MOCK_POOLS: dict[str, list[str]] = {
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
             "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
             "    float d = length(uv);\n"
-            "    float wave = sin(d * 30.0 - uSin * 10.0);\n"
+            "    float wave = sin(d * 30.0 - iTime * 4.0);\n"
             "    vec3 col = vec3(wave * 0.5 + 0.5) * vec3(0.9, 0.3, 0.6);\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
         ),
-        # 4 — Rotating grid
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    float a = atan(uv.y, uv.x) + uSin * 0.5;\n"
-            "    float r = length(uv);\n"
-            "    float pat = sin(a * 6.0) * cos(r * 20.0 + uCos * 5.0);\n"
-            "    vec3 col = vec3(pat * 0.5 + 0.5, r, 0.8 - r);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 5 — Plasma
+        # 4 — Plasma with cosine palette
         (
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
             "    vec2 uv = fragCoord / iResolution.xy * 4.0;\n"
-            "    float v = sin(uv.x * 3.0 + uSin * 5.0);\n"
-            "    v += sin(uv.y * 3.0 + uCos * 5.0);\n"
-            "    v += sin((uv.x + uv.y) * 2.0 + uSin * 3.0);\n"
+            "    float v = sin(uv.x * 3.0 + iTime * 2.0);\n"
+            "    v += sin(uv.y * 3.0 + iTime * 1.5);\n"
+            "    v += sin((uv.x + uv.y) * 2.0 + iTime);\n"
             "    v += sin(length(uv) * 3.0);\n"
-            "    vec3 col = 0.5 + 0.5 * cos(v + vec3(0.0, 2.0, 4.0));\n"
+            "    vec3 col = 0.5 + 0.5 * cos(v + iTime + vec3(0.0, 2.0, 4.0));\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
         ),
-        # 6 — Checkerboard warp
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    uv *= 5.0 + uSin * 2.0;\n"
-            "    float c = mod(floor(uv.x) + floor(uv.y), 2.0);\n"
-            "    vec3 col = mix(vec3(0.1, 0.1, 0.2), vec3(1.0, 0.8, 0.3), c);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 7 — Spiral
+        # 5 — Spiral galaxy
         (
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
             "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
             "    float a = atan(uv.y, uv.x);\n"
             "    float r = length(uv);\n"
-            "    float spiral = sin(a * 3.0 + r * 20.0 - uSin * 8.0);\n"
-            "    vec3 col = vec3(spiral * 0.5 + 0.5) * vec3(0.3, 0.7, 1.0);\n"
-            "    col += 0.1 / (r + 0.1);\n"
+            "    float spiral = sin(a * 3.0 + r * 20.0 - iTime * 3.0);\n"
+            "    float brightness = 0.03 / (r + 0.03);\n"
+            "    vec3 col = (spiral * 0.5 + 0.5) * vec3(0.4, 0.6, 1.0) * brightness;\n"
+            "    col += 0.01 / (r + 0.01) * vec3(1.0, 0.9, 0.7);\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
         ),
-        # 8 — Color blocks
+        # 6 — FBM noise with helper
         (
+            "float hash(vec2 p) {\n"
+            "    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n"
+            "}\n\n"
+            "float noise(vec2 p) {\n"
+            "    vec2 i = floor(p);\n"
+            "    vec2 f = fract(p);\n"
+            "    f = f * f * (3.0 - 2.0 * f);\n"
+            "    float a = hash(i);\n"
+            "    float b = hash(i + vec2(1.0, 0.0));\n"
+            "    float c = hash(i + vec2(0.0, 1.0));\n"
+            "    float d = hash(i + vec2(1.0, 1.0));\n"
+            "    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n"
+            "}\n\n"
+            "float fbm(vec2 p) {\n"
+            "    float v = 0.0;\n"
+            "    float a = 0.5;\n"
+            "    for (int i = 0; i < 5; i++) {\n"
+            "        v += a * noise(p);\n"
+            "        p *= 2.0;\n"
+            "        a *= 0.5;\n"
+            "    }\n"
+            "    return v;\n"
+            "}\n\n"
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
             "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    float bx = floor(uv.x * 4.0);\n"
-            "    float by = floor(uv.y * 4.0);\n"
-            "    float id = bx + by * 4.0;\n"
-            "    vec3 col = 0.5 + 0.5 * cos(id * 0.7 + uSin * 3.0 + vec3(0.0, 2.0, 4.0));\n"
+            "    float n = fbm(uv * 5.0 + iTime * 0.3);\n"
+            "    vec3 col = 0.5 + 0.5 * cos(n * 6.0 + iTime + vec3(0.0, 2.0, 4.0));\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
         ),
-        # 9 — Noise-like pattern
-        (
-            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    float n = fract(sin(dot(uv * (10.0 + uSin), vec2(12.9898, 78.233))) * 43758.5453);\n"
-            "    vec3 col = vec3(n) * vec3(0.6 + 0.4 * uCos, 0.3, 0.8);\n"
-            "    fragColor = vec4(col, 1.0);\n"
-            "}"
-        ),
-        # 10 — Diamond wave
+        # 7 — Metaballs with loop
         (
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
             "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
-            "    float d = abs(uv.x) + abs(uv.y);\n"
-            "    float wave = sin(d * 15.0 - uSin * 6.0) * 0.5 + 0.5;\n"
-            "    vec3 col = mix(vec3(0.1, 0.0, 0.3), vec3(1.0, 0.5, 0.0), wave);\n"
+            "    float v = 0.0;\n"
+            "    for (int i = 0; i < 6; i++) {\n"
+            "        float fi = float(i);\n"
+            "        vec2 p = vec2(sin(iTime * 0.7 + fi * 1.3), cos(iTime * 0.5 + fi * 1.7)) * 0.4;\n"
+            "        v += 0.02 / length(uv - p);\n"
+            "    }\n"
+            "    vec3 col = 0.5 + 0.5 * cos(v * 0.5 + iTime + vec3(0.0, 2.0, 4.0));\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
         ),
-        # 11 — Breathing glow
+        # 8 — Iterative folding art
+        (
+            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
+            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
+            "    vec3 col = vec3(0.0);\n"
+            "    for (int i = 0; i < 8; i++) {\n"
+            "        float t = iTime * 0.5 + float(i) * 0.4;\n"
+            "        uv = abs(uv) - 0.5;\n"
+            "        uv *= mat2(cos(t), -sin(t), sin(t), cos(t));\n"
+            "        col += 0.02 / abs(uv.x) * (0.5 + 0.5 * cos(float(i) * 0.5 + vec3(0.0, 2.0, 4.0)));\n"
+            "    }\n"
+            "    fragColor = vec4(col, 1.0);\n"
+            "}"
+        ),
+        # 9 — Kaleidoscope
+        (
+            "mat2 rot(float a) {\n"
+            "    float c = cos(a), s = sin(a);\n"
+            "    return mat2(c, -s, s, c);\n"
+            "}\n\n"
+            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
+            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
+            "    uv *= rot(iTime * 0.2);\n"
+            "    float a = atan(uv.y, uv.x);\n"
+            "    float r = length(uv);\n"
+            "    a = mod(a, 6.2831 / 6.0) - 3.1415 / 6.0;\n"
+            "    vec2 p = vec2(cos(a), sin(a)) * r;\n"
+            "    float pat = sin(p.x * 15.0 + iTime * 2.0) * cos(p.y * 15.0 + iTime * 1.5);\n"
+            "    vec3 col = 0.5 + 0.5 * cos(pat * 3.0 + r * 5.0 + iTime + vec3(0.0, 2.0, 4.0));\n"
+            "    col *= smoothstep(0.8, 0.0, r);\n"
+            "    fragColor = vec4(col, 1.0);\n"
+            "}"
+        ),
+        # 10 — Domain warped stripes
+        (
+            "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
+            "    vec2 uv = fragCoord / iResolution.xy;\n"
+            "    uv += 0.1 * vec2(sin(uv.y * 10.0 + iTime), cos(uv.x * 10.0 + iTime * 0.7));\n"
+            "    float stripe = sin(uv.y * 40.0 + iTime * 2.0) * 0.5 + 0.5;\n"
+            "    vec3 col = mix(vec3(0.0, 0.1, 0.3), vec3(0.0, 0.9, 0.7), stripe);\n"
+            "    fragColor = vec4(col, 1.0);\n"
+            "}"
+        ),
+        # 11 — Breathing orb with rays
         (
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
             "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
             "    float d = length(uv);\n"
-            "    float intensity = 0.05 / (d + 0.05) * (0.7 + 0.3 * uSin);\n"
-            "    vec3 col = intensity * vec3(1.0, 0.4, 0.7);\n"
+            "    float breath = 0.7 + 0.3 * sin(iTime * 1.5);\n"
+            "    float core = 0.05 / (d + 0.05) * breath;\n"
+            "    float halo = 0.02 / (d + 0.02) * (1.0 - breath) * 0.5;\n"
+            "    vec3 col = core * vec3(1.0, 0.3, 0.1) + halo * vec3(0.3, 0.5, 1.0);\n"
+            "    float rays = sin(atan(uv.y, uv.x) * 8.0 + iTime * 2.0) * 0.5 + 0.5;\n"
+            "    col += rays * 0.02 / (d + 0.1) * vec3(1.0, 0.8, 0.3);\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
         ),
-        # 12 — Stripe warp
+        # 12 — Checkerboard warp
         (
             "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n"
-            "    vec2 uv = fragCoord / iResolution.xy;\n"
-            "    float y = uv.y + sin(uv.x * 10.0 + uSin * 4.0) * 0.1;\n"
-            "    float stripe = sin(y * 40.0) * 0.5 + 0.5;\n"
-            "    vec3 col = mix(vec3(0.0, 0.2, 0.4), vec3(0.0, 0.9, 0.7), stripe);\n"
+            "    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n"
+            "    uv *= 5.0 + sin(iTime) * 2.0;\n"
+            "    float c = mod(floor(uv.x) + floor(uv.y), 2.0);\n"
+            "    vec3 col = mix(vec3(0.1, 0.1, 0.2), vec3(1.0, 0.8, 0.3), c);\n"
             "    fragColor = vec4(col, 1.0);\n"
             "}"
         ),

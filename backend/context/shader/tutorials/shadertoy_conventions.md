@@ -11,6 +11,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 - `fragCoord` — pixel coordinates (0,0 is bottom-left, iResolution is top-right)
 - `fragColor` — output color as RGBA (set this to your desired pixel color)
 
+You may also define helper functions above mainImage (e.g. noise, sdf, palette, rotation).
+
 ## Coordinate Systems
 
 ### Screen UV (0 to 1)
@@ -39,14 +41,13 @@ In this system, the following uniforms are pre-declared:
 
 ```glsl
 uniform vec2  iResolution;  // Canvas width and height in pixels
-uniform float uSin;         // sin(2π·t/5) — oscillates -1 to 1 over 5 seconds
-uniform float uCos;         // cos(2π·t/5) — oscillates -1 to 1 over 5 seconds
+uniform float iTime;         // Elapsed time in seconds
 ```
 
 - `iResolution` — use for normalizing coordinates
-- `uSin` and `uCos` — use for smooth 5-second looping animation
+- `iTime` — elapsed seconds since start, use freely for animation: `sin(iTime)`, `cos(iTime * 0.5)`, `fract(iTime)`, etc.
 - These are the ONLY available uniforms. Do NOT declare your own.
-- Do NOT use `iTime`, `iMouse`, `iChannel0`, or other Shadertoy-specific uniforms.
+- Do NOT use `iMouse`, `iChannel0`, or other Shadertoy-specific uniforms.
 
 ## Output
 
@@ -62,8 +63,8 @@ Each color channel should be in the range 0.0 to 1.0.
 ```glsl
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = fragCoord / iResolution.xy;
-    fragColor = vec4(uv.x, uv.y, 0.5 + 0.5 * uSin, 1.0);
+    fragColor = vec4(uv.x, uv.y, 0.5 + 0.5 * sin(iTime), 1.0);
 }
 ```
 
-This shows a gradient that shifts blue channel with the animation cycle.
+This shows a gradient that shifts the blue channel over time.

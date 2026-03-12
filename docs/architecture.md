@@ -206,11 +206,10 @@ Creates a `<canvas>` element per card. Every card gets its own WebGL context —
 precision mediump float;
 
 uniform vec2  iResolution;
-uniform float uSin;   // sin(2π·t/5)
-uniform float uCos;   // cos(2π·t/5)
+uniform float iTime;
 
 // ---- user code ----
-// void mainImage(out vec4 fragColor, in vec2 fragCoord) { ... }
+// (helper functions, then mainImage)
 // -------------------
 
 void main() {
@@ -229,10 +228,8 @@ void main() {
 }
 ```
 
-Time uniforms `uSin` and `uCos` are driven by `requestAnimationFrame` using `performance.now()`:
-- `t = performance.now() / 1000`
-- `uSin = sin(2π · t / 5)`
-- `uCos = cos(2π · t / 5)`
+The `iTime` uniform is driven by `requestAnimationFrame` using `performance.now()`:
+- `iTime = performance.now() / 1000` (elapsed seconds)
 
 Cards use `IntersectionObserver` to pause the animation loop when scrolled off-screen.
 

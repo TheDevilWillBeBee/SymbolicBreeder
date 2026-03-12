@@ -20,8 +20,7 @@ const FRAGMENT_HEADER = `
 precision mediump float;
 
 uniform vec2  iResolution;
-uniform float uSin;
-uniform float uCos;
+uniform float iTime;
 
 `;
 
@@ -59,8 +58,7 @@ interface ShaderState {
   gl: WebGLRenderingContext;
   program: WebGLProgram;
   uResolution: WebGLUniformLocation | null;
-  uSin: WebGLUniformLocation | null;
-  uCos: WebGLUniformLocation | null;
+  uTime: WebGLUniformLocation | null;
   raf: number;
   canvas: HTMLCanvasElement;
 }
@@ -111,8 +109,7 @@ function setupWebGL(
     gl,
     program,
     uResolution: gl.getUniformLocation(program, 'iResolution'),
-    uSin: gl.getUniformLocation(program, 'uSin'),
-    uCos: gl.getUniformLocation(program, 'uCos'),
+    uTime: gl.getUniformLocation(program, 'iTime'),
     raf: 0,
     canvas,
   };
@@ -120,11 +117,9 @@ function setupWebGL(
 
 function startRenderLoop(state: ShaderState): void {
   const { gl, canvas } = state;
-  const TWO_PI_OVER_5 = (2.0 * Math.PI) / 5.0;
 
   const draw = () => {
     const t = performance.now() / 1000.0;
-    const phase = t * TWO_PI_OVER_5;
 
     // Resize canvas to match display size
     const dw = canvas.clientWidth;
@@ -136,8 +131,7 @@ function startRenderLoop(state: ShaderState): void {
 
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.uniform2f(state.uResolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.uniform1f(state.uSin, Math.sin(phase));
-    gl.uniform1f(state.uCos, Math.cos(phase));
+    gl.uniform1f(state.uTime, t);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     state.raf = requestAnimationFrame(draw);

@@ -9,7 +9,7 @@ Select programs you like, optionally add guidance text, and press **Evolve** —
 | Modality | Output | Technology |
 |---|---|---|
 | **Strudel** | Live-coded music | [strudel.cc](https://strudel.cc) web component |
-| **WebGL Shader** | Animated visuals (~5s loop) | WebGL / GLSL fragment shaders |
+| **WebGL Shader** | Animated visuals | WebGL / GLSL fragment shaders |
 
 More modalities (p5.js, Tone.js, SVG, etc.) can be added without touching core logic — see [docs/modality-plugin-guide.md](docs/modality-plugin-guide.md).
 

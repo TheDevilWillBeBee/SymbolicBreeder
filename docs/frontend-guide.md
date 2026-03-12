@@ -224,7 +224,7 @@ Internally:
 2. Wraps user code in the fragment shader template and compiles
 3. On compile error: stores the error string; caller displays it
 4. Sets up a fullscreen quad geometry
-5. Starts `requestAnimationFrame` loop, updating `uSin` / `uCos` each frame
+5. Starts `requestAnimationFrame` loop, updating `iTime` each frame
 6. Returns a cleanup fn for cancelling the loop and losing the context
 
 ---
@@ -283,14 +283,15 @@ interface ModalityPlugin {
 | Uniform | Type | Value |
 |---|---|---|
 | `iResolution` | `vec2` | Canvas width × height in pixels |
-| `uSin` | `float` | `sin(2π · t / 5)` where `t` = seconds |
-| `uCos` | `float` | `cos(2π · t / 5)` |
+| `iTime` | `float` | Elapsed time in seconds (`performance.now() / 1000`) |
 
 ### User code contract
 
-LLM-generated shader programs must define exactly:
+LLM-generated shader programs must define a `mainImage` function and may include helper functions above it:
 
 ```glsl
+// Optional helper functions (noise, sdf, palette, rotation, etc.)
+
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   // ... user code ...
 }
