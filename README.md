@@ -54,6 +54,115 @@ Open [http://localhost:3000](http://localhost:3000).
 
 The Vite dev server proxies all `/api` requests to `http://localhost:8000` automatically.
 
+## Local Testing Checklist
+
+Run these in order to validate local behavior end-to-end:
+
+1. Start backend (`uvicorn app.main:app --reload --port 8000`)
+2. Start frontend (`npm run dev` in `frontend/`)
+3. Health check:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+4. Session creation smoke test:
+
+```bash
+curl -s -X POST http://localhost:8000/api/sessions \
+    -H "Content-Type: application/json" \
+    -d '{"modality":"shader","name":"local-smoke"}'
+```
+
+5. Open the app (`http://localhost:3000`) and verify:
+- create a session
+- evolve at least one generation
+- no backend errors in terminal
+
+## Vercel Setup
+
+This repository is configured to deploy both frontend and backend in one Vercel project:
+- static frontend build output from `frontend/dist`
+- Python function backend via `api/[...path].py`
+- `/api/*` handled by the serverless function
+
+### 1. Vercel CLI (if `vercel` command is missing)
+
+Use either `npx` (no global install) or a global install.
+
+`npx` approach:
+
+```bash
+npx vercel@latest login
+npx vercel@latest link
+```
+
+Global install approach:
+
+```bash
+npm install -g vercel
+vercel login
+vercel link
+```
+
+### 2. Environment Variables (Production)
+
+Set these in Vercel Project Settings (Neon integration usually injects Postgres vars automatically):
+- `DATABASE_URL` and/or `POSTGRES_*`
+- `CORS_ALLOW_ORIGINS`
+- `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY` (optional)
+
+### 3. Initialize Database Schema (required)
+
+The app uses Alembic migrations. Tables are not auto-created at runtime.
+
+Pull production env vars locally:
+
+```bash
+npx vercel@latest env pull .env.vercel --environment=production
+```
+
+Run migrations against production DB:
+
+```bash
+cd backend
+set -a
+source ../.env.vercel
+set +a
+export DATABASE_URL="${POSTGRES_URL_NON_POOLING:-$DATABASE_URL}"
+alembic upgrade head
+alembic current
+```
+
+### 4. Deploy
+
+Deploy from Vercel dashboard or CLI (`npx vercel@latest --prod`).
+
+## Vercel Testing Checklist
+
+After deployment:
+
+1. Health endpoint:
+
+```bash
+curl https://<your-vercel-domain>/api/health
+```
+
+2. Session API:
+
+```bash
+curl -s -X POST https://<your-vercel-domain>/api/sessions \
+    -H "Content-Type: application/json" \
+    -d '{"modality":"shader","name":"prod-smoke"}'
+```
+
+3. Frontend flow:
+- open deployed app
+- set provider/model/API key as needed
+- create session and evolve one generation
+
+If you get `relation "sessions" does not exist`, migrations have not been applied to the production database yet.
+
 ## Environment Variables
 
 | Variable | Default | Description |
