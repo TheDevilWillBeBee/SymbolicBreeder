@@ -24,7 +24,7 @@ Mini-notation is a compact string syntax for describing patterns.
 ## Combining
 
 - Sequences in brackets: `"[bd sd] hh [cp cp cp]"`
-- Nested alternation: `"<[bd sd] [bd bd sd]>"` — alternate between two patterns each cycle
+- Nested alternation: `"<[bd sd] [bd bd sd]>"`
 - Stacked (comma): `"bd*4, ~ sd ~ sd, hh*8"` — three layers
 - Mixed: `"<bd [bd bd]> sd <[hh hh hh] hh*4>"`
 
@@ -46,6 +46,6 @@ s("bd*4, ~ sd ~ sd, hh*8")
 // Breakbeat
 s("[bd bd] ~ [~ bd] ~, ~ sd ~ sd, hh*8")
 
-// Simple hip-hop
+// Hip-hop with swing
 s("bd ~ ~ bd ~ ~ bd ~, ~ ~ sd ~ ~ ~ sd ~, hh*8")
 ```
