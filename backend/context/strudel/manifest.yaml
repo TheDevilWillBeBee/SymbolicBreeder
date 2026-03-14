@@ -57,11 +57,11 @@ sources:
   category: examples
   path: examples/community_examples.md
   description: "Curated community compositions showing diverse styles and full arrangements"
-  inject_into: [ seed, evolve ]
+  inject_into: [ system ]
 
 - id: simple_patterns
   enabled: true
   category: examples
   path: examples/simple_patterns.md
   description: "Short atomic patterns ideal for seed generation"
-  inject_into: [ seed ]
+  inject_into: [ system ]

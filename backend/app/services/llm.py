@@ -7,7 +7,7 @@ import random
 from dataclasses import dataclass
 from typing import Optional
 
-from .context import get_system_context, get_seed_context, get_evolve_context
+from .context import get_system_context
 from .providers import get_provider, LLMRequest
 
 logger = logging.getLogger(__name__)
@@ -265,22 +265,12 @@ async def _llm_generate(
     system_prompt = _build_system_prompt(modality)
     fence = config["fence"]
 
-    # Static context (examples/references) — cacheable separately from the dynamic prompt
-    user_context = ""
-
     if parent_codes:
         # ── Evolution mode ──
         parent_section = "\n\n".join(
             f"Parent {i + 1}:\n```{fence}\n{code}\n```"
             for i, code in enumerate(parent_codes)
         )
-
-        evolve_context = get_evolve_context(modality)
-        if evolve_context:
-            user_context = (
-                "## Technique Reference (do NOT replicate — create original variations of the parents)\n\n"
-                + evolve_context
-            )
 
         prompt = (
             f"Here are the parent programs the user selected:\n\n"
@@ -289,13 +279,6 @@ async def _llm_generate(
         )
     else:
         # ── Seed mode ──
-        seed_context = get_seed_context(modality)
-        if seed_context:
-            user_context = (
-                "## Reference Programs (for syntax and technique reference only — do NOT copy these)\n\n"
-                + seed_context
-            )
-
         prompt = config["seed_prompt"].format(n=population_size)
 
     if guidance:
@@ -304,16 +287,15 @@ async def _llm_generate(
     prompt += config.get("variety_suffix", "")
 
     logger.info(
-        "Sending LLM request (provider=%s, model=%s, modality=%s, system=%d chars, user_context=%d chars, user=%d chars)",
+        "Sending LLM request (provider=%s, model=%s, modality=%s, system=%d chars, user=%d chars)",
         provider_key,
         model,
         modality,
         len(system_prompt),
-        len(user_context),
         len(prompt),
     )
 
-    llm_request = LLMRequest(system=system_prompt, user=prompt, user_context=user_context)
+    llm_request = LLMRequest(system=system_prompt, user=prompt)
     response = await provider.complete(llm_request, api_key)
 
     return _parse_code_blocks(response.text, fence, population_size, modality)

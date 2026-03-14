@@ -17,7 +17,7 @@ class OpenAIProvider(LLMProvider):
             max_tokens=request.max_tokens,
             messages=[
                 {"role": "system", "content": request.system},
-                {"role": "user", "content": (request.user_context + "\n\n" + request.user) if request.user_context else request.user},
+                {"role": "user", "content": request.user},
             ],
         )
         return LLMResponse(text=response.choices[0].message.content)

@@ -11,19 +11,6 @@ class AnthropicProvider(LLMProvider):
         import anthropic
 
         client = anthropic.AsyncAnthropic(api_key=api_key)
-
-        # Build user content blocks — cache the static context separately
-        user_content = []
-        if request.user_context:
-            user_content.append(
-                {
-                    "type": "text",
-                    "text": request.user_context,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            )
-        user_content.append({"type": "text", "text": request.user})
-
         response = await client.messages.create(
             model=self.model,
             max_tokens=request.max_tokens,
@@ -34,7 +21,7 @@ class AnthropicProvider(LLMProvider):
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            messages=[{"role": "user", "content": user_content}],
+            messages=[{"role": "user", "content": request.user}],
         )
         return LLMResponse(text=response.content[0].text)
 

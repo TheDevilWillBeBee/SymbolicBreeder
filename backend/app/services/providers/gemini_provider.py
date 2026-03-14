@@ -14,7 +14,7 @@ class GeminiProvider(LLMProvider):
         client = genai.Client(api_key=api_key)
         response = await client.aio.models.generate_content(
             model=self.model,
-            contents=(request.user_context + "\n\n" + request.user) if request.user_context else request.user,
+            contents=request.user,
             config=types.GenerateContentConfig(
                 system_instruction=request.system,
                 max_output_tokens=request.max_tokens,
