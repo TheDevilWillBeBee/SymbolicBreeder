@@ -260,6 +260,7 @@ export function useEvolution() {
         const addLog = useLogStore.getState().addLog;
         addLog('error', `Backend unavailable — using mock evolution. ${err instanceof Error ? err.message : ''}`);
       } finally {
+        store.setGuidance('');
         store.setIsEvolving(false);
       }
     },

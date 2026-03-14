@@ -67,7 +67,9 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   addGeneration: (programs) =>
     set((state) => {
-      const newGens = [...state.generations, programs];
+      // Truncate any future generations when evolving from a past point
+      const base = state.generations.slice(0, state.currentGeneration + 1);
+      const newGens = [...base, programs];
       return {
         generations: newGens,
         currentGeneration: newGens.length - 1,
