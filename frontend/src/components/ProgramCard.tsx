@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { Program, RenderHandle } from '../types';
 import { useSessionStore } from '../store/sessionStore';
 import { getPlugin } from '../modalityRegistry';
+import { StrudelHighlight } from './StrudelHighlight';
 
 interface Props {
   program: Program;
@@ -88,7 +89,8 @@ export function ProgramCard({
           className="program-card-preview strudel-preview"
           onClick={() => toggleProgramSelection(program.id)}
         >
-          <div className="strudel-icon">{isPlaying ? '🔊' : '♪'}</div>
+          <StrudelHighlight code={displayCode} />
+          {isPlaying && <div className="strudel-playing-indicator">♪</div>}
         </div>
       )}
 

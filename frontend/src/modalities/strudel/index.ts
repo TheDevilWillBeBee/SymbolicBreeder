@@ -97,15 +97,11 @@ export const strudelPlugin: ModalityPlugin = {
   description: 'Live-coded music patterns — evolve beats, melodies, and soundscapes',
 
   render(code: string, container: HTMLElement): RenderHandle {
-    // For strudel, the card shows a static music icon.
-    // Playback is triggered by ProgramCard's play button, not continuous.
     container.innerHTML = '';
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText =
-      'display:flex;align-items:center;justify-content:center;width:100%;height:100%;' +
-      'background:#0f1019;color:#8b5cf6;font-size:2.5rem;user-select:none;';
-    wrapper.textContent = '♪';
-    container.appendChild(wrapper);
+    const pre = document.createElement('pre');
+    pre.className = 'strudel-code-preview';
+    pre.textContent = code;
+    container.appendChild(pre);
     return {
       cleanup() {
         container.innerHTML = '';

@@ -418,33 +418,55 @@ body.modality-non-strudel .cm-panels {
 
 .program-card-preview {
   width: 100%;
-  aspect-ratio: 1;
   cursor: pointer;
   position: relative;
   overflow: hidden;
 }
 
 .shader-preview {
+  aspect-ratio: 1;
   background: #000;
 }
 
 .strudel-preview {
   background: var(--code-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  max-height: 180px;
+  overflow: hidden;
 }
 
-.strudel-icon {
-  font-size: 3rem;
-  color: var(--accent);
-  user-select: none;
+.strudel-code-preview {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  background: var(--code-bg);
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-.program-card.playing .strudel-icon {
+.strudel-playing-indicator {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  font-size: 1.2rem;
   color: var(--success);
   animation: pulse 1.6s ease-in-out infinite;
+  pointer-events: none;
 }
+
+/* Syntax highlighting tokens */
+.sh-kw { color: #c792ea; }
+.sh-str { color: #c3e88d; }
+.sh-num { color: #f78c6c; }
+.sh-cmt { color: #546e7a; font-style: italic; }
+.sh-fn { color: #82aaff; }
+.sh-op { color: #89ddff; }
+.sh-punc { color: #89ddff; }
 
 @keyframes pulse {
   0%,
