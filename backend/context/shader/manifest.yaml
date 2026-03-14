@@ -28,6 +28,13 @@ sources:
   description: "Animation with iTime, color tricks, for loops, SDF, FBM, domain warping"
   inject_into: [ system ]
 
+- id: buffer_shaders
+  enabled: true
+  category: tutorial
+  path: tutorials/buffer_shaders.md
+  description: "Ping-pong buffer patterns: Game of Life, reaction-diffusion, trails"
+  inject_into: [ system ]
+
 # ── Examples ──
 
 - id: example_shaders
@@ -43,3 +50,10 @@ sources:
   path: examples/simple_patterns.md
   description: "Minimal atomic visual patterns for seed generation"
   inject_into: [ seed ]
+
+- id: buffer_examples
+  enabled: true
+  category: examples
+  path: examples/buffer_examples.md
+  description: "Buffer shader examples: Game of Life, reaction-diffusion, trails"
+  inject_into: [ seed, evolve ]

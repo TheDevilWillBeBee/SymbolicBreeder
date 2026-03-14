@@ -5,6 +5,11 @@ import type { ModalityPlugin } from '../../types';
  *
  * Each card/preview gets its own WebGL context with a fullscreen quad.
  * User code is a mainImage() GLSL function wrapped in a standard shell.
+ *
+ * Supports two modes:
+ * - Memoryless: simple fragment shader with iResolution + iTime
+ * - Ping-pong buffer: reads previous frame via iBackBuffer, optional initImage
+ *   for custom initialization. Auto-detected by presence of "iBackBuffer" in code.
  */
 
 // ── WebGL boilerplate ──
@@ -24,6 +29,16 @@ uniform float iTime;
 
 `;
 
+const FRAGMENT_HEADER_BUFFER = `
+precision mediump float;
+
+uniform vec2  iResolution;
+uniform float iTime;
+uniform int   iFrame;
+uniform sampler2D iBackBuffer;
+
+`;
+
 const FRAGMENT_FOOTER = `
 
 void main() {
@@ -33,8 +48,30 @@ void main() {
 }
 `;
 
+const FRAGMENT_FOOTER_INIT = `
+
+void main() {
+  vec4 col = vec4(0.0);
+  initImage(col, gl_FragCoord.xy);
+  gl_FragColor = col;
+}
+`;
+
+function isBufferShader(code: string): boolean {
+  return code.includes('iBackBuffer');
+}
+
+function hasInitImage(code: string): boolean {
+  return code.includes('initImage');
+}
+
 function buildFragmentSource(userCode: string): string {
-  return FRAGMENT_HEADER + userCode + FRAGMENT_FOOTER;
+  const header = isBufferShader(userCode) ? FRAGMENT_HEADER_BUFFER : FRAGMENT_HEADER;
+  return header + userCode + FRAGMENT_FOOTER;
+}
+
+function buildInitSource(userCode: string): string {
+  return FRAGMENT_HEADER_BUFFER + userCode + FRAGMENT_FOOTER_INIT;
 }
 
 function compileShader(
@@ -54,32 +91,11 @@ function compileShader(
   return shader;
 }
 
-interface ShaderState {
-  gl: WebGLRenderingContext;
-  program: WebGLProgram;
-  uResolution: WebGLUniformLocation | null;
-  uTime: WebGLUniformLocation | null;
-  raf: number;
-  canvas: HTMLCanvasElement;
-}
-
-function setupWebGL(
-  canvas: HTMLCanvasElement,
-  userCode: string,
-): ShaderState | string {
-  const gl = canvas.getContext('webgl', { preserveDrawingBuffer: false });
-  if (!gl) return 'WebGL not supported';
-
-  // Compile vertex shader
-  const vs = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-  if (typeof vs === 'string') return vs;
-
-  // Compile fragment shader
-  const fragSource = buildFragmentSource(userCode);
-  const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragSource);
-  if (typeof fs === 'string') return fs;
-
-  // Link program
+function linkProgram(
+  gl: WebGLRenderingContext,
+  vs: WebGLShader,
+  fs: WebGLShader,
+): WebGLProgram | string {
   const program = gl.createProgram();
   if (!program) return 'Failed to create program';
   gl.attachShader(program, vs);
@@ -90,6 +106,124 @@ function setupWebGL(
     gl.deleteProgram(program);
     return log;
   }
+  return program;
+}
+
+// ── Ping-pong buffer helpers ──
+
+interface PingPongState {
+  fbos: [WebGLFramebuffer, WebGLFramebuffer];
+  textures: [WebGLTexture, WebGLTexture];
+  readIndex: number;
+  width: number;
+  height: number;
+  frame: number;
+  initProgram: WebGLProgram | null;
+  uInitResolution: WebGLUniformLocation | null;
+  uInitTime: WebGLUniformLocation | null;
+  initDone: boolean;
+}
+
+function createTexture(gl: WebGLRenderingContext, w: number, h: number): WebGLTexture | null {
+  const tex = gl.createTexture();
+  if (!tex) return null;
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  return tex;
+}
+
+function createPingPongResources(
+  gl: WebGLRenderingContext,
+  w: number,
+  h: number,
+): { fbos: [WebGLFramebuffer, WebGLFramebuffer]; textures: [WebGLTexture, WebGLTexture] } | string {
+  const texA = createTexture(gl, w, h);
+  const texB = createTexture(gl, w, h);
+  if (!texA || !texB) return 'Failed to create ping-pong textures';
+
+  const fboA = gl.createFramebuffer();
+  const fboB = gl.createFramebuffer();
+  if (!fboA || !fboB) return 'Failed to create ping-pong framebuffers';
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboA);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texA, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+    return 'Framebuffer A incomplete';
+  }
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texB, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+    return 'Framebuffer B incomplete';
+  }
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { fbos: [fboA, fboB], textures: [texA, texB] };
+}
+
+function resizePingPongTextures(
+  gl: WebGLRenderingContext,
+  pp: PingPongState,
+  w: number,
+  h: number,
+): void {
+  for (let i = 0; i < 2; i++) {
+    gl.bindTexture(gl.TEXTURE_2D, pp.textures[i]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  pp.width = w;
+  pp.height = h;
+  pp.initDone = false;
+  pp.frame = 0;
+}
+
+function destroyPingPongResources(gl: WebGLRenderingContext, pp: PingPongState): void {
+  gl.deleteFramebuffer(pp.fbos[0]);
+  gl.deleteFramebuffer(pp.fbos[1]);
+  gl.deleteTexture(pp.textures[0]);
+  gl.deleteTexture(pp.textures[1]);
+  if (pp.initProgram) gl.deleteProgram(pp.initProgram);
+}
+
+// ── Shader state ──
+
+interface ShaderState {
+  gl: WebGLRenderingContext;
+  program: WebGLProgram;
+  uResolution: WebGLUniformLocation | null;
+  uTime: WebGLUniformLocation | null;
+  uFrame: WebGLUniformLocation | null;
+  uBackBuffer: WebGLUniformLocation | null;
+  raf: number;
+  canvas: HTMLCanvasElement;
+  pingPong: PingPongState | null;
+}
+
+function setupWebGL(
+  canvas: HTMLCanvasElement,
+  userCode: string,
+): ShaderState | string {
+  const gl = canvas.getContext('webgl', { preserveDrawingBuffer: false });
+  if (!gl) return 'WebGL not supported';
+
+  // Compile vertex shader (shared across all programs)
+  const vs = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+  if (typeof vs === 'string') return vs;
+
+  // Compile main fragment shader
+  const fragSource = buildFragmentSource(userCode);
+  const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragSource);
+  if (typeof fs === 'string') return fs;
+
+  // Link main program
+  const program = linkProgram(gl, vs, fs);
+  if (typeof program === 'string') return program;
 
   gl.useProgram(program);
 
@@ -105,18 +239,64 @@ function setupWebGL(
   gl.enableVertexAttribArray(posAttr);
   gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
 
+  const isBuffer = isBufferShader(userCode);
+
+  // Set up ping-pong resources for buffer shaders
+  let pingPong: PingPongState | null = null;
+  if (isBuffer) {
+    const w = canvas.width || canvas.clientWidth || 256;
+    const h = canvas.height || canvas.clientHeight || 256;
+    const ppRes = createPingPongResources(gl, w, h);
+    if (typeof ppRes === 'string') return ppRes;
+
+    // Optionally compile init program
+    let initProgram: WebGLProgram | null = null;
+    let uInitResolution: WebGLUniformLocation | null = null;
+    let uInitTime: WebGLUniformLocation | null = null;
+    if (hasInitImage(userCode)) {
+      const initSource = buildInitSource(userCode);
+      const initFs = compileShader(gl, gl.FRAGMENT_SHADER, initSource);
+      if (typeof initFs === 'string') return `initImage compile error: ${initFs}`;
+
+      // Need a fresh vertex shader for the init program
+      const vsInit = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+      if (typeof vsInit === 'string') return vsInit;
+
+      const initProg = linkProgram(gl, vsInit, initFs);
+      if (typeof initProg === 'string') return `initImage link error: ${initProg}`;
+      initProgram = initProg;
+      uInitResolution = gl.getUniformLocation(initProg, 'iResolution');
+      uInitTime = gl.getUniformLocation(initProg, 'iTime');
+    }
+
+    pingPong = {
+      ...ppRes,
+      readIndex: 0,
+      width: w,
+      height: h,
+      frame: 0,
+      initProgram,
+      uInitResolution,
+      uInitTime,
+      initDone: false,
+    };
+  }
+
   return {
     gl,
     program,
     uResolution: gl.getUniformLocation(program, 'iResolution'),
     uTime: gl.getUniformLocation(program, 'iTime'),
+    uFrame: isBuffer ? gl.getUniformLocation(program, 'iFrame') : null,
+    uBackBuffer: isBuffer ? gl.getUniformLocation(program, 'iBackBuffer') : null,
     raf: 0,
     canvas,
+    pingPong,
   };
 }
 
 function startRenderLoop(state: ShaderState): void {
-  const { gl, canvas } = state;
+  const { gl, canvas, pingPong } = state;
 
   const draw = () => {
     const t = performance.now() / 1000.0;
@@ -129,10 +309,67 @@ function startRenderLoop(state: ShaderState): void {
       canvas.height = dh;
     }
 
-    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.uniform2f(state.uResolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.uniform1f(state.uTime, t);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    const w = gl.drawingBufferWidth;
+    const h = gl.drawingBufferHeight;
+
+    if (pingPong) {
+      // Resize ping-pong textures if canvas size changed
+      if (pingPong.width !== w || pingPong.height !== h) {
+        resizePingPongTextures(gl, pingPong, w, h);
+      }
+
+      // Run init shader on first frame (if initImage exists)
+      if (!pingPong.initDone) {
+        if (pingPong.initProgram) {
+          gl.useProgram(pingPong.initProgram);
+          gl.viewport(0, 0, w, h);
+          gl.uniform2f(pingPong.uInitResolution, w, h);
+          gl.uniform1f(pingPong.uInitTime, t);
+
+          // Init both buffers
+          for (let i = 0; i < 2; i++) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, pingPong.fbos[i]);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+        pingPong.initDone = true;
+        pingPong.frame = 0;
+      }
+
+      const readIdx = pingPong.readIndex;
+      const writeIdx = 1 - readIdx;
+
+      gl.useProgram(state.program);
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(state.uResolution, w, h);
+      gl.uniform1f(state.uTime, t);
+      gl.uniform1i(state.uFrame, pingPong.frame);
+
+      // Bind read texture to unit 0
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, pingPong.textures[readIdx]);
+      gl.uniform1i(state.uBackBuffer, 0);
+
+      // Simulation step: render to write FBO
+      gl.bindFramebuffer(gl.FRAMEBUFFER, pingPong.fbos[writeIdx]);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // Screen pass: render to screen reading from the just-written buffer
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.bindTexture(gl.TEXTURE_2D, pingPong.textures[writeIdx]);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // Swap buffers
+      pingPong.readIndex = writeIdx;
+      pingPong.frame++;
+    } else {
+      // Memoryless shader: simple draw
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(state.uResolution, w, h);
+      gl.uniform1f(state.uTime, t);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
 
     state.raf = requestAnimationFrame(draw);
   };
@@ -191,6 +428,9 @@ function renderShader(code: string, container: HTMLElement): () => void {
   return () => {
     observer.disconnect();
     cancelAnimationFrame(result.raf);
+    if (result.pingPong) {
+      destroyPingPongResources(result.gl, result.pingPong);
+    }
     const ext = result.gl.getExtension('WEBGL_lose_context');
     ext?.loseContext();
     container.innerHTML = '';

@@ -54,14 +54,14 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
             "IMPORTANT RULES:\n"
             "- Your code block must contain the mainImage function: void mainImage(out vec4 fragColor, in vec2 fragCoord)\n"
             "- You SHOULD define helper functions (e.g. noise, fbm, palette, sdf shapes, rotation) ABOVE mainImage in the same code block\n"
-            "- Available uniforms: uniform vec2 iResolution; uniform float iTime;\n"
+            "- Available uniforms (always): uniform vec2 iResolution; uniform float iTime;\n"
             "- iTime is elapsed time in seconds — use it freely for animation (sin(iTime), cos(iTime*0.5), fract(iTime), etc.)\n"
             "- Prefer concise, elegant code but don't sacrifice visual complexity for brevity\n"
             "- Use for loops for iterative effects: FBM noise octaves, raymarching steps, fractal iterations, repeated geometry\n"
             "- Use helper functions to keep mainImage readable and enable complex effects\n"
             "- Do NOT declare your own uniforms or attributes\n"
             "- Do NOT include a main() function — only mainImage() and optional helpers\n"
-            "- Do NOT use textures, iChannel inputs, or iMouse\n"
+            "- Do NOT use iChannel inputs or iMouse. You MAY use iBackBuffer for ping-pong buffer effects (see below)\n"
             "- Prefer visually striking, colorful, artistic output — aim for Shadertoy quality\n"
             "- Use standard GLSL ES 1.0 functions only\n"
             "- For loops must have compile-time-known bounds (e.g. for(int i=0;i<8;i++))\n\n"
@@ -74,19 +74,41 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
             "- Domain warping for fluid, organic distortion\n"
             "- Polar coordinates for radial symmetry\n"
             "- Iterative geometric folding for fractal-like patterns\n"
-            "- Compact math art using minimal code\n\n"
+            "- Compact math art using minimal code\n"
+            "- Ping-pong buffer effects for stateful simulations (see below)\n\n"
+            "PING-PONG BUFFER SHADERS (optional, advanced):\n"
+            "- For effects that need frame-to-frame memory (Game of Life, reaction-diffusion, fluid, trails):\n"
+            "  use `uniform sampler2D iBackBuffer` to read the previous frame's output\n"
+            "- The system auto-detects buffer mode when iBackBuffer appears in your code\n"
+            "- Read previous frame: texture2D(iBackBuffer, uv) where uv = fragCoord / iResolution.xy (0-1 range)\n"
+            "- Additional uniform in buffer mode: uniform int iFrame (frame counter, starts at 0)\n"
+            "- Optional: define initImage(out vec4 fragColor, in vec2 fragCoord) for custom buffer initialization\n"
+            "  If absent, buffers start as black (vec4(0.0)). If present, initImage runs once on the first frame\n"
+            "- mainImage runs every frame: read iBackBuffer, compute new state, write to fragColor\n"
+            "- Use iFrame == 0 as an alternative to initImage for simple inline initialization\n"
+            "- IMPORTANT: use fragCoord / iResolution.xy for texture lookups (0-1 normalized), NOT centered coordinates\n"
+            "- WHEN TO USE: only when the effect genuinely needs frame-to-frame memory\n"
+            "  Most effects (noise, SDF, raymarching, fractals) do NOT need buffers — prefer memoryless shaders when possible\n\n"
             "ORIGINALITY:\n"
             "- Do NOT copy or closely replicate the provided examples — they show valid syntax and techniques, but your output must be original\n"
             "- Combine techniques in novel ways, use different parameter values, and create your own visual ideas\n"
             "- Each shader should feel like a unique composition, not a variation of an example\n\n"
             "The wrapper around your code block is:\n"
             "```\n"
+            "// Standard mode:\n"
             "precision mediump float;\n"
             "uniform vec2  iResolution;\n"
             "uniform float iTime;\n"
             "\n"
+            "// Buffer mode (auto-applied when iBackBuffer is used):\n"
+            "precision mediump float;\n"
+            "uniform vec2  iResolution;\n"
+            "uniform float iTime;\n"
+            "uniform int   iFrame;\n"
+            "uniform sampler2D iBackBuffer;\n"
+            "\n"
             "// YOUR CODE IS INSERTED HERE\n"
-            "// (helper functions first, then mainImage)\n"
+            "// (helper functions first, then mainImage, optionally initImage)\n"
             "\n"
             "void main() {\n"
             "  vec4 col = vec4(0.0);\n"
@@ -103,7 +125,8 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
             "Include a variety of styles and techniques: "
             "FBM noise landscapes, raymarched 3D SDF scenes, fractal patterns (Julia/Mandelbrot), "
             "geometric patterns with domain repetition, plasma and domain warping, "
-            "kaleidoscopes, particle-like effects, and abstract math art. "
+            "kaleidoscopes, particle-like effects, abstract math art, "
+            "and optionally 1-2 ping-pong buffer shaders (Game of Life, reaction-diffusion, trail effects using iBackBuffer). "
             "Define helper functions (noise, fbm, sdf, palette, rotation) to enable complex effects. "
             "Use for loops where appropriate (FBM octaves, raymarching, fractal iteration)."
         ),
@@ -113,13 +136,15 @@ _MODALITY_PROMPTS: dict[str, dict[str, str]] = {
             "Try variations in color palettes, geometry, animation speed, mathematical transformations, "
             "and complexity. You may introduce or remove helper functions, add for loops for "
             "iterative effects (FBM, raymarching, fractal iteration), change SDF shapes, "
-            "alter domain warping, or combine techniques from multiple parents."
+            "alter domain warping, combine techniques from multiple parents, "
+            "or introduce ping-pong buffer effects (iBackBuffer) for stateful simulations."
         ),
         "variety_suffix": (
             "\n\nVary your output: some simple elegant shaders, some using helpers and for loops for "
-            "complex effects (FBM, raymarching, fractals), one experimental wildcard pushing creative boundaries. "
-            "Output ONLY ```glsl``` code blocks containing helper functions (if any) followed by mainImage. "
-            "No explanations."
+            "complex effects (FBM, raymarching, fractals), optionally one using iBackBuffer for a stateful effect, "
+            "and one experimental wildcard pushing creative boundaries. "
+            "Output ONLY ```glsl``` code blocks containing helper functions (if any) followed by mainImage "
+            "(and optionally initImage for buffer shaders). No explanations."
         ),
     },
 }
@@ -284,6 +309,10 @@ _MOCK_POOLS: dict[str, list[str]] = {
         'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float d = length(uv);\n    float breath = 0.7 + 0.3 * sin(iTime * 1.5);\n    float core = 0.05 / (d + 0.05) * breath;\n    float halo = 0.02 / (d + 0.02) * (1.0 - breath) * 0.5;\n    vec3 col = core * vec3(1.0, 0.3, 0.1) + halo * vec3(0.3, 0.5, 1.0);\n    float rays = sin(atan(uv.y, uv.x) * 8.0 + iTime * 2.0) * 0.5 + 0.5;\n    col += rays * 0.02 / (d + 0.1) * vec3(1.0, 0.8, 0.3);\n    fragColor = vec4(col, 1.0);\n}',
         'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    float bx = floor(uv.x * 4.0);\n    float by = floor(uv.y * 4.0);\n    float id = bx + by * 4.0;\n    vec3 col = 0.5 + 0.5 * cos(id * 0.7 + iTime * 1.5 + vec3(0.0, 2.0, 4.0));\n    fragColor = vec4(col, 1.0);\n}',
         'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    float d = abs(uv.x) + abs(uv.y);\n    float wave = sin(d * 15.0 - iTime * 3.0) * 0.5 + 0.5;\n    vec3 col = mix(vec3(0.1, 0.0, 0.3), vec3(1.0, 0.5, 0.0), wave);\n    fragColor = vec4(col, 1.0);\n}',
+        # Buffer shaders (ping-pong)
+        'float hash(vec2 p) {\n    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nvoid initImage(out vec4 fragColor, in vec2 fragCoord) {\n    float r = hash(fragCoord + vec2(42.0, 17.0));\n    float alive = step(0.62, r);\n    fragColor = vec4(alive, alive, alive, 1.0);\n}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 px = 1.0 / iResolution.xy;\n    vec2 uv = fragCoord / iResolution.xy;\n    float sum = 0.0;\n    for (int x = -1; x <= 1; x++) {\n        for (int y = -1; y <= 1; y++) {\n            if (x == 0 && y == 0) continue;\n            sum += texture2D(iBackBuffer, uv + vec2(float(x), float(y)) * px).r;\n        }\n    }\n    vec2 prev = texture2D(iBackBuffer, uv).rg;\n    float self = prev.r;\n    float trail = prev.g;\n    float alive = 0.0;\n    if (self > 0.5) {\n        alive = (sum > 1.5 && sum < 3.5) ? 1.0 : 0.0;\n    } else {\n        alive = (sum > 2.5 && sum < 3.5) ? 1.0 : 0.0;\n    }\n    trail = max(trail * 0.95, alive);\n    vec3 col = mix(vec3(0.0, 0.02, 0.1) * trail, vec3(0.1, 0.8, 0.4), alive);\n    fragColor = vec4(alive, trail, 0.0, 1.0);\n}',
+        'void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    vec3 prev = texture2D(iBackBuffer, uv).rgb * 0.97;\n    float t = iTime * 0.8;\n    vec2 center = 0.5 + 0.3 * vec2(cos(t), sin(t * 1.3));\n    float d = length(uv - center);\n    float spot = smoothstep(0.04, 0.0, d);\n    vec3 spotCol = 0.5 + 0.5 * cos(iTime + vec3(0.0, 2.0, 4.0));\n    vec3 col = max(prev, spot * spotCol);\n    fragColor = vec4(col, 1.0);\n}',
+        'void initImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    float u = 1.0;\n    float v = 0.0;\n    vec2 center = abs(uv - 0.5);\n    if (center.x < 0.05 && center.y < 0.05) {\n        v = 0.5;\n    }\n    fragColor = vec4(u, v, 0.0, 1.0);\n}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 px = 1.0 / iResolution.xy;\n    vec2 uv = fragCoord / iResolution.xy;\n    vec2 val = texture2D(iBackBuffer, uv).rg;\n    float u = val.r;\n    float v = val.g;\n    float lu = -u;\n    float lv = -v;\n    for (int x = -1; x <= 1; x++) {\n        for (int y = -1; y <= 1; y++) {\n            float w = (x == 0 || y == 0) ? 0.2 : 0.05;\n            if (x == 0 && y == 0) continue;\n            vec2 s = texture2D(iBackBuffer, uv + vec2(float(x), float(y)) * px).rg;\n            lu += w * s.r;\n            lv += w * s.g;\n        }\n    }\n    float f = 0.037;\n    float k = 0.06;\n    float Du = 0.21;\n    float Dv = 0.105;\n    float dt = 0.9;\n    float uvv = u * v * v;\n    float nu = u + dt * (Du * lu - uvv + f * (1.0 - u));\n    float nv = v + dt * (Dv * lv + uvv - (f + k) * v);\n    nu = clamp(nu, 0.0, 1.0);\n    nv = clamp(nv, 0.0, 1.0);\n    vec3 col = 0.5 + 0.5 * cos(nv * 6.0 + vec3(0.0, 2.0, 4.0));\n    col = mix(col, vec3(0.02), step(nv, 0.01));\n    fragColor = vec4(nu, nv, 0.0, 1.0);\n}',
     ],
 }
 
