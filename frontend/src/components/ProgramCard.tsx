@@ -1,5 +1,5 @@
-import { useRef, useEffect, useCallback } from 'react';
-import { Program } from '../types';
+import { useRef, useEffect, useCallback, useState } from 'react';
+import { Program, RenderHandle } from '../types';
 import { useSessionStore } from '../store/sessionStore';
 import { getPlugin } from '../modalityRegistry';
 
@@ -33,30 +33,47 @@ export function ProgramCard({
   const isCustomized = program.id in customizedPrograms;
 
   const previewRef = useRef<HTMLDivElement>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
+  const handleRef = useRef<RenderHandle | null>(null);
+
+  // Shader-specific: track paused state locally
+  const [shaderPaused, setShaderPaused] = useState(false);
 
   // For shader cards, render WebGL canvas continuously
   useEffect(() => {
     if (!isShader || !previewRef.current) return;
-    cleanupRef.current?.();
+    handleRef.current?.cleanup();
     const plugin = getPlugin(modality!);
-    cleanupRef.current = plugin.render(displayCode, previewRef.current);
+    handleRef.current = plugin.render(displayCode, previewRef.current);
+    setShaderPaused(false);
     return () => {
-      cleanupRef.current?.();
-      cleanupRef.current = null;
+      handleRef.current?.cleanup();
+      handleRef.current = null;
     };
   }, [isShader, displayCode, modality]);
 
-  const lines = displayCode.split('\n');
-  const preview = lines.slice(0, 4).join('\n');
-  const hasMore = lines.length > 4;
+  const handleToggleShaderPause = useCallback(() => {
+    if (!handleRef.current) return;
+    if (shaderPaused) {
+      handleRef.current.resume?.();
+      setShaderPaused(false);
+    } else {
+      handleRef.current.pause?.();
+      setShaderPaused(true);
+    }
+  }, [shaderPaused]);
+
+  const handleReset = useCallback(() => {
+    handleRef.current?.reset?.();
+    setShaderPaused(false);
+  }, []);
 
   return (
     <div
       className={
         'program-card' +
         (isSelected ? ' selected' : '') +
-        (isPlaying ? ' playing' : '')
+        (isPlaying ? ' playing' : '') +
+        (isShader && shaderPaused ? ' paused' : '')
       }
     >
       {/* Preview area */}
@@ -78,13 +95,30 @@ export function ProgramCard({
       {/* Controls */}
       <div className="program-card-controls">
         <div className="program-card-left">
-          {modality === 'strudel' && (
+          {isShader ? (
             <button
-              className="play-btn"
-              onClick={() => (isPlaying ? onStop() : onPlay(program))}
-              title={isPlaying ? 'Stop' : 'Play'}
+              className={'play-btn' + (shaderPaused ? '' : ' active')}
+              onClick={handleToggleShaderPause}
+              title={shaderPaused ? 'Resume' : 'Pause'}
             >
-              {isPlaying ? '⏹' : '▶'}
+              {shaderPaused ? '▶' : '⏸'}
+            </button>
+          ) : (
+            <button
+              className={'play-btn' + (isPlaying ? ' active' : '')}
+              onClick={() => (isPlaying ? onStop() : onPlay(program))}
+              title={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+          )}
+          {isShader && (
+            <button
+              className="reset-btn"
+              onClick={handleReset}
+              title="Reset"
+            >
+              ↺
             </button>
           )}
           <label className="select-toggle">

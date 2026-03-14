@@ -438,6 +438,29 @@ body.modality-non-strudel .cm-panels {
   background: var(--success);
 }
 
+.play-btn.active {
+  background: var(--success);
+}
+
+.reset-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.reset-btn:hover {
+  background: var(--accent);
+}
+
 .select-toggle {
   display: flex;
   align-items: center;

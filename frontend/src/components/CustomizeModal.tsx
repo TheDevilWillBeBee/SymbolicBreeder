@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Program } from '../types';
+import { Program, RenderHandle } from '../types';
 import { getPlugin } from '../modalityRegistry';
 import { useSessionStore } from '../store/sessionStore';
 import { highlightCode } from '../utils/syntaxHighlight';
@@ -19,7 +19,7 @@ export function CustomizeModal({ program, onClose }: Props) {
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
+  const previewHandleRef = useRef<RenderHandle | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
 
@@ -38,7 +38,7 @@ export function CustomizeModal({ program, onClose }: Props) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      cleanupRef.current?.();
+      previewHandleRef.current?.cleanup();
     };
   }, []);
 
@@ -55,8 +55,8 @@ export function CustomizeModal({ program, onClose }: Props) {
     }
 
     setPreviewError(null);
-    cleanupRef.current?.();
-    cleanupRef.current = plugin.previewInModal(code, previewContainerRef.current);
+    previewHandleRef.current?.cleanup();
+    previewHandleRef.current = plugin.previewInModal(code, previewContainerRef.current);
   }, [code, plugin]);
 
   const handleUseAsParent = useCallback(() => {
@@ -74,7 +74,7 @@ export function CustomizeModal({ program, onClose }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        cleanupRef.current?.();
+        previewHandleRef.current?.cleanup();
         onClose();
       }
     };
@@ -86,7 +86,7 @@ export function CustomizeModal({ program, onClose }: Props) {
     <div
       className="modal-overlay customize-overlay"
       onClick={() => {
-        cleanupRef.current?.();
+        previewHandleRef.current?.cleanup();
         onClose();
       }}
     >
@@ -106,7 +106,7 @@ export function CustomizeModal({ program, onClose }: Props) {
             <button
               className="close-btn"
               onClick={() => {
-                cleanupRef.current?.();
+                previewHandleRef.current?.cleanup();
                 onClose();
               }}
             >

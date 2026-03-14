@@ -1,4 +1,4 @@
-import type { ModalityPlugin } from '../../types';
+import type { ModalityPlugin, RenderHandle } from '../../types';
 
 /**
  * Shader modality plugin.
@@ -203,6 +203,10 @@ interface ShaderState {
   raf: number;
   canvas: HTMLCanvasElement;
   pingPong: PingPongState | null;
+  // Timing state for pause/resume/reset
+  startTime: number;
+  pausedElapsed: number;
+  paused: boolean;
 }
 
 function setupWebGL(
@@ -292,6 +296,9 @@ function setupWebGL(
     raf: 0,
     canvas,
     pingPong,
+    startTime: performance.now(),
+    pausedElapsed: 0,
+    paused: false,
   };
 }
 
@@ -299,7 +306,7 @@ function startRenderLoop(state: ShaderState): void {
   const { gl, canvas, pingPong } = state;
 
   const draw = () => {
-    const t = performance.now() / 1000.0;
+    const t = (performance.now() - state.startTime) / 1000.0;
 
     // Resize canvas to match display size
     const dw = canvas.clientWidth;
@@ -389,7 +396,7 @@ function showError(container: HTMLElement, error: string): void {
   container.appendChild(errorDiv);
 }
 
-function renderShader(code: string, container: HTMLElement): () => void {
+function renderShader(code: string, container: HTMLElement): RenderHandle {
   container.innerHTML = '';
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'width:100%;height:100%;display:block;border-radius:4px;';
@@ -398,8 +405,10 @@ function renderShader(code: string, container: HTMLElement): () => void {
   const result = setupWebGL(canvas, code);
   if (typeof result === 'string') {
     showError(container, result);
-    return () => {
-      container.innerHTML = '';
+    return {
+      cleanup() {
+        container.innerHTML = '';
+      },
     };
   }
 
@@ -407,13 +416,14 @@ function renderShader(code: string, container: HTMLElement): () => void {
 
   // IntersectionObserver for performance: pause offscreen canvases
   let isVisible = true;
+  let userPaused = false;
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (entry.target === canvas) {
           if (entry.isIntersecting && !isVisible) {
             isVisible = true;
-            startRenderLoop(result);
+            if (!userPaused) startRenderLoop(result);
           } else if (!entry.isIntersecting && isVisible) {
             isVisible = false;
             cancelAnimationFrame(result.raf);
@@ -425,15 +435,43 @@ function renderShader(code: string, container: HTMLElement): () => void {
   );
   observer.observe(canvas);
 
-  return () => {
-    observer.disconnect();
-    cancelAnimationFrame(result.raf);
-    if (result.pingPong) {
-      destroyPingPongResources(result.gl, result.pingPong);
-    }
-    const ext = result.gl.getExtension('WEBGL_lose_context');
-    ext?.loseContext();
-    container.innerHTML = '';
+  return {
+    cleanup() {
+      observer.disconnect();
+      cancelAnimationFrame(result.raf);
+      if (result.pingPong) {
+        destroyPingPongResources(result.gl, result.pingPong);
+      }
+      const ext = result.gl.getExtension('WEBGL_lose_context');
+      ext?.loseContext();
+      container.innerHTML = '';
+    },
+    pause() {
+      if (userPaused) return;
+      userPaused = true;
+      result.pausedElapsed = performance.now() - result.startTime;
+      cancelAnimationFrame(result.raf);
+    },
+    resume() {
+      if (!userPaused) return;
+      userPaused = false;
+      // Adjust startTime so elapsed time continues from where it was
+      result.startTime = performance.now() - result.pausedElapsed;
+      if (isVisible) startRenderLoop(result);
+    },
+    reset() {
+      cancelAnimationFrame(result.raf);
+      result.startTime = performance.now();
+      result.pausedElapsed = 0;
+      // Re-init ping-pong buffers
+      if (result.pingPong) {
+        result.pingPong.initDone = false;
+        result.pingPong.readIndex = 0;
+        result.pingPong.frame = 0;
+      }
+      userPaused = false;
+      if (isVisible) startRenderLoop(result);
+    },
   };
 }
 
@@ -445,11 +483,11 @@ export const shaderPlugin: ModalityPlugin = {
   language: 'glsl',
   description: 'Animated GLSL visuals — evolve mesmerizing fragment shaders',
 
-  render(code: string, container: HTMLElement): () => void {
+  render(code: string, container: HTMLElement): RenderHandle {
     return renderShader(code, container);
   },
 
-  previewInModal(code: string, container: HTMLElement): () => void {
+  previewInModal(code: string, container: HTMLElement): RenderHandle {
     return renderShader(code, container);
   },
 
