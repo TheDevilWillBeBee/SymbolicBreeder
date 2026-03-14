@@ -9,6 +9,7 @@ class LLMRequest:
     system: str
     user: str
     max_tokens: int = 4096
+    user_context: str = ""  # static context prepended to user message; cacheable
 
 
 @dataclass
