@@ -18,10 +18,11 @@ class AnthropicProvider(LLMProvider):
                 {
                     "type": "text",
                     "text": request.system,
-                    "cache_control": {"type": "ephemeral"},
+                    "cache_control": {"type": "ephemeral", "ttl": "1h"},
                 }
             ],
             messages=[{"role": "user", "content": request.user}],
+            extra_headers={"anthropic-beta": "extended-cache-ttl-2025-04-11"},
         )
         return LLMResponse(text=response.content[0].text)
 
