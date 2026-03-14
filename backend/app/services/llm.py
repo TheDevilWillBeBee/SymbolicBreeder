@@ -4,12 +4,21 @@ import logging
 import os
 import re
 import random
+from dataclasses import dataclass
 from typing import Optional
 
 from .context import get_system_context, get_seed_context, get_evolve_context
 from .providers import get_provider, LLMRequest
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class GenerationResult:
+    """Result of program generation with source metadata."""
+    codes: list[str]
+    source: str  # "llm" or "mock"
+    message: str | None = None
 
 
 # ── Modality-specific prompt configuration ──
@@ -189,7 +198,7 @@ async def generate_programs(
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
-) -> list[str]:
+) -> GenerationResult:
     """Generate new programs for the given modality. Uses LLM if API key is available, else mock."""
     if not api_key:
         api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY")
@@ -201,18 +210,33 @@ async def generate_programs(
             population_size,
             modality,
         )
-        return await _llm_generate(
-            modality,
-            parent_codes,
-            population_size,
-            guidance,
-            provider_key,
-            model,
-            api_key,
-            base_url,
-        )
+        try:
+            codes = await _llm_generate(
+                modality,
+                parent_codes,
+                population_size,
+                guidance,
+                provider_key,
+                model,
+                api_key,
+                base_url,
+            )
+            return GenerationResult(codes=codes, source="llm")
+        except Exception as exc:
+            logger.warning("LLM call failed (%s), falling back to mock: %s", type(exc).__name__, exc)
+            codes = _mock_generate(modality, parent_codes, population_size)
+            return GenerationResult(
+                codes=codes,
+                source="mock",
+                message=f"LLM error: {exc} — used mock examples instead",
+            )
     logger.info("No API key available — using mock generation for %s", modality)
-    return _mock_generate(modality, parent_codes, population_size)
+    codes = _mock_generate(modality, parent_codes, population_size)
+    return GenerationResult(
+        codes=codes,
+        source="mock",
+        message="No API key available — used mock examples",
+    )
 
 
 def _build_system_prompt(modality: str) -> str:

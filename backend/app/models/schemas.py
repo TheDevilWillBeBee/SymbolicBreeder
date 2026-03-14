@@ -35,6 +35,8 @@ class EvolveRequest(BaseModel):
 class EvolveResponse(BaseModel):
     programs: list[ProgramResponse]
     generation: int
+    source: str = "llm"
+    message: Optional[str] = None
 
 
 class CreateSessionRequest(BaseModel):
@@ -52,5 +54,7 @@ class SessionResponse(BaseModel):
     modality: str
     created_at: datetime
     programs: list[ProgramResponse] = []
+    source: str = "llm"
+    message: Optional[str] = None
 
     model_config = {"from_attributes": True}

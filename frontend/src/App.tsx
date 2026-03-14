@@ -7,6 +7,7 @@ import { GenerationNav } from './components/GenerationNav';
 import { CodeModal } from './components/CodeModal';
 import { CustomizeModal } from './components/CustomizeModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
+import { LogToasts } from './components/LogToasts';
 import { useStrudelPlayer } from './hooks/useStrudelPlayer';
 import { useEvolution } from './hooks/useEvolution';
 import { useSessionStore } from './store/sessionStore';
@@ -167,6 +168,8 @@ export default function App() {
           onClose={() => setCustomizeProgram(null)}
         />
       )}
+
+      <LogToasts />
     </div>
   );
 }

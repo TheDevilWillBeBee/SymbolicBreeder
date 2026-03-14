@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useSessionStore } from '../store/sessionStore';
+import { useLogStore } from '../store/logStore';
 import { api, setApiLLMConfig } from '../api/client';
 import { Program } from '../types';
 
@@ -115,6 +116,8 @@ export function useEvolution() {
           name: string;
           modality: string;
           created_at: string;
+          source: string;
+          message: string | null;
           programs: Array<{
             id: string;
             code: string;
@@ -149,7 +152,14 @@ export function useEvolution() {
             createdAt: p.created_at,
           })),
         );
-      } catch {
+
+        const addLog = useLogStore.getState().addLog;
+        if (res.source === 'mock') {
+          addLog('warning', res.message ?? 'Backend used mock examples');
+        } else {
+          addLog('success', `Generation seeded via ${provider}/${model}`);
+        }
+      } catch (err) {
         // Mock mode — no backend available
         const sessionId = crypto.randomUUID();
         store.setSession({
@@ -162,6 +172,8 @@ export function useEvolution() {
         store.addGeneration(
           seeds.map((code) => makeProgram(code, modality, 0, sessionId)),
         );
+        const addLog = useLogStore.getState().addLog;
+        addLog('error', `Backend unavailable — using mock examples. ${err instanceof Error ? err.message : ''}`);
       } finally {
         store.setIsLoading(false);
       }
@@ -198,6 +210,8 @@ export function useEvolution() {
             created_at: string;
           }>;
           generation: number;
+          source: string;
+          message: string | null;
         }>('/api/evolve', {
           modality,
           parents: parentPayload,
@@ -220,7 +234,14 @@ export function useEvolution() {
             createdAt: p.created_at ?? new Date().toISOString(),
           })),
         );
-      } catch {
+
+        const addLog = useLogStore.getState().addLog;
+        if (res.source === 'mock') {
+          addLog('warning', res.message ?? 'Backend used mock examples');
+        } else {
+          addLog('success', `Generation ${res.generation} evolved via ${provider}/${model}`);
+        }
+      } catch (err) {
         // Mock evolution
         const gen = store.generations.length;
         const sessionId = store.session?.id ?? '';
@@ -236,6 +257,8 @@ export function useEvolution() {
             ),
           ),
         );
+        const addLog = useLogStore.getState().addLog;
+        addLog('error', `Backend unavailable — using mock evolution. ${err instanceof Error ? err.message : ''}`);
       } finally {
         store.setIsEvolving(false);
       }

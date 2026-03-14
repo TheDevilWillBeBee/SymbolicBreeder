@@ -23,15 +23,18 @@ async def create_seed_generation(
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
-) -> list[models.Program]:
-    """Create generation-0 programs for a brand-new session."""
-    codes = await generate_programs(
+) -> tuple[list[models.Program], str, str | None]:
+    """Create generation-0 programs for a brand-new session.
+
+    Returns (programs, source, message).
+    """
+    result = await generate_programs(
         modality, [], population_size=6, guidance=guidance,
         provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
     )
 
     programs: list[models.Program] = []
-    for code in codes:
+    for code in result.codes:
         program = models.Program(
             id=_id(),
             code=code,
@@ -46,7 +49,7 @@ async def create_seed_generation(
     db.commit()
     for p in programs:
         db.refresh(p)
-    return programs
+    return programs, result.source, result.message
 
 
 async def evolve_programs(
@@ -87,13 +90,13 @@ async def evolve_programs(
     if row:
         generation = row[0] + 1
 
-    codes = await generate_programs(
+    result = await generate_programs(
         modality, parent_codes, population_size, guidance,
         provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
     )
 
     programs: list[models.Program] = []
-    for code in codes:
+    for code in result.codes:
         program = models.Program(
             id=_id(),
             code=code,
@@ -112,4 +115,6 @@ async def evolve_programs(
     return EvolveResponse(
         programs=[ProgramResponse.model_validate(p) for p in programs],
         generation=generation,
+        source=result.source,
+        message=result.message,
     )

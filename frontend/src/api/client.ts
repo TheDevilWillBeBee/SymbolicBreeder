@@ -22,7 +22,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    let detail = `API error: ${response.status}`;
+    try {
+      const err = await response.json();
+      if (err.detail) detail = err.detail;
+    } catch { /* ignore parse errors */ }
+    throw new Error(detail);
   }
   return response.json();
 }
