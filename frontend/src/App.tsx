@@ -100,14 +100,25 @@ export default function App() {
 
       {!hasSession && !isLoading ? (
         <div className="start-screen">
-          <p className="start-subtitle">
-            Evolve programs through selection — powered by LLM
-          </p>
+          <div className="start-hero">
+            <p className="start-subtitle">
+              Breed programs through artificial selection
+            </p>
+            <p className="start-description">
+              Pick your favorites, evolve the rest. An LLM generates
+              populations of programs — you guide evolution.
+            </p>
+          </div>
+
           <div className="start-prompt-group">
+            <label className="start-prompt-label" htmlFor="theme-input">
+              Theme <span className="start-prompt-optional">(optional)</span>
+            </label>
             <input
+              id="theme-input"
               type="text"
               className="start-prompt-input"
-              placeholder='Optional theme: "ambient space", "neon geometry", "organic noise"…'
+              placeholder='"ambient space", "neon geometry", "organic noise"…'
               value={initialPrompt}
               onChange={(e) => setInitialPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -117,8 +128,13 @@ export default function App() {
               }}
             />
           </div>
-          <ModelSelector />
+
           <ModalitySelector onSelect={handleSelectModality} />
+
+          <details className="start-settings">
+            <summary className="start-settings-toggle">Model Settings</summary>
+            <ModelSelector />
+          </details>
         </div>
       ) : (
         <>

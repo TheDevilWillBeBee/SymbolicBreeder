@@ -121,33 +121,66 @@ body.modality-non-strudel .cm-panels {
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  gap: 1.5rem;
+  gap: 2rem;
   text-align: center;
+  padding: 2rem 0;
+}
+
+.start-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 500px;
 }
 
 .start-subtitle {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.start-description {
   color: var(--text-secondary);
-  font-size: 1.05rem;
-  max-width: 400px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 420px;
 }
 
 .start-prompt-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: 0.4rem;
   width: 100%;
   max-width: 480px;
 }
 
+.start-prompt-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.start-prompt-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
 .start-prompt-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-secondary);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   outline: none;
   transition: border-color 0.2s;
 }
@@ -158,20 +191,51 @@ body.modality-non-strudel .cm-panels {
 
 .start-prompt-input::placeholder {
   color: var(--text-secondary);
-  opacity: 0.7;
+  opacity: 0.6;
+}
+
+.start-settings {
+  width: 100%;
+  max-width: 480px;
+}
+
+.start-settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  padding: 0.4rem 0;
+  transition: color 0.15s;
+  list-style: none;
+}
+
+.start-settings-toggle:hover {
+  color: var(--text-primary);
+}
+
+.start-settings-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.start-settings-toggle::before {
+  content: '\25B6';
+  font-size: 0.55rem;
+  transition: transform 0.2s;
+}
+
+.start-settings[open] .start-settings-toggle::before {
+  transform: rotate(90deg);
 }
 
 /* ── Modality Selector ── */
 
 .modality-selector {
   width: 100%;
-  max-width: 600px;
-}
-
-.modality-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
+  max-width: 480px;
 }
 
 .modality-subtitle {
@@ -897,12 +961,12 @@ body.modality-non-strudel .cm-panels {
 /* ── Model Selector ── */
 
 .model-selector {
-  max-width: 400px;
-  margin: 1.5rem auto;
-  padding: 1.25rem;
+  max-width: 480px;
+  margin: 0.75rem auto 0;
+  padding: 1rem 1.25rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .model-selector-row {

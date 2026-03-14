@@ -1,5 +1,4 @@
 import { modalityRegistry } from '../modalityRegistry';
-import { useSessionStore } from '../store/sessionStore';
 
 interface Props {
   onSelect: (modality: string) => void;
@@ -10,10 +9,6 @@ export function ModalitySelector({ onSelect }: Props) {
 
   return (
     <div className="modality-selector">
-      <h2 className="modality-title">Choose Your Medium</h2>
-      <p className="modality-subtitle">
-        Select a modality to begin evolving programs
-      </p>
       <div className="modality-tiles">
         {plugins.map((plugin) => (
           <button
