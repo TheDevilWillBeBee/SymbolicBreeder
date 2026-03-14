@@ -14,7 +14,13 @@ class AnthropicProvider(LLMProvider):
         response = await client.messages.create(
             model=self.model,
             max_tokens=request.max_tokens,
-            system=request.system,
+            system=[
+                {
+                    "type": "text",
+                    "text": request.system,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
             messages=[{"role": "user", "content": request.user}],
         )
         return LLMResponse(text=response.content[0].text)
