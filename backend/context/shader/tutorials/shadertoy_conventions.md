@@ -44,19 +44,19 @@ uniform vec2  iResolution;  // Canvas width and height in pixels
 uniform float iTime;         // Elapsed time in seconds
 ```
 
-**Buffer mode only** (auto-enabled when `iBackBuffer` appears in your code):
+**Buffer mode only** (auto-enabled when `iChannel0` appears in your code):
 
 ```glsl
-uniform sampler2D iBackBuffer;  // Previous frame's output texture
+uniform sampler2D iChannel0;  // Previous frame's output texture
 uniform int iFrame;              // Frame counter (starts at 0)
 ```
 
 - `iResolution` — use for normalizing coordinates
 - `iTime` — elapsed seconds since start, use freely for animation: `sin(iTime)`, `cos(iTime * 0.5)`, `fract(iTime)`, etc.
-- `iBackBuffer` — read the previous frame via `texture2D(iBackBuffer, fragCoord / iResolution.xy)`. Only available in buffer mode.
+- `iChannel0` — read the previous frame via `texture(iChannel0, fragCoord / iResolution.xy)`. Only available in buffer mode.
 - `iFrame` — integer frame counter starting at 0. Only available in buffer mode.
 - Do NOT declare your own uniforms or attributes.
-- Do NOT use `iMouse`, `iChannel0`, or other Shadertoy-specific uniforms. Use `iBackBuffer` for ping-pong effects.
+- Do NOT use `iMouse`, `iChannel1`–`iChannel3`, or other Shadertoy-specific uniforms. Use `iChannel0` for ping-pong buffer effects.
 
 ## Output
 

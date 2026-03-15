@@ -38,6 +38,7 @@ export function ProgramCard({
 
   // Shader-specific: track paused state locally
   const [shaderPaused, setShaderPaused] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // For shader cards, render WebGL canvas continuously
   useEffect(() => {
@@ -67,6 +68,25 @@ export function ProgramCard({
     handleRef.current?.reset?.();
     setShaderPaused(false);
   }, []);
+
+  const handleCopy = useCallback(() => {
+    let code = displayCode;
+    if (isShader) {
+      const isBuffer = /iChannel0/.test(code);
+      // Add Shadertoy setup instructions for buffer shaders
+      if (isBuffer) {
+        code =
+          '// Shadertoy setup: paste into "Buffer A" tab,\n' +
+          '// then set iChannel0 = Buffer A (self-feedback).\n' +
+          '// Create an "Image" tab with: void mainImage(out vec4 o, in vec2 f) { o = texture(iChannel0, f/iResolution.xy); }\n' +
+          '// and set its iChannel0 = Buffer A.\n\n' +
+          code;
+      }
+    }
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [displayCode, isShader]);
 
   return (
     <div
@@ -134,6 +154,13 @@ export function ProgramCard({
           {isCustomized && <span className="customized-badge">edited</span>}
         </div>
         <div className="program-card-right">
+          <button
+            className={'copy-btn' + (copied ? ' copied' : '')}
+            onClick={handleCopy}
+            title="Copy code"
+          >
+            {copied ? '✓' : '⧉'}
+          </button>
           <button
             className="customize-btn"
             onClick={() => onCustomize(program)}

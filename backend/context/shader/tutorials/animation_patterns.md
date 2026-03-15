@@ -61,6 +61,20 @@ vec3 hsv2rgb(vec3 c) {
 // Usage: vec3 col = hsv2rgb(vec3(hue, saturation, value));
 ```
 
+### Tone Mapping with tanh
+```glsl
+// Soft HDR clamping — preserves color ratios, never exceeds 1.0
+col = tanh(col * 2.0);
+
+// White balancing with tanh — compresses bright areas smoothly
+col = tanh(col * col);
+
+// Combine with additive glow for controlled bloom
+vec3 glow = 0.03 / (distance + 0.03);
+col += glow;
+col = tanh(col);
+```
+
 ### Color Mixing
 ```glsl
 // Smooth blend between two colors
@@ -135,7 +149,7 @@ float noise(vec2 p) {
 
 ## For Loops — Iterative Techniques
 
-For loops enable the most visually complex effects. Bounds must be compile-time constants.
+For loops enable the most visually complex effects. In ES 3.0, bounds may be dynamic, but prefer reasonable limits for performance.
 
 ### FBM (Fractal Brownian Motion)
 ```glsl

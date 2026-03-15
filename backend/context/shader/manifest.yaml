@@ -11,7 +11,7 @@ sources:
   enabled: true
   category: tutorial
   path: tutorials/glsl_reference.md
-  description: "GLSL ES 1.0 basics: types, built-in functions, swizzling"
+  description: "GLSL ES 3.0 basics: types, built-in functions, swizzling"
   inject_into: [ system ]
 
 - id: shadertoy_conventions

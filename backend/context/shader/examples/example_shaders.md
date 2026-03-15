@@ -237,3 +237,51 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     fragColor = vec4(col, 1.0);
 }
 ```
+
+## Hyperbolic Glow (ES 3.0 — tanh tone mapping)
+
+```glsl
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    vec3 col = vec3(0.0);
+    for (int i = 0; i < 6; i++) {
+        float fi = float(i);
+        float t = iTime * 0.5 + fi * 1.047;
+        vec2 p = 0.4 * vec2(cos(t), sin(t * 1.3));
+        float d = length(uv - p);
+        col += (0.5 + 0.5 * cos(fi * 1.2 + vec3(0.0, 2.0, 4.0))) * 0.04 / (d + 0.01);
+    }
+    // tanh soft-clamps bright areas — preserves color ratios
+    col = tanh(col * 0.8);
+    fragColor = vec4(col, 1.0);
+}
+```
+
+## Quantized Landscape (ES 3.0 — round pixelation)
+
+```glsl
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    // Quantize coordinates for retro pixelation effect
+    float pixelSize = 4.0 + 3.0 * sin(iTime * 0.5);
+    vec2 qc = round(fragCoord / pixelSize) * pixelSize;
+    vec2 uv = qc / iResolution.xy;
+    float n = noise(uv * 6.0 + iTime * 0.2);
+    n += 0.5 * noise(uv * 12.0 - iTime * 0.1);
+    vec3 col = 0.5 + 0.5 * cos(n * 4.0 + iTime * 0.3 + vec3(0.0, 2.0, 4.0));
+    // tanh for white balance
+    col = tanh(col * col);
+    fragColor = vec4(col, 1.0);
+}
+```

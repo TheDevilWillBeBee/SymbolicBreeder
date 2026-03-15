@@ -1,6 +1,6 @@
 # Buffer Shader Examples — Ping-Pong Effects
 
-Buffer shaders that use `iBackBuffer` to read the previous frame, enabling stateful simulations.
+Buffer shaders that use `iChannel0` to read the previous frame, enabling stateful simulations.
 
 ## Game of Life
 
@@ -11,25 +11,27 @@ float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 
-void initImage(out vec4 fragColor, in vec2 fragCoord) {
-    float r = hash(fragCoord + vec2(42.0, 17.0));
-    float alive = step(0.62, r);
-    fragColor = vec4(alive, alive, alive, 1.0);
-}
-
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 px = 1.0 / iResolution.xy;
     vec2 uv = fragCoord / iResolution.xy;
 
+    // Seed random cells on first frame
+    if (iFrame == 0) {
+        float r = hash(fragCoord + vec2(42.0, 17.0));
+        float alive = step(0.62, r);
+        fragColor = vec4(alive, alive, alive, 1.0);
+        return;
+    }
+
+    vec2 px = 1.0 / iResolution.xy;
     float sum = 0.0;
     for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
             if (x == 0 && y == 0) continue;
-            sum += texture2D(iBackBuffer, uv + vec2(float(x), float(y)) * px).r;
+            sum += texture(iChannel0, uv + vec2(float(x), float(y)) * px).r;
         }
     }
 
-    vec2 prev = texture2D(iBackBuffer, uv).rg;
+    vec2 prev = texture(iChannel0, uv).rg;
     float self = prev.r;
     float trail = prev.g;
     float alive = 0.0;
@@ -50,21 +52,21 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 Two-chemical system producing organic, coral-like patterns.
 
 ```glsl
-void initImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = fragCoord / iResolution.xy;
-    float u = 1.0;
-    float v = 0.0;
-    vec2 center = abs(uv - 0.5);
-    if (center.x < 0.05 && center.y < 0.05) {
-        v = 0.5;
-    }
-    fragColor = vec4(u, v, 0.0, 1.0);
-}
-
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 px = 1.0 / iResolution.xy;
     vec2 uv = fragCoord / iResolution.xy;
-    vec2 val = texture2D(iBackBuffer, uv).rg;
+
+    // Seed: uniform u=1, v=0 except a small center patch with v=0.5
+    if (iFrame == 0) {
+        float u = 1.0;
+        float v = 0.0;
+        vec2 center = abs(uv - 0.5);
+        if (center.x < 0.05 && center.y < 0.05) v = 0.5;
+        fragColor = vec4(u, v, 0.0, 1.0);
+        return;
+    }
+
+    vec2 px = 1.0 / iResolution.xy;
+    vec2 val = texture(iChannel0, uv).rg;
     float u = val.r;
     float v = val.g;
 
@@ -75,7 +77,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         for (int y = -1; y <= 1; y++) {
             if (x == 0 && y == 0) continue;
             float w = (x == 0 || y == 0) ? 0.2 : 0.05;
-            vec2 s = texture2D(iBackBuffer, uv + vec2(float(x), float(y)) * px).rg;
+            vec2 s = texture(iChannel0, uv + vec2(float(x), float(y)) * px).rg;
             lu += w * s.r;
             lv += w * s.g;
         }
@@ -98,12 +100,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
 ## Smooth Trails
 
-A moving light leaves colorful trails that slowly fade. No initImage needed — starts from black.
+A moving light leaves colorful trails that slowly fade. No `iFrame == 0` init needed — starts from black.
 
 ```glsl
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = fragCoord / iResolution.xy;
-    vec3 prev = texture2D(iBackBuffer, uv).rgb * 0.97;
+    vec3 prev = texture(iChannel0, uv).rgb * 0.97;
 
     float t = iTime * 0.8;
     vec2 center = 0.5 + 0.3 * vec2(cos(t), sin(t * 1.3));

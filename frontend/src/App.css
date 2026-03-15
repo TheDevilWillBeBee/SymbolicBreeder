@@ -575,6 +575,7 @@ body.modality-non-strudel .cm-panels {
   letter-spacing: 0.03em;
 }
 
+.copy-btn,
 .customize-btn,
 .code-btn {
   width: 28px;
@@ -598,6 +599,11 @@ body.modality-non-strudel .cm-panels {
   letter-spacing: -0.02em;
 }
 
+.copy-btn.copied {
+  color: var(--success);
+}
+
+.copy-btn:hover,
 .customize-btn:hover,
 .code-btn:hover {
   background: var(--accent);
