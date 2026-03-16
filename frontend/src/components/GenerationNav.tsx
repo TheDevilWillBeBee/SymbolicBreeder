@@ -21,6 +21,7 @@ export function GenerationNav({ onEvolve }: Props) {
         <button
           onClick={() => setCurrentGeneration(currentGeneration - 1)}
           disabled={!canGoPrev}
+          title="Go to previous generation"
         >
           ◀ Prev
         </button>
@@ -30,6 +31,7 @@ export function GenerationNav({ onEvolve }: Props) {
         <button
           onClick={() => setCurrentGeneration(currentGeneration + 1)}
           disabled={!canGoNext}
+          title="Go to next generation"
         >
           Next ▶
         </button>
@@ -38,6 +40,7 @@ export function GenerationNav({ onEvolve }: Props) {
         className="evolve-btn"
         onClick={onEvolve}
         disabled={!canEvolve}
+        title="Generate a new generation from selected programs"
       >
         {isEvolving
           ? 'Evolving…'

@@ -23,7 +23,7 @@ export function CodeModal({ program, onClose }: Props) {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Program Code</h3>
-          <button onClick={onClose}>✕</button>
+          <button onClick={onClose} title="Close">✕</button>
         </div>
         <pre className="modal-code code-highlight-static">
           <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />

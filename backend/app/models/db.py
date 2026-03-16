@@ -58,6 +58,19 @@ class Program(Base):
     created_at = Column(DateTime, default=_now)
 
 
+class SharedProgram(Base):
+    __tablename__ = "shared_programs"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    program_id = Column(String, ForeignKey("programs.id"), nullable=True, index=True)
+    sharer_name = Column(String, nullable=False)
+    modality = Column(String, nullable=False)
+    code = Column(Text, nullable=False)
+    lineage = Column(JSON, default=list)
+    llm_model = Column(String, nullable=True)
+    created_at = Column(DateTime, default=_now)
+
+
 class ProgramReaction(Base):
     __tablename__ = "program_reactions"
 

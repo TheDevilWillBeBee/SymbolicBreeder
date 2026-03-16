@@ -45,6 +45,27 @@ export interface RenderHandle {
   reset?(): void;
 }
 
+// ── Gallery types ──
+
+export interface LineageProgram {
+  id: string;
+  code: string;
+  modality: string;
+  generation: number;
+  parentIds: string[];
+}
+
+export interface SharedProgram {
+  id: string;
+  programId: string;
+  sharerName: string;
+  modality: string;
+  code: string;
+  lineage: LineageProgram[];
+  llmModel: string;
+  createdAt: string;
+}
+
 // ── Modality plugin interface ──
 
 export interface ModalityPlugin {

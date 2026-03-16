@@ -97,10 +97,10 @@ export function CustomizeModal({ program, onClose }: Props) {
         <div className="customize-header">
           <h3>Customize Program</h3>
           <div className="customize-header-actions">
-            <button className="preview-btn" onClick={handlePreview}>
+            <button className="preview-btn" onClick={handlePreview} title="Run and preview the edited code">
               ▶ Preview
             </button>
-            <button className="use-parent-btn" onClick={handleUseAsParent}>
+            <button className="use-parent-btn" onClick={handleUseAsParent} title="Save this version and use it as a parent for breeding">
               Use as Parent
             </button>
             <button
@@ -109,6 +109,7 @@ export function CustomizeModal({ program, onClose }: Props) {
                 previewHandleRef.current?.cleanup();
                 onClose();
               }}
+              title="Close without saving"
             >
               ✕
             </button>

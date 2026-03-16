@@ -10,6 +10,7 @@ interface Props {
   onStop: () => void;
   onShowCode: (program: Program) => void;
   onCustomize: (program: Program) => void;
+  onShare?: (program: Program) => void;
 }
 
 export function ProgramCard({
@@ -18,6 +19,7 @@ export function ProgramCard({
   onStop,
   onShowCode,
   onCustomize,
+  onShare,
 }: Props) {
   const playingProgramId = useSessionStore((s) => s.playingProgramId);
   const selectedProgramIds = useSessionStore((s) => s.selectedProgramIds);
@@ -121,7 +123,7 @@ export function ProgramCard({
             <button
               className={'play-btn' + (shaderPaused ? '' : ' active')}
               onClick={handleToggleShaderPause}
-              title={shaderPaused ? 'Resume' : 'Pause'}
+              title={shaderPaused ? 'Resume shader animation' : 'Pause shader animation'}
             >
               {shaderPaused ? '▶' : '⏸'}
             </button>
@@ -129,7 +131,7 @@ export function ProgramCard({
             <button
               className={'play-btn' + (isPlaying ? ' active' : '')}
               onClick={() => (isPlaying ? onStop() : onPlay(program))}
-              title={isPlaying ? 'Pause' : 'Play'}
+              title={isPlaying ? 'Stop playback' : 'Play this music program'}
             >
               {isPlaying ? '⏸' : '▶'}
             </button>
@@ -138,7 +140,7 @@ export function ProgramCard({
             <button
               className="reset-btn"
               onClick={handleReset}
-              title="Reset"
+              title="Reset shader to initial state"
             >
               ↺
             </button>
@@ -157,25 +159,38 @@ export function ProgramCard({
           <button
             className={'copy-btn' + (copied ? ' copied' : '')}
             onClick={handleCopy}
-            title="Copy code"
+            title="Copy code to clipboard"
           >
             {copied ? '✓' : '⧉'}
           </button>
           <button
             className="customize-btn"
             onClick={() => onCustomize(program)}
-            title="Customize code"
+            title="Edit and customize this program's code"
           >
             ✎
           </button>
           <button
             className="code-btn"
             onClick={() => onShowCode(program)}
-            title="View code"
+            title="View full source code"
             aria-label="View code"
           >
             {'</>'}
           </button>
+          {onShare && (
+            <button
+              className="share-btn"
+              onClick={() => onShare(program)}
+              title="Share this program to the gallery"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

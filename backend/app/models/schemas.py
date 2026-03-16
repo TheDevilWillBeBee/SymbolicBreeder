@@ -39,6 +39,45 @@ class EvolveResponse(BaseModel):
     message: Optional[str] = None
 
 
+class LineageProgramSchema(BaseModel):
+    id: str
+    code: str
+    modality: str
+    generation: int
+    parentIds: list[str] = Field(default_factory=list, alias="parentIds")
+
+    model_config = {"populate_by_name": True}
+
+
+class ShareProgramRequest(BaseModel):
+    program_id: Optional[str] = None
+    sharer_name: str
+    code: str
+    modality: str
+    lineage: list[LineageProgramSchema] = []
+    llm_model: Optional[str] = None
+
+
+class SharedProgramResponse(BaseModel):
+    id: str
+    program_id: Optional[str] = None
+    sharer_name: str
+    modality: str
+    code: str
+    lineage: list[dict] = []
+    llm_model: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class SharedProgramListResponse(BaseModel):
+    items: list[SharedProgramResponse]
+    total: int
+    page: int
+    per_page: int
+
+
 class CreateSessionRequest(BaseModel):
     modality: str = "strudel"
     name: Optional[str] = "Untitled Session"

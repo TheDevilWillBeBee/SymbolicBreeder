@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import evolve, sessions, providers
+from .routers import gallery, evolve, sessions, providers
 
 
 def _cors_allow_origins() -> list[str]:
@@ -42,6 +42,7 @@ def create_app(api_prefix: str = "/api") -> FastAPI:
         app.include_router(evolve.router, prefix=prefix, include_in_schema=include_in_schema)
         app.include_router(sessions.router, prefix=prefix, include_in_schema=include_in_schema)
         app.include_router(providers.router, prefix=prefix, include_in_schema=include_in_schema)
+        app.include_router(gallery.router, prefix=prefix, include_in_schema=include_in_schema)
 
     async def health() -> dict[str, str]:
         return {"status": "ok"}

@@ -7,9 +7,10 @@ interface Props {
   onStop: () => void;
   onShowCode: (program: Program) => void;
   onCustomize: (program: Program) => void;
+  onShare?: (program: Program) => void;
 }
 
-export function ProgramGrid({ onPlay, onStop, onShowCode, onCustomize }: Props) {
+export function ProgramGrid({ onPlay, onStop, onShowCode, onCustomize, onShare }: Props) {
   const generations = useSessionStore((s) => s.generations);
   const currentGeneration = useSessionStore((s) => s.currentGeneration);
   const programs = generations[currentGeneration] ?? [];
@@ -32,6 +33,7 @@ export function ProgramGrid({ onPlay, onStop, onShowCode, onCustomize }: Props) 
           onStop={onStop}
           onShowCode={onShowCode}
           onCustomize={onCustomize}
+          onShare={onShare}
         />
       ))}
     </div>

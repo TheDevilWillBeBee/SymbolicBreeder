@@ -1,0 +1,119 @@
+import { useRef, useEffect, useCallback, useState } from 'react';
+import { SharedProgram, RenderHandle } from '../types';
+import { getPlugin } from '../modalityRegistry';
+import { StrudelHighlight } from './StrudelHighlight';
+import { useNavStore } from '../store/navStore';
+
+interface Props {
+  program: SharedProgram;
+  onPlay?: (code: string) => void;
+  onStop?: () => void;
+  isPlaying?: boolean;
+  onBreed?: (program: SharedProgram) => void;
+}
+
+export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Props) {
+  const isShader = program.modality === 'shader';
+  const previewRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<RenderHandle | null>(null);
+  const [shaderPaused, setShaderPaused] = useState(false);
+
+  useEffect(() => {
+    if (!isShader || !previewRef.current) return;
+    handleRef.current?.cleanup();
+    const plugin = getPlugin('shader');
+    handleRef.current = plugin.render(program.code, previewRef.current);
+    setShaderPaused(false);
+    return () => {
+      handleRef.current?.cleanup();
+      handleRef.current = null;
+    };
+  }, [isShader, program.code]);
+
+  const handleToggleShader = useCallback(() => {
+    if (!handleRef.current) return;
+    if (shaderPaused) {
+      handleRef.current.resume?.();
+      setShaderPaused(false);
+    } else {
+      handleRef.current.pause?.();
+      setShaderPaused(true);
+    }
+  }, [shaderPaused]);
+
+  const handleReset = useCallback(() => {
+    handleRef.current?.reset?.();
+    setShaderPaused(false);
+  }, []);
+
+  const goToDetail = useNavStore((s) => s.goToDetail);
+
+  const handleCardClick = useCallback(() => {
+    goToDetail(program.id);
+  }, [goToDetail, program.id]);
+
+  return (
+    <div className={'gallery-card' + (isPlaying ? ' playing' : '')}>
+      {isShader ? (
+        <div className="gallery-card-preview-wrapper" onClick={handleCardClick}>
+          <div className="gallery-card-preview shader-preview" ref={previewRef} />
+        </div>
+      ) : (
+        <div className="gallery-card-preview strudel-preview" onClick={handleCardClick}>
+          <StrudelHighlight code={program.code} />
+          {isPlaying && <div className="strudel-playing-indicator">&#9834;</div>}
+        </div>
+      )}
+
+      {/* Controls row: play/pause+reset left, breed right */}
+      <div className="gallery-card-controls">
+        <div className="gallery-card-controls-left">
+          {isShader ? (
+            <>
+              <button
+                className={'play-btn' + (shaderPaused ? '' : ' active')}
+                onClick={(e) => { e.stopPropagation(); handleToggleShader(); }}
+                title={shaderPaused ? 'Resume shader animation' : 'Pause shader animation'}
+              >
+                {shaderPaused ? '\u25B6' : '\u23F8'}
+              </button>
+              <button
+                className="reset-btn"
+                onClick={(e) => { e.stopPropagation(); handleReset(); }}
+                title="Reset shader to initial state"
+              >
+                ↺
+              </button>
+            </>
+          ) : (
+            <button
+              className={'play-btn' + (isPlaying ? ' active' : '')}
+              onClick={(e) => {
+                e.stopPropagation();
+                isPlaying ? onStop?.() : onPlay?.(program.code);
+              }}
+              title={isPlaying ? 'Stop playback' : 'Play this music program'}
+            >
+              {isPlaying ? '\u23F8' : '\u25B6'}
+            </button>
+          )}
+        </div>
+        {onBreed && (
+          <button
+            className="breed-btn"
+            onClick={(e) => { e.stopPropagation(); onBreed(program); }}
+            title="Start a new breeding session from this program"
+          >
+            Breed
+          </button>
+        )}
+      </div>
+
+      {/* Labels row: non-interactive */}
+      <div className="gallery-card-labels">
+        <span className="gallery-card-sharer">{program.sharerName}</span>
+        <span className="gallery-card-model">{program.llmModel}</span>
+      </div>
+    </div>
+  );
+}
