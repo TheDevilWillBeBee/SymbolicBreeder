@@ -219,7 +219,7 @@ async def generate_programs(
 ) -> GenerationResult:
     """Generate new programs for the given modality. Uses LLM if API key is available, else mock."""
     if not api_key:
-        api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
     if api_key:
         logger.info(
             "Using LLM (%s/%s) to generate %d %s programs",

@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/providers")
 async def list_providers():
     server_key_available = bool(
-        os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
     )
     return {
         "server_key_available": server_key_available,
