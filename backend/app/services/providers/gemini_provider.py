@@ -11,7 +11,7 @@ class GeminiProvider(LLMProvider):
         from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=180_000))
         response = await client.aio.models.generate_content(
             model=self.model,
             contents=request.user,

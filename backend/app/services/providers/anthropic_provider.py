@@ -10,7 +10,7 @@ class AnthropicProvider(LLMProvider):
     async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
         import anthropic
 
-        client = anthropic.AsyncAnthropic(api_key=api_key)
+        client = anthropic.AsyncAnthropic(api_key=api_key, timeout=180.0)
         response = await client.messages.create(
             model=self.model,
             max_tokens=request.max_tokens,

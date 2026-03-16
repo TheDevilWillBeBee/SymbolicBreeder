@@ -12,7 +12,7 @@ class QwenProvider(LLMProvider):
     async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
         from openai import AsyncOpenAI
 
-        client = AsyncOpenAI(api_key=api_key, base_url=self.BASE_URL)
+        client = AsyncOpenAI(api_key=api_key, base_url=self.BASE_URL, timeout=180.0)
         response = await client.chat.completions.create(
             model=self.model,
             max_tokens=request.max_tokens,
