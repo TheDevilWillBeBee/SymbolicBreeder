@@ -1569,22 +1569,14 @@ body.modality-non-strudel .cm-panels {
 
 .gallery-card-model {
   color: var(--text-tertiary, var(--text-secondary));
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 140px;
   opacity: 0.6;
 }
 
 .gallery-card-sharer::before {
   content: "by ";
   font-weight: 400;
-}
-
-.gallery-card-model::before {
-  content: "· ";
 }
 
 .breed-btn {
@@ -1785,6 +1777,15 @@ body.modality-non-strudel .cm-panels {
 
 .lineage-card-preview-wrapper {
   aspect-ratio: 1;
+  background: #000;
+  overflow: hidden;
+}
+
+.lineage-card-snapshot {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .lineage-card-preview-wrapper .shader-preview {

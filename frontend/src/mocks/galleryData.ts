@@ -18,7 +18,7 @@ export const MOCK_SHARED_PROGRAMS: SharedProgram[] = [
     col = pow(col, vec3(0.85));
     fragColor = vec4(col, 1.0);
 }`,
-    llmModel: 'claude-sonnet-4-20250514',
+    llmModel: 'Mock',
     createdAt: '2026-03-14T10:30:00Z',
     lineage: [
       {
@@ -80,7 +80,7 @@ export const MOCK_SHARED_PROGRAMS: SharedProgram[] = [
     col = mix(col, vec3(1.0), smoothstep(0.95, 1.0, abs(sin(v * 3.14159))));
     fragColor = vec4(col, 1.0);
 }`,
-    llmModel: 'gpt-4o',
+    llmModel: 'Mock',
     createdAt: '2026-03-13T15:45:00Z',
     lineage: [
       {
@@ -143,7 +143,7 @@ export const MOCK_SHARED_PROGRAMS: SharedProgram[] = [
     col = tanh(col * 0.6);
     fragColor = vec4(col, 1.0);
 }`,
-    llmModel: 'claude-sonnet-4-20250514',
+    llmModel: 'Mock',
     createdAt: '2026-03-15T08:20:00Z',
     lineage: [
       {
@@ -195,7 +195,7 @@ export const MOCK_SHARED_PROGRAMS: SharedProgram[] = [
     col += 0.1 * sin(iTime + uv.x * 3.0 + uv.y * 3.0);
     fragColor = vec4(col, 1.0);
 }`,
-    llmModel: 'gemini-2.0-flash',
+    llmModel: 'Mock',
     createdAt: '2026-03-12T20:10:00Z',
     lineage: [
       {
@@ -242,7 +242,7 @@ var scale = "D:minor"
 $: s("bd*4, [~ sd]*2, hh*8").bank("RolandTR909").gain(0.7)._scope()
 $: note("<d2 a2 bb2 g2>").s("sawtooth").lpf(600).gain(0.6).scale(scale)._pianoroll()
 $: n("0 2 4 <[6,8] [7,9]>").scale("D4:minor").s("gm_epiano1").room(0.5).delay(0.25)._pianoroll()`,
-    llmModel: 'claude-sonnet-4-20250514',
+    llmModel: 'Mock',
     createdAt: '2026-03-14T12:00:00Z',
     lineage: [
       {
@@ -277,7 +277,7 @@ var scale = "C:minor"
 $: note("c3 [eb3 g3] bb2 [f3 ab3]").s("triangle").room(0.8).delay(0.5).delayfeedback(0.6)._pianoroll()
 $: s("bd ~ sd ~").room(0.3)._scope()
 $: s("hh*4").gain(perlin.range(0.2, 0.6)).pan(rand)._scope()`,
-    llmModel: 'gpt-4o',
+    llmModel: 'Mock',
     createdAt: '2026-03-13T18:30:00Z',
     lineage: [
       {
@@ -321,7 +321,7 @@ $: n("<4 0 <5 9> 0>*8").scale(scale).s("sawtooth").o(2)._pianoroll()
 $: s("bd:1!4")._scope()
 $: s("[~ <~ cp:1>]*2")._scope()
 $: note("<e1 b1 c2 d2>").s("triangle").lpf(300).gain(0.7)._pianoroll()`,
-    llmModel: 'claude-sonnet-4-20250514',
+    llmModel: 'Mock',
     createdAt: '2026-03-15T09:15:00Z',
     lineage: [
       {
@@ -369,7 +369,7 @@ $: s("bd:4(<3 5>,8)").bank("Linn9000").gain(0.8)._scope()
 $: s("sd:3").struct("<[~ x]!8 [~ x ~ [x x]]>").gain(0.7)._scope()
 $: s("hh*8").gain("[0.4 0.6]*4")._scope()
 $: n(irand(10).seg(0.5).add("[0 3]/4").add("0, 2, 4")).scale("G3:minor").sound("gm_synth_strings_1").attack(0.4).sustain(3).gain(0.4)._pianoroll()`,
-    llmModel: 'gemini-2.0-flash',
+    llmModel: 'Mock',
     createdAt: '2026-03-11T14:45:00Z',
     lineage: [
       {

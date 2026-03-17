@@ -20,20 +20,26 @@ function buildTree(lineage: LineageProgram[]): TreeNode | null {
   const byId = new Map(lineage.map((p) => [p.id, p]));
 
   const root = lineage.reduce((a, b) => (a.generation >= b.generation ? a : b));
+  const visited = new Set<string>();
 
-  function build(id: string): TreeNode {
+  function build(id: string): TreeNode | null {
+    if (visited.has(id)) return null;
+    visited.add(id);
     const prog = byId.get(id)!;
     const parentIds = prog.parentIds.filter((pid) => byId.has(pid));
     return {
       program: prog,
-      children: parentIds.map((pid) => build(pid)),
+      children: parentIds.map((pid) => build(pid)).filter((n): n is TreeNode => n !== null),
     };
   }
 
   return build(root.id);
 }
 
-// ── Mini card for lineage — shaders play by default ──
+// ── Mini card for lineage ──
+// Shaders show a static snapshot by default. Clicking play swaps in a live
+// WebGL context; only one lineage shader can be live at a time so we stay
+// within the browser's context limit (main card + 1 lineage = 2 max).
 
 function LineageCard({
   program,
@@ -42,6 +48,9 @@ function LineageCard({
   onPlayStrudel,
   isPlayingStrudel,
   onStopStrudel,
+  isPlayingShader,
+  onPlayShader,
+  onStopShader,
 }: {
   program: LineageProgram;
   isShader: boolean;
@@ -49,19 +58,57 @@ function LineageCard({
   onPlayStrudel?: (code: string) => void;
   isPlayingStrudel?: boolean;
   onStopStrudel?: () => void;
+  isPlayingShader?: boolean;
+  onPlayShader?: (id: string) => void;
+  onStopShader?: () => void;
 }) {
-  const previewRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const liveRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
   const [paused, setPaused] = useState(false);
 
+  // Render a single-frame snapshot for shaders
   useEffect(() => {
-    if (!isShader || !previewRef.current) return;
+    if (!isShader || !canvasRef.current || isPlayingShader) return;
+    const canvas = canvasRef.current;
+    const container = document.createElement('div');
+    container.style.width = '160px';
+    container.style.height = '160px';
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+
+    const plugin = getPlugin('shader');
+    const handle = plugin.render(program.code, container);
+
+    const timer = setTimeout(() => {
+      const srcCanvas = container.querySelector('canvas');
+      if (srcCanvas && canvas) {
+        canvas.width = srcCanvas.width;
+        canvas.height = srcCanvas.height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(srcCanvas, 0, 0);
+      }
+      handle.cleanup();
+      document.body.removeChild(container);
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      handle.cleanup();
+      if (container.parentNode) document.body.removeChild(container);
+    };
+  }, [isShader, program.code, isPlayingShader]);
+
+  // Live WebGL context when playing
+  useEffect(() => {
+    if (!isShader || !isPlayingShader || !liveRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin('shader');
-    handleRef.current = plugin.render(program.code, previewRef.current);
+    handleRef.current = plugin.render(program.code, liveRef.current);
     setPaused(false);
     return () => { handleRef.current?.cleanup(); handleRef.current = null; };
-  }, [isShader, program.code]);
+  }, [isShader, isPlayingShader, program.code]);
 
   const handleToggle = () => {
     if (!handleRef.current) return;
@@ -75,7 +122,11 @@ function LineageCard({
     <div className="lineage-card">
       {isShader ? (
         <div className="lineage-card-preview-wrapper">
-          <div className="lineage-card-preview shader-preview" ref={previewRef} />
+          {isPlayingShader ? (
+            <div className="lineage-card-preview shader-preview" ref={liveRef} />
+          ) : (
+            <canvas className="lineage-card-snapshot" ref={canvasRef} />
+          )}
         </div>
       ) : (
         <div className="lineage-card-preview strudel-preview">
@@ -86,22 +137,33 @@ function LineageCard({
       <div className="lineage-card-controls">
         <div className="lineage-card-controls-left">
           {isShader ? (
-            <>
+            isPlayingShader ? (
+              <>
+                <button
+                  className={'play-btn play-btn-sm' + (paused ? '' : ' active')}
+                  onClick={handleToggle}
+                  title={paused ? 'Resume shader' : 'Pause shader'}
+                >
+                  {paused ? '\u25B6' : '\u23F8'}
+                </button>
+                <button
+                  className="reset-btn reset-btn-sm"
+                  onClick={handleReset}
+                  title="Reset shader"
+                >↺</button>
+                <button
+                  className="play-btn play-btn-sm"
+                  onClick={() => onStopShader?.()}
+                  title="Stop live shader"
+                >&#x25A0;</button>
+              </>
+            ) : (
               <button
-                className={'play-btn play-btn-sm' + (paused ? '' : ' active')}
-                onClick={handleToggle}
-                title={paused ? 'Resume shader' : 'Pause shader'}
-              >
-                {paused ? '\u25B6' : '\u23F8'}
-              </button>
-              <button
-                className="reset-btn reset-btn-sm"
-                onClick={handleReset}
-                title="Reset shader to initial state"
-              >
-                ↺
-              </button>
-            </>
+                className="play-btn play-btn-sm"
+                onClick={() => onPlayShader?.(program.id)}
+                title="Play shader live"
+              >{'\u25B6'}</button>
+            )
           ) : (
             <button
               className={'play-btn play-btn-sm' + (isPlayingStrudel ? ' active' : '')}
@@ -136,6 +198,9 @@ function TreeView({
   onPlayStrudel,
   playingCode,
   onStopStrudel,
+  playingShaderId,
+  onPlayShader,
+  onStopShader,
 }: {
   node: TreeNode;
   isShader: boolean;
@@ -143,6 +208,9 @@ function TreeView({
   onPlayStrudel?: (code: string) => void;
   playingCode?: string | null;
   onStopStrudel?: () => void;
+  playingShaderId?: string | null;
+  onPlayShader?: (id: string) => void;
+  onStopShader?: () => void;
 }) {
   return (
     <div className="lineage-tree-node">
@@ -153,6 +221,9 @@ function TreeView({
         onPlayStrudel={onPlayStrudel}
         isPlayingStrudel={playingCode === node.program.code}
         onStopStrudel={onStopStrudel}
+        isPlayingShader={playingShaderId === node.program.id}
+        onPlayShader={onPlayShader}
+        onStopShader={onStopShader}
       />
       {node.children.length > 0 && (
         <>
@@ -168,6 +239,9 @@ function TreeView({
                   onPlayStrudel={onPlayStrudel}
                   playingCode={playingCode}
                   onStopStrudel={onStopStrudel}
+                  playingShaderId={playingShaderId}
+                  onPlayShader={onPlayShader}
+                  onStopShader={onStopShader}
                 />
               </div>
             ))}
@@ -223,6 +297,15 @@ export function ProgramDetailPage() {
 
   const [codeModalProgram, setCodeModalProgram] = useState<LineageProgram | null>(null);
   const [playingCode, setPlayingCode] = useState<string | null>(null);
+  const [playingShaderId, setPlayingShaderId] = useState<string | null>(null);
+
+  const handlePlayShader = useCallback((id: string) => {
+    setPlayingShaderId(id);
+  }, []);
+
+  const handleStopShader = useCallback(() => {
+    setPlayingShaderId(null);
+  }, []);
 
   useEffect(() => {
     if (detailId) fetchDetail(detailId);
@@ -232,16 +315,31 @@ export function ProgramDetailPage() {
   const { play, stop } = useStrudelPlayer(program?.modality === 'strudel');
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Main preview
-  const mainPreviewRef = useRef<HTMLDivElement>(null);
+  // Main preview — use callback ref so shader renders even when div appears after fetch
   const mainHandleRef = useRef<RenderHandle | null>(null);
+  const mainPreviewRef = useRef<HTMLDivElement>(null);
   const [mainPaused, setMainPaused] = useState(false);
+  const prevCodeRef = useRef<string | null>(null);
 
+  const mainRefCallback = useCallback((node: HTMLDivElement | null) => {
+    mainPreviewRef.current = node;
+    if (node && isShader && program) {
+      mainHandleRef.current?.cleanup();
+      const plugin = getPlugin('shader');
+      mainHandleRef.current = plugin.render(program.code, node);
+      prevCodeRef.current = program.code;
+      setMainPaused(false);
+    }
+  }, [isShader, program]);
+
+  // Re-render shader if code changes while div already exists
   useEffect(() => {
     if (!isShader || !mainPreviewRef.current || !program) return;
+    if (prevCodeRef.current === program.code) return;
     mainHandleRef.current?.cleanup();
     const plugin = getPlugin('shader');
     mainHandleRef.current = plugin.render(program.code, mainPreviewRef.current);
+    prevCodeRef.current = program.code;
     setMainPaused(false);
     return () => { mainHandleRef.current?.cleanup(); mainHandleRef.current = null; };
   }, [isShader, program?.code]);
@@ -333,7 +431,7 @@ export function ProgramDetailPage() {
       <div className="detail-main">
         <div className="detail-main-card">
           {isShader ? (
-            <div className="detail-preview shader-preview" ref={mainPreviewRef} />
+            <div className="detail-preview shader-preview" ref={mainRefCallback} />
           ) : (
             <div className="detail-preview strudel-preview">
               <StrudelHighlight code={program.code} />
@@ -375,10 +473,12 @@ export function ProgramDetailPage() {
           </div>
           <div className="detail-labels">
             <span className="gallery-card-sharer">{program.sharerName}</span>
-            <span className="gallery-card-model">{program.llmModel}</span>
             <span className="detail-date">
               {new Date(program.createdAt).toLocaleDateString()}
             </span>
+          </div>
+          <div className="detail-labels">
+            <span className="gallery-card-model">Evolved using: {program.llmModel || 'Mock'}</span>
           </div>
         </div>
       </div>
@@ -397,6 +497,9 @@ export function ProgramDetailPage() {
               onPlayStrudel={handlePlayStrudel}
               playingCode={playingCode}
               onStopStrudel={handleStop}
+              playingShaderId={playingShaderId}
+              onPlayShader={handlePlayShader}
+              onStopShader={handleStopShader}
             />
           </div>
         </div>

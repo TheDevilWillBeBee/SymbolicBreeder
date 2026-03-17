@@ -109,10 +109,12 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
         )}
       </div>
 
-      {/* Labels row: non-interactive */}
+      {/* Labels rows: non-interactive */}
       <div className="gallery-card-labels">
         <span className="gallery-card-sharer">{program.sharerName}</span>
-        <span className="gallery-card-model">{program.llmModel}</span>
+      </div>
+      <div className="gallery-card-labels">
+        <span className="gallery-card-model">Evolved using: {program.llmModel || 'Mock'}</span>
       </div>
     </div>
   );

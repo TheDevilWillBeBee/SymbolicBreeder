@@ -52,6 +52,7 @@ export function ShareModal({ program, onClose }: Props) {
   const generations = useSessionStore((s) => s.generations);
   const customizedPrograms = useSessionStore((s) => s.customizedPrograms);
   const llmConfig = useSessionStore((s) => s.llmConfig);
+  const lastEvolveSource = useSessionStore((s) => s.lastEvolveSource);
   const addLog = useLogStore((s) => s.addLog);
   const addSharedProgram = useGalleryStore((s) => s.addSharedProgram);
 
@@ -71,6 +72,7 @@ export function ShareModal({ program, onClose }: Props) {
     }
 
     const sharedId = crypto.randomUUID();
+    const llmLabel = lastEvolveSource === 'mock' ? 'Mock' : `${llmConfig.provider}/${llmConfig.model}`;
     const sharedProgram: SharedProgram = {
       id: sharedId,
       programId: program.id,
@@ -78,7 +80,7 @@ export function ShareModal({ program, onClose }: Props) {
       modality: program.modality,
       code: displayCode,
       lineage,
-      llmModel: `${llmConfig.provider}/${llmConfig.model}`,
+      llmModel: llmLabel,
       createdAt: new Date().toISOString(),
     };
 
@@ -89,7 +91,7 @@ export function ShareModal({ program, onClose }: Props) {
         code: displayCode,
         modality: program.modality,
         lineage,
-        llm_model: `${llmConfig.provider}/${llmConfig.model}`,
+        llm_model: llmLabel,
       });
       sharedProgram.id = res.id;
     } catch {
@@ -138,7 +140,7 @@ export function ShareModal({ program, onClose }: Props) {
               <div className="share-preview-info">
                 <span className="share-modality">{program.modality}</span>
                 <span className="share-gen">Generation {program.generation + 1}</span>
-                <span className="share-model">{llmConfig.provider}/{llmConfig.model}</span>
+                <span className="share-model">{lastEvolveSource === 'mock' ? 'Mock' : `${llmConfig.provider}/${llmConfig.model}`}</span>
               </div>
               <button
                 className="share-submit-btn"

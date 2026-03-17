@@ -159,8 +159,10 @@ export function useEvolution() {
 
         const addLog = useLogStore.getState().addLog;
         if (res.source === 'mock') {
+          store.setLastEvolveSource('mock');
           addLog('warning', res.message ?? 'Backend used mock examples');
         } else {
+          store.setLastEvolveSource('llm');
           addLog('success', `Generation seeded via ${provider}/${model}`);
         }
       } catch (err) {
@@ -177,6 +179,7 @@ export function useEvolution() {
           seeds.map((code) => makeProgram(code, modality, 0, sessionId)),
         );
         const addLog = useLogStore.getState().addLog;
+        store.setLastEvolveSource('mock');
         addLog('error', `Backend unavailable — using mock examples. ${err instanceof Error ? err.message : ''}`);
       } finally {
         store.setIsLoading(false);
@@ -241,12 +244,15 @@ export function useEvolution() {
 
         const addLog = useLogStore.getState().addLog;
         if (res.source === 'mock') {
+          store.setLastEvolveSource('mock');
           addLog('warning', res.message ?? 'Backend used mock examples');
         } else {
+          store.setLastEvolveSource('llm');
           addLog('success', `Generation ${res.generation} evolved via ${provider}/${model}`);
         }
       } catch (err) {
         // Mock evolution
+        store.setLastEvolveSource('mock');
         const gen = store.generations.length;
         const sessionId = store.session?.id ?? '';
         const codes = mockEvolve(modality, parents, 6);
