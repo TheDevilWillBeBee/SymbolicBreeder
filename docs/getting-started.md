@@ -8,7 +8,7 @@
 | Node.js | 18+ | Frontend build tooling |
 | npm | 9+ | Bundled with Node |
 | PostgreSQL | 15+ | Required for backend state |
-| Anthropic API key | — | Optional — mock mode works without one |
+| LLM API key | — | Optional — mock mode works without one |
 
 ---
 
@@ -46,7 +46,10 @@ Dependencies installed:
 | `sqlalchemy` | ORM |
 | `psycopg[binary]` | PostgreSQL driver |
 | `pydantic` | Request/response validation |
-| `anthropic` | Anthropic Python SDK |
+| `anthropic` | Anthropic SDK |
+| `openai` | OpenAI SDK |
+| `google-genai` | Google Gemini SDK |
+| `dashscope` | Qwen (Alibaba) SDK |
 | `pyyaml` | Context manifest parsing |
 
 ### 3. Frontend setup
@@ -66,13 +69,29 @@ Create a `.env` file in `backend/` or export variables in your shell before star
 
 ```bash
 # backend/.env  (or export in shell)
-ANTHROPIC_API_KEY=sk-ant-...          # Optional — omit for mock mode
-LLM_MODEL=claude-sonnet-4-20250514    # Default shown
 DATABASE_URL=postgresql+psycopg://user:password@host:5432/symbolic_breeder
+
+# LLM provider keys (all optional — omit all for mock mode)
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=...
+DASHSCOPE_API_KEY=sk-...
+
+LLM_MODEL=claude-sonnet-4-20250514    # Default model
 CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
-> **Mock mode**: if `ANTHROPIC_API_KEY` is absent or empty, every LLM call returns pre-written programs from the built-in mock pool. The full UI flow works — seeding, evolving, customizing — just without real AI output. This is useful for offline development and demos.
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DATABASE_URL` | — | Yes | PostgreSQL connection string |
+| `ANTHROPIC_API_KEY` | — | No | Anthropic API key |
+| `OPENAI_API_KEY` | — | No | OpenAI API key |
+| `GOOGLE_API_KEY` | — | No | Google Gemini API key |
+| `DASHSCOPE_API_KEY` | — | No | Qwen API key (Alibaba) |
+| `LLM_MODEL` | `claude-sonnet-4-20250514` | No | Default model identifier |
+| `CORS_ALLOW_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | No | Comma-separated CORS origins |
+
+> **Mock mode**: if no LLM API keys are set, every LLM call returns pre-written programs from the built-in mock pool. The full UI flow works — seeding, evolving, customizing — just without real AI output. This is useful for offline development and demos.
 
 ### Frontend
 
@@ -133,30 +152,123 @@ You should see a JSON response with a `session` object and a `programs` array co
 
 ---
 
+## Local Testing Checklist
+
+Run these in order to validate local behavior end-to-end:
+
+1. Start backend (`uvicorn app.main:app --reload --port 8000`)
+2. Start frontend (`npm run dev` in `frontend/`)
+3. Health check: `curl http://localhost:8000/api/health`
+4. Session creation smoke test:
+
+```bash
+curl -s -X POST http://localhost:8000/api/sessions \
+    -H "Content-Type: application/json" \
+    -d '{"modality":"shader","name":"local-smoke"}'
+```
+
+5. Open the app (`http://localhost:3000`) and verify:
+   - create a session
+   - evolve at least one generation
+   - no backend errors in terminal
+
+---
+
 ## Deploying on Vercel
 
 This repository is configured for single-platform deployment on Vercel:
-- `frontend/` builds to static assets
+- `frontend/` builds to static assets (`frontend/dist`)
 - `api/[...path].py` exposes the FastAPI backend as a Vercel Python function
-- `vercel.json` wires `/api/*` requests to the Python function
+- `vercel.json` wires `/api/*` requests to the Python function and everything else to the SPA
 
-### Required Vercel Environment Variables
+### 1. Vercel CLI
 
-- `DATABASE_URL` (or Vercel-provided `POSTGRES_*` variables)
-- `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY` (optional, for server-side key mode)
-- `CORS_ALLOW_ORIGINS` (comma-separated production origins)
+Use either `npx` (no global install) or a global install.
 
-### Migration Step (Required)
+`npx` approach:
 
-Run migrations against the production database before serving traffic:
+```bash
+npx vercel@latest login
+npx vercel@latest link
+```
+
+Global install approach:
+
+```bash
+npm install -g vercel
+vercel login
+vercel link
+```
+
+### 2. Environment Variables (Production)
+
+Set these in Vercel Project Settings (Neon integration usually injects Postgres vars automatically):
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` and/or `POSTGRES_*` | Required — database connection |
+| `CORS_ALLOW_ORIGINS` | Comma-separated production origins |
+| `ANTHROPIC_API_KEY` | Optional — Anthropic provider |
+| `OPENAI_API_KEY` | Optional — OpenAI provider |
+| `GOOGLE_API_KEY` | Optional — Google Gemini provider |
+| `DASHSCOPE_API_KEY` | Optional — Qwen provider |
+
+### 3. Initialize Database Schema (required)
+
+The app uses Alembic migrations. Tables are not auto-created at runtime.
+
+Pull production env vars locally:
+
+```bash
+npx vercel@latest env pull .env.vercel --environment=production
+```
+
+Run migrations against production DB:
 
 ```bash
 cd backend
-source .venv/bin/activate
+set -a
+source ../.env.vercel
+set +a
+export DATABASE_URL="${POSTGRES_URL_NON_POOLING:-$DATABASE_URL}"
 alembic upgrade head
+alembic current
 ```
 
-Recommended: run this in CI/CD before promoting a deployment.
+### 4. Deploy
+
+Deploy from Vercel dashboard or CLI:
+
+```bash
+npx vercel@latest --prod
+```
+
+---
+
+## Vercel Testing Checklist
+
+After deployment:
+
+1. Health endpoint:
+
+```bash
+curl https://<your-vercel-domain>/api/health
+```
+
+2. Session API:
+
+```bash
+curl -s -X POST https://<your-vercel-domain>/api/sessions \
+    -H "Content-Type: application/json" \
+    -d '{"modality":"shader","name":"prod-smoke"}'
+```
+
+3. Frontend flow:
+   - open deployed app
+   - set provider/model/API key as needed
+   - create session and evolve one generation
+
+If you get `relation "sessions" does not exist`, migrations have not been applied to the production database yet.
 
 ---
 
@@ -177,6 +289,8 @@ To create a new migration after model changes:
 cd backend
 alembic revision --autogenerate -m "describe_change"
 ```
+
+See [database-management.md](database-management.md) for more details.
 
 ---
 

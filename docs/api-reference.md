@@ -33,13 +33,18 @@ Creates a new breeding session and immediately seeds generation 0 via the LLM (o
 | `modality` | string | Yes | `"strudel"` or `"shader"` |
 | `name` | string | No | Human-readable label for the session |
 | `prompt` | string | No | Optional seed guidance passed to the LLM |
+| `provider` | string | No | LLM provider key (default: `"anthropic"`) |
+| `model` | string | No | Model identifier (default: `"claude-sonnet-4-20250514"`) |
+| `base_url` | string | No | Custom API base URL override |
 
 **Example**
 
 ```json
 {
   "modality": "shader",
-  "name": "Sunday experiments"
+  "name": "Sunday experiments",
+  "provider": "openai",
+  "model": "gpt-4o"
 }
 ```
 
@@ -153,6 +158,8 @@ Generates a new generation of programs by mutating/crossing the provided parents
 | `guidance` | string | No | Free-text hint to shape the evolution direction |
 | `population_size` | int | No | Number of programs to generate (default: 6) |
 | `session_id` | string | No | Session UUID — used to associate the new programs |
+| `provider` | string | No | LLM provider key (default: `"anthropic"`) |
+| `model` | string | No | Model identifier (default: `"claude-sonnet-4-20250514"`) |
 
 **Example**
 
@@ -202,6 +209,117 @@ Generates a new generation of programs by mutating/crossing the provided parents
 
 ---
 
+## Providers
+
+### `GET /api/providers`
+
+Returns available LLM providers, their supported models, and whether the server has any API keys configured.
+
+**Response `200`**
+
+```json
+{
+  "server_key_available": true,
+  "providers": [
+    {
+      "key": "anthropic",
+      "label": "Anthropic",
+      "models": ["claude-opus-4-1", "claude-sonnet-4-20250514", "claude-haiku-4-5-20251001"]
+    },
+    {
+      "key": "openai",
+      "label": "OpenAI",
+      "models": ["gpt-4o", "gpt-4o-mini", "o3-mini"]
+    },
+    {
+      "key": "gemini",
+      "label": "Google Gemini",
+      "models": ["gemini-2.5-pro", "gemini-2.5-flash"]
+    },
+    {
+      "key": "qwen",
+      "label": "Qwen",
+      "models": ["qwen-max", "qwen-plus"]
+    }
+  ]
+}
+```
+
+---
+
+## Gallery
+
+### `POST /api/gallery/share`
+
+Shares a program to the public gallery.
+
+**Request body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `program_id` | string | No | UUID of the original program |
+| `sharer_name` | string | Yes | Display name of the sharer |
+| `code` | string | Yes | Program source code |
+| `modality` | string | Yes | `"strudel"` or `"shader"` |
+| `lineage` | array | No | Ancestry chain of parent programs |
+| `llm_model` | string | No | Model used to generate the program |
+
+**Response `200`**
+
+```json
+{
+  "id": "d4e5f6a7-...",
+  "program_id": "b7e2a1f9-...",
+  "sharer_name": "Alice",
+  "modality": "shader",
+  "code": "void mainImage(...) { ... }",
+  "lineage": [],
+  "llm_model": "claude-sonnet-4-20250514",
+  "created_at": "2026-03-16T10:00:00Z"
+}
+```
+
+---
+
+### `GET /api/gallery/programs`
+
+Lists shared programs, paginated and filtered by modality.
+
+**Query parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `modality` | string | `"shader"` | Filter by modality |
+| `page` | int | `1` | Page number (1-indexed) |
+| `per_page` | int | `20` | Items per page (max 100) |
+
+**Response `200`**
+
+```json
+{
+  "items": [ /* SharedProgram objects */ ],
+  "total": 42,
+  "page": 1,
+  "per_page": 20
+}
+```
+
+---
+
+### `GET /api/gallery/programs/{program_id}`
+
+Retrieves a single shared program.
+
+**Response `200`** — same shape as the `POST /api/gallery/share` response.
+
+**Response `404`**
+
+```json
+{ "detail": "Shared program not found" }
+```
+
+---
+
 ## Error Format
 
 Validation errors follow FastAPI's default format (Pydantic). Logical errors (not found, etc.) return:
@@ -214,7 +332,7 @@ Validation errors follow FastAPI's default format (Pydantic). Logical errors (no
 
 ## Mock Mode
 
-If the `ANTHROPIC_API_KEY` environment variable is not set, the evolve and session endpoints return programs sampled from a built-in mock pool rather than calling the Anthropic API. The request/response shapes are identical.
+If no LLM API keys are configured (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `DASHSCOPE_API_KEY`), the evolve and session endpoints return programs sampled from a built-in mock pool. The request/response shapes are identical.
 
 ---
 
