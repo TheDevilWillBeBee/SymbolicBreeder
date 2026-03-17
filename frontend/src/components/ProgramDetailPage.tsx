@@ -386,12 +386,7 @@ export function ProgramDetailPage() {
     const store = useSessionStore.getState();
     store.reset();
     store.setModality(program.modality);
-    store.setSession({
-      id: crypto.randomUUID(),
-      name: `From ${program.sharerName}'s program`,
-      modality: program.modality,
-      createdAt: new Date().toISOString(),
-    });
+    // Don't create a local session — let the backend create one on first evolve
     store.addGeneration([{
       id: crypto.randomUUID(),
       code: program.code,

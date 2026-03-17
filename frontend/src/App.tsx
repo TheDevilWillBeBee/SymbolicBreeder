@@ -45,6 +45,8 @@ export default function App() {
   const goToGallery = useNavStore((s) => s.goToGallery);
 
   const hasSession = session !== null;
+  const llmConfig = useSessionStore((s) => s.llmConfig);
+  const [modelPanelOpen, setModelPanelOpen] = useState(false);
 
   const galleryModality = useGalleryStore((s) => s.modality);
   const detailProgram = useGalleryStore((s) => s.selectedProgram);
@@ -149,11 +151,6 @@ export default function App() {
           <button className="gallery-link-btn" onClick={goToGallery} title="Browse programs shared by others">
             Explore Gallery
           </button>
-
-          <details className="start-settings">
-            <summary className="start-settings-toggle">Model Settings</summary>
-            <ModelSelector />
-          </details>
         </div>
       );
     }
@@ -207,6 +204,15 @@ export default function App() {
         <h1 className="app-title" onClick={goToLanding} title="Go to home page">
           &#10022; Symbolic Breeder
         </h1>
+        <button
+          className={'header-model-toggle' + (modelPanelOpen ? ' open' : '') + (!llmConfig.apiKey ? ' no-key' : '')}
+          onClick={() => setModelPanelOpen((v) => !v)}
+          title="Model settings"
+        >
+          {!llmConfig.apiKey && <span className="header-model-warning">&#9888;</span>}
+          <span className="header-model-label">{llmConfig.provider}/{llmConfig.model}</span>
+          <span className="header-model-arrow">{modelPanelOpen ? '\u25B4' : '\u25BE'}</span>
+        </button>
         <div className="header-actions">
           {view === 'breeding' && hasSession && (
             <span className="modality-badge">{modality}</span>
@@ -221,6 +227,12 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {modelPanelOpen && (
+        <div className="header-model-panel">
+          <ModelSelector />
+        </div>
+      )}
 
       {renderView()}
 

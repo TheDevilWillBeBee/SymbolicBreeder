@@ -230,6 +230,19 @@ export function useEvolution() {
           ...(baseUrl ? { base_url: baseUrl } : {}),
         });
 
+        // If no session existed locally, capture the backend-created one
+        if (!store.session && res.programs.length > 0) {
+          const sid = res.programs[0].session_id;
+          if (sid) {
+            store.setSession({
+              id: sid,
+              name: 'Untitled Session',
+              modality,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }
+
         store.addGeneration(
           res.programs.map((p) => ({
             id: p.id,

@@ -57,6 +57,7 @@ body.modality-non-strudel .cm-panels {
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 1rem;
+  gap: 0.5rem;
 }
 
 .app-header h1,
@@ -65,10 +66,65 @@ body.modality-non-strudel .cm-panels {
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .app-title:hover {
   opacity: 0.8;
+}
+
+.header-model-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.header-model-toggle:hover,
+.header-model-toggle.open {
+  border-color: var(--accent);
+}
+
+.header-model-toggle.no-key {
+  border-color: var(--warning, #e6a700);
+}
+
+.header-model-warning {
+  color: var(--warning, #e6a700);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.header-model-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.header-model-arrow {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.header-model-panel {
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0 1rem;
+  margin-bottom: 1rem;
+  margin-top: -0.5rem;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .header-actions {
@@ -430,7 +486,7 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.shader-preview {
+.program-card-preview.shader-preview {
   aspect-ratio: 1;
   background: #000;
 }
@@ -1646,7 +1702,7 @@ body.modality-non-strudel .cm-panels {
   border: 2px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  max-width: 600px;
+  max-width: 450px;
   margin: 0 auto 2rem;
 }
 
