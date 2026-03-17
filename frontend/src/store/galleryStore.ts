@@ -13,13 +13,13 @@ function mapSharedProgram(raw: Record<string, unknown>): SharedProgram {
     sharerName: (raw.sharerName ?? raw.sharer_name ?? '') as string,
     modality: raw.modality as string,
     code: raw.code as string,
-    lineage: ((raw.lineage as unknown[]) ?? []).map((lp: Record<string, unknown>) => ({
+    lineage: ((raw.lineage as unknown[]) ?? []).map((item) => { const lp = item as Record<string, unknown>; return ({
       id: lp.id as string,
       code: lp.code as string,
       modality: lp.modality as string,
       generation: lp.generation as number,
       parentIds: (lp.parentIds ?? lp.parent_ids ?? []) as string[],
-    })),
+    }); }),
     llmModel: (raw.llmModel ?? raw.llm_model ?? '') as string,
     createdAt: (raw.createdAt ?? raw.created_at ?? '') as string,
   };

@@ -317,7 +317,7 @@ export function ProgramDetailPage() {
 
   // Main preview — use callback ref so shader renders even when div appears after fetch
   const mainHandleRef = useRef<RenderHandle | null>(null);
-  const mainPreviewRef = useRef<HTMLDivElement>(null);
+  const mainPreviewRef = useRef<HTMLDivElement | null>(null);
   const [mainPaused, setMainPaused] = useState(false);
   const prevCodeRef = useRef<string | null>(null);
 
