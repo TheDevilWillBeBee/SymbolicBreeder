@@ -3,7 +3,7 @@ import { SharedProgram } from '../types';
 import { api } from '../api/client';
 import { MOCK_SHARED_PROGRAMS } from '../mocks/galleryData';
 
-const PER_PAGE = 20;
+const PER_PAGE = 9;
 
 /** Map snake_case API response to camelCase SharedProgram */
 function mapSharedProgram(raw: Record<string, unknown>): SharedProgram {

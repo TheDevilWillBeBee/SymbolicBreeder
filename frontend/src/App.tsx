@@ -32,6 +32,7 @@ export default function App() {
     localStorage.setItem('symbolicBreeder_theme', theme);
   }, [theme]);
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [modalProgram, setModalProgram] = useState<Program | null>(null);
   const [customizeProgram, setCustomizeProgram] = useState<Program | null>(null);
   const [shareProgram, setShareProgram] = useState<Program | null>(null);
@@ -131,8 +132,10 @@ export default function App() {
               Breed programs through artificial selection
             </p>
             <p className="start-description">
-              Pick your favorites, evolve the rest. An LLM generates
-              populations of programs &mdash; you guide evolution.
+              Inspired by <em>PicBreeder</em>, Symbolic Breeder evolves programs
+              &mdash; music and visuals &mdash; using large language models as
+              the variation engine. Select what you find interesting, and
+              discover what no one planned for.
             </p>
           </div>
 
@@ -211,38 +214,72 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="app-title" onClick={goToLanding} title="Go to home page">
-          &#10022; Symbolic Breeder
-        </h1>
-        <button
-          className={'header-model-toggle' + (modelPanelOpen ? ' open' : '') + (!llmConfig.apiKey ? ' no-key' : '')}
-          onClick={() => setModelPanelOpen((v) => !v)}
-          title="Model settings"
-        >
-          {!llmConfig.apiKey && <span className="header-model-warning">&#9888;</span>}
-          <span className="header-model-label">{llmConfig.provider}/{llmConfig.model}</span>
-          <span className="header-model-arrow">{modelPanelOpen ? '\u25B4' : '\u25BE'}</span>
-        </button>
-        <div className="header-actions">
-          {view === 'breeding' && hasSession && (
-            <span className="modality-badge">{modality}</span>
-          )}
-          <button className="header-nav-btn" onClick={goToGallery} title="Browse programs shared by others">
-            Gallery
-          </button>
-          {view === 'breeding' && (
-            <button onClick={handleNewSession} title="Start a new breeding session">
-              New Session
-            </button>
-          )}
+        <div className="header-row-top">
+          <h1 className="app-title" onClick={goToLanding} title="Go to home page">
+            &#10022; Symbolic Breeder
+          </h1>
           <button
-            className="theme-toggle"
-            onClick={() => setTheme((t) => t === 'dark' ? 'light' : 'dark')}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className={'header-model-toggle' + (modelPanelOpen ? ' open' : '') + (!llmConfig.apiKey ? ' no-key' : '')}
+            onClick={() => setModelPanelOpen((v) => !v)}
+            title="Model settings"
           >
-            {theme === 'dark' ? '\u2600' : '\u263D'}
+            {!llmConfig.apiKey && <span className="header-model-warning">&#9888;</span>}
+            <span className="header-model-label">{llmConfig.provider}/{llmConfig.model}</span>
+            <span className="header-model-arrow">{modelPanelOpen ? '\u25B4' : '\u25BE'}</span>
           </button>
+          <button
+            className={'hamburger-btn' + (menuOpen ? ' open' : '')}
+            onClick={() => setMenuOpen((v) => !v)}
+            title="Menu"
+            aria-label="Toggle menu"
+          >
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+          </button>
+          <div className="header-actions header-actions-desktop">
+            {view === 'breeding' && hasSession && (
+              <span className="modality-badge">{modality}</span>
+            )}
+            <button className="header-nav-btn" onClick={goToGallery} title="Browse programs shared by others">
+              Gallery
+            </button>
+            {view === 'breeding' && (
+              <button onClick={handleNewSession} title="Start a new breeding session">
+                New Session
+              </button>
+            )}
+            <button
+              className="theme-toggle"
+              onClick={() => setTheme((t) => t === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '\u2600' : '\u263D'}
+            </button>
+          </div>
         </div>
+        {menuOpen && (
+          <div className="header-mobile-menu">
+            {view === 'breeding' && hasSession && (
+              <span className="modality-badge">{modality}</span>
+            )}
+            <button className="header-nav-btn" onClick={() => { goToGallery(); setMenuOpen(false); }}>
+              Gallery
+            </button>
+            {view === 'breeding' && (
+              <button onClick={() => { handleNewSession(); setMenuOpen(false); }}>
+                New Session
+              </button>
+            )}
+            <button
+              className="theme-toggle"
+              onClick={() => { setTheme((t) => t === 'dark' ? 'light' : 'dark'); setMenuOpen(false); }}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '\u2600' : '\u263D'}
+            </button>
+          </div>
+        )}
       </header>
 
       {modelPanelOpen && (
