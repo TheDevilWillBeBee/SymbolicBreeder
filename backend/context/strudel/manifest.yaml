@@ -1,16 +1,8 @@
 # Context Manifest — Strudel Modality
-#
-# Controls which context sources are loaded and injected into LLM prompts.
-# Each source has:
-#   - enabled: true/false to toggle inclusion
-#   - category: "tutorial" | "examples"
-#   - path: relative path from this modality's context folder
-#   - description: human-readable note
-#   - inject_into: list of prompt sections where this context is used
-#       "system"  — always included in the system prompt
-#       "seed"    — included when generating seed (gen-0) programs
-#       "evolve"  — included when evolving from parents
-# Context Manifest — Strudel Modality
+
+# Controls which context sources are loaded and injected into LLM prompts
+# for the Strudel music composition modality.
+
 sources:
 
 # ── Tutorials ──
