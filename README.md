@@ -237,6 +237,32 @@ SymbolicBreeder/
 8. Customized programs can be marked as parents for the next generation
 9. Repeat until you reach something you love
 
+## Inspiration
+
+Symbolic Breeder is inspired by [PicBreeder](https://picbreeder.org), the landmark experiment in collaborative open-ended evolution by Kenneth Stanley and colleagues. Where PicBreeder evolves *Compositional Pattern-Producing Networks* (CPPNs) with hand-crafted mutation operators, Symbolic Breeder evolves **programs** using large language models as the variation engine — enabling mutation, crossover, and reinterpretation of code in expressive programming paradigms like Strudel (music) and GLSL shaders (visuals).
+
+As Kenneth Stanley argues, open-ended processes driven by novelty rather than a fixed objective are essential for genuine discovery. There is no "target" shader or "goal" melody here — you explore freely, and the most interesting discoveries are the ones nobody planned for.
+
+## Planned Features
+
+We welcome contributions! Here are some directions we'd love to explore:
+
+- **Free hosted LLM** — provide a default model so users can try the tool without supplying their own API key
+- **UI/UX improvements** — better mobile experience, richer card interactions, drag-and-drop lineage exploration
+- **Prompt engineering** — improve LLM prompts for higher-quality mutations and more diverse outputs
+- **New modalities** — p5.js sketches, SVG generative art, Tone.js synths, or any other live-renderable program format (see [modality plugin guide](docs/modality-plugin-guide.md))
+- **Collaborative breeding** — real-time multi-user sessions where participants vote on selections together
+- **Lineage analytics** — visualize evolutionary trajectories, track which mutations produced the most interesting results
+- **Export & embed** — download shaders as videos, export Strudel patterns as audio files, embed programs on other sites
+
+See the [GitHub Issues](https://github.com/TheDevilWillBeBee/SymbolicBreeder/issues) for more ideas and discussion.
+
+## Credits
+
+Created by [Ehsan Pajouheshgar](https://pajouheshgar.github.io). The idea emerged from conversations with Ali Golmakani.
+
+Built with the help of coding agents, primarily [Claude Code](https://claude.ai) and [ChatGPT Codex](https://openai.com/index/introducing-codex/).
+
 ## License
 
 MIT

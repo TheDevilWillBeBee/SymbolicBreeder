@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type View = 'landing' | 'breeding' | 'gallery' | 'program-detail';
+export type View = 'landing' | 'breeding' | 'gallery' | 'program-detail' | 'about';
 
 interface NavState {
   view: View;
@@ -9,6 +9,7 @@ interface NavState {
   goToBreeding: () => void;
   goToGallery: () => void;
   goToDetail: (id: string) => void;
+  goToAbout: () => void;
 }
 
 function viewToPath(view: View, detailId?: string | null): string {
@@ -17,6 +18,7 @@ function viewToPath(view: View, detailId?: string | null): string {
     case 'breeding': return '/breed';
     case 'gallery': return '/gallery';
     case 'program-detail': return `/gallery/${detailId}`;
+    case 'about': return '/about';
   }
 }
 
@@ -27,6 +29,7 @@ function parsePathname(): { view: View; detailProgramId: string | null } {
   }
   if (path === '/gallery') return { view: 'gallery', detailProgramId: null };
   if (path === '/breed') return { view: 'breeding', detailProgramId: null };
+  if (path === '/about') return { view: 'about', detailProgramId: null };
   // Support old /community URLs
   if (path.startsWith('/community/') && path.length > '/community/'.length) {
     return { view: 'program-detail', detailProgramId: path.slice('/community/'.length) };
@@ -56,6 +59,10 @@ export const useNavStore = create<NavState>((set) => ({
   goToDetail: (id: string) => {
     history.pushState(null, '', `/gallery/${id}`);
     set({ view: 'program-detail', detailProgramId: id });
+  },
+  goToAbout: () => {
+    history.pushState(null, '', '/about');
+    set({ view: 'about', detailProgramId: null });
   },
 }));
 
