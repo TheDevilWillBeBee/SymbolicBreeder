@@ -21,6 +21,7 @@ interface SessionState {
   isLoading: boolean;
   customizedPrograms: Record<string, string>;
   llmConfig: LLMConfig;
+  lastEvolveSource: 'llm' | 'mock';
 
   // Actions
   setSession: (session: Session) => void;
@@ -35,6 +36,7 @@ interface SessionState {
   setIsLoading: (v: boolean) => void;
   setCustomizedCode: (programId: string, code: string) => void;
   setLLMConfig: (config: Partial<LLMConfig>) => void;
+  setLastEvolveSource: (source: 'llm' | 'mock') => void;
   reset: () => void;
 }
 
@@ -56,6 +58,7 @@ const initialState = {
   isLoading: false,
   customizedPrograms: {} as Record<string, string>,
   llmConfig: { ...initialLLMConfig },
+  lastEvolveSource: 'llm' as const,
 };
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -67,7 +70,9 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   addGeneration: (programs) =>
     set((state) => {
-      const newGens = [...state.generations, programs];
+      // Truncate any future generations when evolving from a past point
+      const base = state.generations.slice(0, state.currentGeneration + 1);
+      const newGens = [...base, programs];
       return {
         generations: newGens,
         currentGeneration: newGens.length - 1,
@@ -101,6 +106,8 @@ export const useSessionStore = create<SessionState>((set) => ({
     set((state) => ({
       llmConfig: { ...state.llmConfig, ...config },
     })),
+
+  setLastEvolveSource: (source) => set({ lastEvolveSource: source }),
 
   reset: () =>
     set((state) => ({

@@ -17,32 +17,35 @@ export function GenerationNav({ onEvolve }: Props) {
 
   return (
     <div className="generation-nav">
-      <button
-        onClick={() => setCurrentGeneration(currentGeneration - 1)}
-        disabled={!canGoPrev}
-      >
-        ◀ Previous Gen
-      </button>
-
-      <span className="gen-indicator">
-        Generation {currentGeneration + 1} of {totalGenerations}
-      </span>
-
-      {canGoNext ? (
-        <button onClick={() => setCurrentGeneration(currentGeneration + 1)}>
-          Next Gen ▶
-        </button>
-      ) : (
+      <div className="generation-nav-left">
         <button
-          className="evolve-btn"
-          onClick={onEvolve}
-          disabled={!canEvolve}
+          onClick={() => setCurrentGeneration(currentGeneration - 1)}
+          disabled={!canGoPrev}
+          title="Go to previous generation"
         >
-          {isEvolving
-            ? 'Evolving…'
-            : `Evolve → (${selectedCount} selected)`}
+          ◀ Prev
         </button>
-      )}
+        <span className="gen-indicator">
+          Gen {currentGeneration + 1} / {totalGenerations}
+        </span>
+        <button
+          onClick={() => setCurrentGeneration(currentGeneration + 1)}
+          disabled={!canGoNext}
+          title="Go to next generation"
+        >
+          Next ▶
+        </button>
+      </div>
+      <button
+        className="evolve-btn"
+        onClick={onEvolve}
+        disabled={!canEvolve}
+        title="Generate a new generation from selected programs"
+      >
+        {isEvolving
+          ? 'Evolving…'
+          : `Evolve → (${selectedCount} selected)`}
+      </button>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { getPlugin } from '../modalityRegistry';
+import { RenderHandle } from '../types';
 
 /**
  * Hook that manages a shader WebGL renderer lifecycle for a single canvas.
@@ -7,21 +8,21 @@ import { getPlugin } from '../modalityRegistry';
  */
 export function useShaderRenderer(code: string, modality: string) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
+  const handleRef = useRef<RenderHandle | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !code) return;
 
     // Clean up previous renderer
-    cleanupRef.current?.();
+    handleRef.current?.cleanup();
 
     const plugin = getPlugin(modality);
-    cleanupRef.current = plugin.render(code, container);
+    handleRef.current = plugin.render(code, container);
 
     return () => {
-      cleanupRef.current?.();
-      cleanupRef.current = null;
+      handleRef.current?.cleanup();
+      handleRef.current = null;
     };
   }, [code, modality]);
 
@@ -30,9 +31,9 @@ export function useShaderRenderer(code: string, modality: string) {
       const container = containerRef.current;
       if (!container) return;
 
-      cleanupRef.current?.();
+      handleRef.current?.cleanup();
       const plugin = getPlugin(modality);
-      cleanupRef.current = plugin.render(newCode, container);
+      handleRef.current = plugin.render(newCode, container);
     },
     [modality],
   );

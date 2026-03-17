@@ -1,6 +1,6 @@
-# GLSL ES 1.0 Reference
+# GLSL ES 3.0 Reference
 
-GLSL (OpenGL Shading Language) ES 1.0 is used for WebGL fragment shaders. This reference covers the subset relevant to writing Shadertoy-style fragment shaders.
+GLSL (OpenGL Shading Language) ES 3.0 is used for WebGL 2 fragment shaders. This reference covers the subset relevant to writing Shadertoy-style fragment shaders.
 
 ## Types
 
@@ -11,6 +11,7 @@ GLSL (OpenGL Shading Language) ES 1.0 is used for WebGL fragment shaders. This r
 | `vec3` | 3-component float vector | `vec3 col = vec3(1.0, 0.0, 0.0);` |
 | `vec4` | 4-component float vector | `vec4 rgba = vec4(1.0, 0.5, 0.0, 1.0);` |
 | `int` | Integer | `int i = 3;` |
+| `uint` | Unsigned integer | `uint u = 7u;` |
 | `bool` | Boolean | `bool b = true;` |
 | `mat2` | 2×2 matrix | `mat2 rot = mat2(c, -s, s, c);` |
 | `mat3` | 3×3 matrix | `mat3 m = mat3(1.0);` |
@@ -44,6 +45,9 @@ vec2 d = vec2(a.xy);          // (1.0, 1.0)
 | `sign(x)` | Sign (-1, 0, or 1) |
 | `floor(x)` | Round down |
 | `ceil(x)` | Round up |
+| `round(x)` | Round to nearest integer |
+| `roundEven(x)` | Round to nearest even integer |
+| `trunc(x)` | Truncate toward zero |
 | `fract(x)` | Fractional part: `x - floor(x)` |
 | `mod(x, y)` | Modulo: `x - y * floor(x/y)` |
 | `min(x, y)` | Minimum |
@@ -54,10 +58,25 @@ vec2 d = vec2(a.xy);          // (1.0, 1.0)
 | `smoothstep(lo, hi, x)` | Smooth Hermite interpolation |
 | `sin(x)`, `cos(x)`, `tan(x)` | Trigonometric |
 | `asin(x)`, `acos(x)`, `atan(y,x)` | Inverse trig |
+| `sinh(x)`, `cosh(x)`, `tanh(x)` | Hyperbolic trig |
+| `asinh(x)`, `acosh(x)`, `atanh(x)` | Inverse hyperbolic trig |
 | `pow(x, y)` | Power |
 | `exp(x)`, `exp2(x)` | Exponential |
 | `log(x)`, `log2(x)` | Logarithm |
 | `sqrt(x)`, `inversesqrt(x)` | Square root |
+| `isnan(x)` | True if x is NaN |
+| `isinf(x)` | True if x is infinity |
+
+### Hyperbolic Functions — Practical Uses
+
+`tanh(x)` is especially useful for **soft clamping and tone mapping**:
+```glsl
+// Soft HDR clamping — preserves color ratios, never exceeds 1.0
+col = tanh(col * 2.0);
+
+// White balancing with tanh — compresses bright areas smoothly
+col = tanh(col * col);
+```
 
 ## Vector Functions
 
@@ -70,26 +89,62 @@ vec2 d = vec2(a.xy);          // (1.0, 1.0)
 | `normalize(v)` | Unit vector |
 | `reflect(I, N)` | Reflection vector |
 
-## For Loops
+## Matrix Functions
 
-Loops must have compile-time-known bounds in GLSL ES 1.0:
+| Function | Description |
+|----------|-------------|
+| `transpose(m)` | Matrix transpose |
+| `determinant(m)` | Matrix determinant |
+| `inverse(m)` | Matrix inverse |
+
+## Texture Functions
+
+| Function | Description |
+|----------|-------------|
+| `texture(sampler, uv)` | Sample texture at UV coordinates (replaces `texture2D` from ES 1.0) |
+| `texelFetch(sampler, ivec2, lod)` | Direct texel access without filtering |
+| `textureSize(sampler, lod)` | Get texture dimensions as ivec2 |
+
+## Bitwise Operations
+
+ES 3.0 adds bitwise operators for `int` and `uint` types:
 
 ```glsl
-// Valid — constant bounds
+int a = 0xFF;
+int b = a & 0x0F;   // AND
+int c = a | 0xF0;   // OR
+int d = a ^ 0xFF;   // XOR
+int e = ~a;          // NOT
+int f = a << 2;      // left shift
+int g = a >> 1;      // right shift
+
+uint h = 42u;        // uint literal suffix
+```
+
+Useful for hash functions, cellular automata rules, and bit-packing data into texture channels.
+
+## For Loops
+
+In GLSL ES 3.0, loop bounds may be dynamic (unlike ES 1.0 which required compile-time constants):
+
+```glsl
+// Constant bounds (always valid)
 for (int i = 0; i < 8; i++) {
     // iterative computation
 }
 
-// Valid — nested loops
+// Nested loops
 for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
         // grid iteration
     }
 }
 
-// INVALID — variable bounds
-int n = 8;
-for (int i = 0; i < n; i++) { }  // won't compile
+// Dynamic bounds (valid in ES 3.0)
+int n = int(iResolution.x * 0.01);
+for (int i = 0; i < n; i++) {
+    // adaptive iteration count
+}
 ```
 
 Common uses: FBM octaves, raymarching steps, fractal iteration, metaball accumulation, geometric folding.
@@ -101,3 +156,4 @@ Common uses: FBM octaves, raymarching steps, fractal iteration, metaball accumul
 - `atan(y, x)` returns angle in radians (-π to π)
 - `mod()` handles negative values differently than some languages
 - No recursive functions allowed
+- `texture()` replaces the old `texture2D()` from ES 1.0

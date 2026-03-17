@@ -10,12 +10,19 @@ class AnthropicProvider(LLMProvider):
     async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
         import anthropic
 
-        client = anthropic.AsyncAnthropic(api_key=api_key)
+        client = anthropic.AsyncAnthropic(api_key=api_key, timeout=180.0)
         response = await client.messages.create(
             model=self.model,
             max_tokens=request.max_tokens,
-            system=request.system,
+            system=[
+                {
+                    "type": "text",
+                    "text": request.system,
+                    "cache_control": {"type": "ephemeral", "ttl": "1h"},
+                }
+            ],
             messages=[{"role": "user", "content": request.user}],
+            extra_headers={"anthropic-beta": "extended-cache-ttl-2025-04-11"},
         )
         return LLMResponse(text=response.content[0].text)
 

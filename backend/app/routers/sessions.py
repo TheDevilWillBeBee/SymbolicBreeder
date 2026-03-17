@@ -23,7 +23,7 @@ async def create_session(
     db.commit()
     db.refresh(session)
 
-    programs = await create_seed_generation(
+    programs, source, message = await create_seed_generation(
         session.id,
         modality=request.modality,
         db=db,
@@ -40,6 +40,8 @@ async def create_session(
         modality=session.modality,
         created_at=session.created_at,
         programs=[ProgramResponse.model_validate(p) for p in programs],
+        source=source,
+        message=message,
     )
 
 

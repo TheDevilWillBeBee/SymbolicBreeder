@@ -11,7 +11,7 @@ sources:
   enabled: true
   category: tutorial
   path: tutorials/glsl_reference.md
-  description: "GLSL ES 1.0 basics: types, built-in functions, swizzling"
+  description: "GLSL ES 3.0 basics: types, built-in functions, swizzling"
   inject_into: [ system ]
 
 - id: shadertoy_conventions
@@ -28,6 +28,13 @@ sources:
   description: "Animation with iTime, color tricks, for loops, SDF, FBM, domain warping"
   inject_into: [ system ]
 
+- id: buffer_shaders
+  enabled: true
+  category: tutorial
+  path: tutorials/buffer_shaders.md
+  description: "Ping-pong buffer patterns: Game of Life, reaction-diffusion, trails"
+  inject_into: [ system ]
+
 # ── Examples ──
 
 - id: example_shaders
@@ -35,11 +42,18 @@ sources:
   category: examples
   path: examples/example_shaders.md
   description: "Diverse seed shaders demonstrating different visual styles"
-  inject_into: [ seed, evolve ]
+  inject_into: [ system ]
 
 - id: simple_patterns
   enabled: true
   category: examples
   path: examples/simple_patterns.md
   description: "Minimal atomic visual patterns for seed generation"
-  inject_into: [ seed ]
+  inject_into: [ system ]
+
+- id: buffer_examples
+  enabled: true
+  category: examples
+  path: examples/buffer_examples.md
+  description: "Buffer shader examples: Game of Life, reaction-diffusion, trails"
+  inject_into: [ system ]

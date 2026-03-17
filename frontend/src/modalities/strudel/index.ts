@@ -1,4 +1,4 @@
-import type { ModalityPlugin } from '../../types';
+import type { ModalityPlugin, RenderHandle } from '../../types';
 
 /**
  * Strudel modality plugin.
@@ -96,22 +96,20 @@ export const strudelPlugin: ModalityPlugin = {
   language: 'javascript',
   description: 'Live-coded music patterns — evolve beats, melodies, and soundscapes',
 
-  render(code: string, container: HTMLElement): () => void {
-    // For strudel, the card shows a static music icon.
-    // Playback is triggered by ProgramCard's play button, not continuous.
+  render(code: string, container: HTMLElement): RenderHandle {
     container.innerHTML = '';
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText =
-      'display:flex;align-items:center;justify-content:center;width:100%;height:100%;' +
-      'background:#0f1019;color:#8b5cf6;font-size:2.5rem;user-select:none;';
-    wrapper.textContent = '♪';
-    container.appendChild(wrapper);
-    return () => {
-      container.innerHTML = '';
+    const pre = document.createElement('pre');
+    pre.className = 'strudel-code-preview';
+    pre.textContent = code;
+    container.appendChild(pre);
+    return {
+      cleanup() {
+        container.innerHTML = '';
+      },
     };
   },
 
-  previewInModal(code: string, container: HTMLElement): () => void {
+  previewInModal(code: string, container: HTMLElement): RenderHandle {
     // Play audio and show visual indicator
     container.innerHTML = '';
     const indicator = document.createElement('div');
@@ -133,9 +131,14 @@ export const strudelPlugin: ModalityPlugin = {
 
     playCode(code);
 
-    return () => {
-      stopPlayback();
-      container.innerHTML = '';
+    return {
+      cleanup() {
+        stopPlayback();
+        container.innerHTML = '';
+      },
+      reset() {
+        playCode(code);
+      },
     };
   },
 };

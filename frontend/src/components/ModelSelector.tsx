@@ -33,6 +33,8 @@ export function ModelSelector() {
         setProviders([
           { key: 'anthropic', label: 'Anthropic', models: ['claude-sonnet-4-20250514', 'claude-opus-4-5', 'claude-haiku-4-5-20251001'] },
           { key: 'openai', label: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'o3-mini'] },
+          { key: 'gemini', label: 'Google Gemini', models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'] },
+          { key: 'qwen', label: 'Qwen', models: ['qwen3.5-plus', 'qwen3-max', 'qwen3.5-flash'] },
         ]);
       });
   }, []);

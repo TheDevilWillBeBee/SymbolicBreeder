@@ -32,6 +32,40 @@ export interface EvolveResponse {
   generation: number;
 }
 
+// ── Render handle returned by plugin render methods ──
+
+export interface RenderHandle {
+  /** Tear down the renderer and free resources. */
+  cleanup(): void;
+  /** Pause animation / playback (optional). */
+  pause?(): void;
+  /** Resume animation / playback (optional). */
+  resume?(): void;
+  /** Restart from the beginning (reset time, re-init buffers, etc.). */
+  reset?(): void;
+}
+
+// ── Gallery types ──
+
+export interface LineageProgram {
+  id: string;
+  code: string;
+  modality: string;
+  generation: number;
+  parentIds: string[];
+}
+
+export interface SharedProgram {
+  id: string;
+  programId: string;
+  sharerName: string;
+  modality: string;
+  code: string;
+  lineage: LineageProgram[];
+  llmModel: string;
+  createdAt: string;
+}
+
 // ── Modality plugin interface ──
 
 export interface ModalityPlugin {
@@ -46,16 +80,16 @@ export interface ModalityPlugin {
 
   /**
    * Renders a live preview into the provided container element.
-   * Returns a cleanup function.
+   * Returns a RenderHandle with cleanup and optional pause/resume/reset.
    */
-  render(code: string, container: HTMLElement): () => void;
+  render(code: string, container: HTMLElement): RenderHandle;
 
   /**
    * Called when the user presses Preview in CustomizeModal.
    * Renders/plays the program into the preview container.
-   * Returns a cleanup function.
+   * Returns a RenderHandle with cleanup and optional pause/resume/reset.
    */
-  previewInModal(code: string, container: HTMLElement): () => void;
+  previewInModal(code: string, container: HTMLElement): RenderHandle;
 
   /**
    * Validate/lint code before submission (optional).

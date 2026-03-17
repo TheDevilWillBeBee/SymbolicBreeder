@@ -7,9 +7,15 @@ import { GenerationNav } from './components/GenerationNav';
 import { CodeModal } from './components/CodeModal';
 import { CustomizeModal } from './components/CustomizeModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
+import { LogToasts } from './components/LogToasts';
+import { ShareModal } from './components/ShareModal';
+import { GalleryPage } from './components/GalleryPage';
+import { ProgramDetailPage } from './components/ProgramDetailPage';
 import { useStrudelPlayer } from './hooks/useStrudelPlayer';
 import { useEvolution } from './hooks/useEvolution';
 import { useSessionStore } from './store/sessionStore';
+import { useNavStore } from './store/navStore';
+import { useGalleryStore } from './store/galleryStore';
 import { Program } from './types';
 import './App.css';
 
@@ -20,6 +26,7 @@ export default function App() {
 
   const [modalProgram, setModalProgram] = useState<Program | null>(null);
   const [customizeProgram, setCustomizeProgram] = useState<Program | null>(null);
+  const [shareProgram, setShareProgram] = useState<Program | null>(null);
   const [initialPrompt, setInitialPrompt] = useState('');
 
   const generations = useSessionStore((s) => s.generations);
@@ -32,12 +39,27 @@ export default function App() {
   const customizedPrograms = useSessionStore((s) => s.customizedPrograms);
   const setPlayingProgramId = useSessionStore((s) => s.setPlayingProgramId);
 
+  const view = useNavStore((s) => s.view);
+  const goToLanding = useNavStore((s) => s.goToLanding);
+  const goToBreeding = useNavStore((s) => s.goToBreeding);
+  const goToGallery = useNavStore((s) => s.goToGallery);
+
   const hasSession = session !== null;
-  const hasModality = modality !== null;
+  const llmConfig = useSessionStore((s) => s.llmConfig);
+  const [modelPanelOpen, setModelPanelOpen] = useState(false);
+
+  const galleryModality = useGalleryStore((s) => s.modality);
+  const detailProgram = useGalleryStore((s) => s.selectedProgram);
+
+  // Strudel engine needed in breeding with strudel, or gallery/detail when viewing strudel programs.
+  const needsStrudel =
+    modality === 'strudel' ||
+    (view === 'gallery' && galleryModality === 'strudel') ||
+    (view === 'program-detail' && detailProgram?.modality === 'strudel');
 
   useEffect(() => {
     const cls = 'modality-non-strudel';
-    if (modality !== 'strudel') {
+    if (!needsStrudel) {
       document.body.classList.add(cls);
     } else {
       document.body.classList.remove(cls);
@@ -46,7 +68,7 @@ export default function App() {
     return () => {
       document.body.classList.remove(cls);
     };
-  }, [modality]);
+  }, [needsStrudel]);
 
   const handlePlay = useCallback(
     (program: Program) => {
@@ -73,91 +95,146 @@ export default function App() {
   const handleSelectModality = useCallback(
     (mod: string) => {
       startNewSession(mod, initialPrompt || undefined);
+      goToBreeding();
     },
-    [startNewSession, initialPrompt],
+    [startNewSession, initialPrompt, goToBreeding],
   );
 
-  return (
-    <div className="app">
-      <header className="app-header">
-        <h1>✦ Symbolic Breeder</h1>
-        <div className="header-actions">
-          {hasSession && (
-            <span className="modality-badge">{modality}</span>
-          )}
-          <button
-            onClick={() => {
-              handleStop();
-              useSessionStore.getState().reset();
-              setInitialPrompt('');
-            }}
-          >
-            New Session
-          </button>
-        </div>
-      </header>
+  const handleNewSession = useCallback(() => {
+    handleStop();
+    useSessionStore.getState().reset();
+    setInitialPrompt('');
+    goToLanding();
+  }, [handleStop, goToLanding]);
 
-      {!hasSession && !isLoading ? (
+  // Render the active view content
+  const renderView = () => {
+    if (view === 'gallery') return <GalleryPage />;
+    if (view === 'program-detail') return <ProgramDetailPage />;
+
+    // Landing or breeding
+    if (view === 'landing' && (!hasSession || !isLoading)) {
+      return (
         <div className="start-screen">
-          <p className="start-subtitle">
-            Evolve programs through selection — powered by LLM
-          </p>
+          <div className="start-hero">
+            <p className="start-subtitle">
+              Breed programs through artificial selection
+            </p>
+            <p className="start-description">
+              Pick your favorites, evolve the rest. An LLM generates
+              populations of programs &mdash; you guide evolution.
+            </p>
+          </div>
+
           <div className="start-prompt-group">
+            <label className="start-prompt-label" htmlFor="theme-input">
+              Theme <span className="start-prompt-optional">(optional)</span>
+            </label>
             <input
+              id="theme-input"
               type="text"
               className="start-prompt-input"
-              placeholder='Optional theme: "ambient space", "neon geometry", "organic noise"…'
+              placeholder='"ambient space", "neon geometry", "organic noise"...'
               value={initialPrompt}
               onChange={(e) => setInitialPrompt(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && hasModality) {
+                if (e.key === 'Enter' && modality) {
                   startNewSession(modality!, initialPrompt || undefined);
+                  goToBreeding();
                 }
               }}
             />
           </div>
-          <ModelSelector />
+
           <ModalitySelector onSelect={handleSelectModality} />
+
+          <button className="gallery-link-btn" onClick={goToGallery} title="Browse programs shared by others">
+            Explore Gallery
+          </button>
         </div>
-      ) : (
-        <>
-          {session && (
-            <p className="session-info">
-              Generation {currentGeneration + 1} of &ldquo;{session.name}&rdquo;
-            </p>
-          )}
+      );
+    }
 
-          {modality === 'strudel' && !isReady && (
-            <div className="loading-banner">Loading Strudel audio engine…</div>
-          )}
+    // Breeding view
+    return (
+      <>
+        {session && (
+          <p className="session-info">
+            Generation {currentGeneration + 1} of &ldquo;{session.name}&rdquo;
+          </p>
+        )}
 
-          {(isLoading || isEvolving) && (
-            <LoadingOverlay
-              message={
-                isLoading
-                  ? `Seeding generation 0…`
-                  : `Evolving generation ${currentGeneration + 2}…`
-              }
-              hint={
-                modality === 'shader'
-                  ? 'The LLM is crafting shaders for you'
-                  : 'The LLM is composing music for you'
-              }
-            />
-          )}
+        {modality === 'strudel' && !isReady && (
+          <div className="loading-banner">Loading Strudel audio engine...</div>
+        )}
 
-          <main>
-            <ProgramGrid
-              onPlay={handlePlay}
-              onStop={handleStop}
-              onShowCode={setModalProgram}
-              onCustomize={setCustomizeProgram}
-            />
-            <GuidanceInput />
-            {generations.length > 0 && <GenerationNav onEvolve={handleEvolve} />}
-          </main>
-        </>
+        {(isLoading || isEvolving) && (
+          <LoadingOverlay
+            message={
+              isLoading
+                ? `Seeding generation 0...`
+                : `Evolving generation ${currentGeneration + 2}...`
+            }
+            hint={
+              modality === 'shader'
+                ? 'The LLM is crafting shaders for you'
+                : 'The LLM is composing music for you'
+            }
+          />
+        )}
+
+        <main>
+          <ProgramGrid
+            onPlay={handlePlay}
+            onStop={handleStop}
+            onShowCode={setModalProgram}
+            onCustomize={setCustomizeProgram}
+            onShare={setShareProgram}
+          />
+          <GuidanceInput />
+          {generations.length > 0 && <GenerationNav onEvolve={handleEvolve} />}
+        </main>
+      </>
+    );
+  };
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1 className="app-title" onClick={goToLanding} title="Go to home page">
+          &#10022; Symbolic Breeder
+        </h1>
+        <button
+          className={'header-model-toggle' + (modelPanelOpen ? ' open' : '') + (!llmConfig.apiKey ? ' no-key' : '')}
+          onClick={() => setModelPanelOpen((v) => !v)}
+          title="Model settings"
+        >
+          {!llmConfig.apiKey && <span className="header-model-warning">&#9888;</span>}
+          <span className="header-model-label">{llmConfig.provider}/{llmConfig.model}</span>
+          <span className="header-model-arrow">{modelPanelOpen ? '\u25B4' : '\u25BE'}</span>
+        </button>
+        <div className="header-actions">
+          {view === 'breeding' && hasSession && (
+            <span className="modality-badge">{modality}</span>
+          )}
+          <button className="header-nav-btn" onClick={goToGallery} title="Browse programs shared by others">
+            Gallery
+          </button>
+          {view === 'breeding' && (
+            <button onClick={handleNewSession} title="Start a new breeding session">
+              New Session
+            </button>
+          )}
+        </div>
+      </header>
+
+      {modelPanelOpen && (
+        <div className="header-model-panel">
+          <ModelSelector />
+        </div>
       )}
+
+      {renderView()}
 
       <CodeModal program={modalProgram} onClose={() => setModalProgram(null)} />
 
@@ -167,6 +244,15 @@ export default function App() {
           onClose={() => setCustomizeProgram(null)}
         />
       )}
+
+      {shareProgram && (
+        <ShareModal
+          program={shareProgram}
+          onClose={() => setShareProgram(null)}
+        />
+      )}
+
+      <LogToasts />
     </div>
   );
 }

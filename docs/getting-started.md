@@ -7,6 +7,7 @@
 | Python | 3.11+ | Backend runtime |
 | Node.js | 18+ | Frontend build tooling |
 | npm | 9+ | Bundled with Node |
+| PostgreSQL | 15+ | Required for backend state |
 | Anthropic API key | — | Optional — mock mode works without one |
 
 ---
@@ -39,9 +40,11 @@ Dependencies installed:
 
 | Package | Purpose |
 |---|---|
+| `alembic` | Database migrations |
 | `fastapi` | HTTP framework |
 | `uvicorn[standard]` | ASGI server |
-| `sqlalchemy` | ORM + SQLite adapter |
+| `sqlalchemy` | ORM |
+| `psycopg[binary]` | PostgreSQL driver |
 | `pydantic` | Request/response validation |
 | `anthropic` | Anthropic Python SDK |
 | `pyyaml` | Context manifest parsing |
@@ -65,7 +68,8 @@ Create a `.env` file in `backend/` or export variables in your shell before star
 # backend/.env  (or export in shell)
 ANTHROPIC_API_KEY=sk-ant-...          # Optional — omit for mock mode
 LLM_MODEL=claude-sonnet-4-20250514    # Default shown
-DATABASE_URL=sqlite:///./symbolic_breeder.db   # Default shown
+DATABASE_URL=postgresql+psycopg://user:password@host:5432/symbolic_breeder
+CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
 > **Mock mode**: if `ANTHROPIC_API_KEY` is absent or empty, every LLM call returns pre-written programs from the built-in mock pool. The full UI flow works — seeding, evolving, customizing — just without real AI output. This is useful for offline development and demos.
@@ -89,6 +93,7 @@ Open two terminals.
 ```bash
 cd backend
 source .venv/bin/activate
+alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -128,47 +133,50 @@ You should see a JSON response with a `session` object and a `programs` array co
 
 ---
 
-## Building for Production
+## Deploying on Vercel
 
-### Backend
+This repository is configured for single-platform deployment on Vercel:
+- `frontend/` builds to static assets
+- `api/[...path].py` exposes the FastAPI backend as a Vercel Python function
+- `vercel.json` wires `/api/*` requests to the Python function
 
-The backend is a standard Python package. For production, run with a process manager (e.g. `gunicorn` with `uvicorn` workers) behind a reverse proxy.
+### Required Vercel Environment Variables
 
-```bash
-pip install gunicorn
-gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w 4 --bind 0.0.0.0:8000
-```
+- `DATABASE_URL` (or Vercel-provided `POSTGRES_*` variables)
+- `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY` (optional, for server-side key mode)
+- `CORS_ALLOW_ORIGINS` (comma-separated production origins)
 
-Set `ANTHROPIC_API_KEY` and adjust `DATABASE_URL` as appropriate for your environment.
+### Migration Step (Required)
 
-### Frontend
-
-```bash
-cd frontend
-npm run build
-```
-
-Static files are emitted to `frontend/dist/`. Serve them from any static file host (nginx, Caddy, S3 + CloudFront, Vercel, etc.).
-
-If the frontend is served from a different origin than the backend, set `VITE_API_URL` to the full backend URL at build time:
+Run migrations against the production database before serving traffic:
 
 ```bash
-VITE_API_URL=https://api.yourhost.com npm run build
+cd backend
+source .venv/bin/activate
+alembic upgrade head
 ```
+
+Recommended: run this in CI/CD before promoting a deployment.
 
 ---
 
 ## Database
 
-SQLite is used by default. The database file `symbolic_breeder.db` is created automatically in the `backend/` directory when the server first starts. No migration tooling is needed for SQLite — tables are created via `Base.metadata.create_all()` at startup.
+PostgreSQL is required in all environments. SQLite fallback has been removed.
 
-For production with PostgreSQL, set `DATABASE_URL` to a Postgres connection string:
+Schema changes are managed via Alembic migrations:
 
+```bash
+cd backend
+alembic upgrade head
 ```
-DATABASE_URL=postgresql+psycopg2://user:password@host:5432/symbolic_breeder
-```
 
-Install the driver: `pip install psycopg2-binary`.
+To create a new migration after model changes:
+
+```bash
+cd backend
+alembic revision --autogenerate -m "describe_change"
+```
 
 ---
 
