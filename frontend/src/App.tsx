@@ -11,6 +11,7 @@ import { LogToasts } from './components/LogToasts';
 import { ShareModal } from './components/ShareModal';
 import { GalleryPage } from './components/GalleryPage';
 import { ProgramDetailPage } from './components/ProgramDetailPage';
+import { AboutPage } from './components/AboutPage';
 import { useStrudelPlayer } from './hooks/useStrudelPlayer';
 import { useEvolution } from './hooks/useEvolution';
 import { useSessionStore } from './store/sessionStore';
@@ -23,6 +24,13 @@ export default function App() {
   const modality = useSessionStore((s) => s.modality);
   const { play, stop, isReady } = useStrudelPlayer(modality === 'strudel');
   const { startNewSession, evolve } = useEvolution();
+
+  const [theme, setTheme] = useState(() => localStorage.getItem('symbolicBreeder_theme') || 'light');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('symbolicBreeder_theme', theme);
+  }, [theme]);
 
   const [modalProgram, setModalProgram] = useState<Program | null>(null);
   const [customizeProgram, setCustomizeProgram] = useState<Program | null>(null);
@@ -43,6 +51,7 @@ export default function App() {
   const goToLanding = useNavStore((s) => s.goToLanding);
   const goToBreeding = useNavStore((s) => s.goToBreeding);
   const goToGallery = useNavStore((s) => s.goToGallery);
+  const goToAbout = useNavStore((s) => s.goToAbout);
 
   const hasSession = session !== null;
   const llmConfig = useSessionStore((s) => s.llmConfig);
@@ -53,7 +62,7 @@ export default function App() {
 
   // Strudel engine needed in breeding with strudel, or gallery/detail when viewing strudel programs.
   const needsStrudel =
-    modality === 'strudel' ||
+    (view === 'breeding' && modality === 'strudel') ||
     (view === 'gallery' && galleryModality === 'strudel') ||
     (view === 'program-detail' && detailProgram?.modality === 'strudel');
 
@@ -111,6 +120,7 @@ export default function App() {
   const renderView = () => {
     if (view === 'gallery') return <GalleryPage />;
     if (view === 'program-detail') return <ProgramDetailPage />;
+    if (view === 'about') return <AboutPage />;
 
     // Landing or breeding
     if (view === 'landing' && (!hasSession || !isLoading)) {
@@ -225,6 +235,13 @@ export default function App() {
               New Session
             </button>
           )}
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme((t) => t === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? '\u2600' : '\u263D'}
+          </button>
         </div>
       </header>
 
@@ -253,6 +270,21 @@ export default function App() {
       )}
 
       <LogToasts />
+
+      <footer className="app-footer">
+        <span>
+          Created by{' '}
+          <a href="https://pajouheshgar.github.io" target="_blank" rel="noopener noreferrer">
+            Ehsan Pajouheshgar
+          </a>
+        </span>
+        <span className="footer-sep">&middot;</span>
+        <button className="footer-link" onClick={goToAbout}>About</button>
+        <span className="footer-sep">&middot;</span>
+        <a href="https://github.com/TheDevilWillBeBee/SymbolicBreeder" target="_blank" rel="noopener noreferrer">
+          GitHub
+        </a>
+      </footer>
     </div>
   );
 }

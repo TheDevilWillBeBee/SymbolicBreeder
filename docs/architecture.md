@@ -28,18 +28,23 @@ Symbolic Breeder has a classic client-server architecture. The React frontend ha
 │  GET  /api/sessions/:id                                   │
 │  GET  /api/programs/:id                                   │
 │  POST /api/evolve     { modality, parents, guidance? }    │
+│  GET  /api/providers                                      │
+│  POST /api/gallery/share                                  │
+│  GET  /api/gallery/programs                               │
 │  GET  /api/health                                         │
 └──────────────┬────────────────────────────────────────────┘
                │
     ┌──────────┴──────────┐
     │                     │
 ┌───▼──────────────┐   ┌──────────▼─────────────────────────────┐
-│ PostgreSQL       │   │  LLM Service (Anthropic/OpenAI)         │
+│ PostgreSQL       │   │  LLM Service (multi-provider)            │
 │ users            │   │  ModalityContextRegistry                │
 │ sessions         │   │    strudel/manifest.yaml + .md files    │
 │ programs         │   │    shader/manifest.yaml  + .md files    │
-│ program_reactions│   │  Prompt assembly (system/seed/evolve)   │
-└──────────────────┘   └────────────────────────────────────────┘
+│ shared_programs  │   │  Prompt assembly (system/seed/evolve)   │
+│ program_reactions│   │  Providers: Anthropic, OpenAI,          │
+└──────────────────┘   │             Gemini, Qwen                │
+                       └────────────────────────────────────────┘
 ```
 
 ---
@@ -101,6 +106,19 @@ SQLAlchemy ORM models, defined in `app/models/db.py`:
 
 Unique constraint: `(user_id, program_id)` ensures one reaction per user per program.
 
+**SharedProgram** — a program shared to the public gallery.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | string (UUID) | Primary key |
+| `program_id` | string | Optional FK → Program |
+| `sharer_name` | string | Display name of sharer |
+| `modality` | string | `"strudel"` or `"shader"` |
+| `code` | text | Program source code |
+| `lineage` | JSON | Ancestry chain of parent programs |
+| `llm_model` | string | Model used to generate the program |
+| `created_at` | datetime | Auto-set on creation |
+
 ### Routers
 
 **`routers/sessions.py`** — Handles session lifecycle:
@@ -110,12 +128,26 @@ Unique constraint: `(user_id, program_id)` ensures one reaction per user per pro
 **`routers/evolve.py`** — Handles evolution:
 - `POST /api/evolve` — takes parent programs + optional guidance text, calls the LLM, persists and returns the new generation
 
-### LLM Service (`services/llm.py`)
+**`routers/gallery.py`** — Handles the public gallery:
+- `POST /api/gallery/share` — share a program to the gallery
+- `GET /api/gallery/programs` — list shared programs (paginated, filterable by modality)
+- `GET /api/gallery/programs/:id` — retrieve a single shared program
 
-Wraps the Anthropic client. Behaviour:
-- If `ANTHROPIC_API_KEY` is set, calls the real API
-- If unset, samples from a built-in mock program pool — one pool per modality
-- Accepts a `modality` parameter that controls which system/seed/evolve context is assembled
+**`routers/providers.py`** — Exposes available LLM providers:
+- `GET /api/providers` — returns the list of supported providers and their models, plus whether server-side API keys are configured
+
+### LLM Service (`services/llm.py` + `services/providers/`)
+
+Supports multiple LLM providers through a pluggable provider system in `services/providers/`:
+
+| Provider | Key | SDK | Env Variable |
+|---|---|---|---|
+| Anthropic | `anthropic` | `anthropic` | `ANTHROPIC_API_KEY` |
+| OpenAI | `openai` | `openai` | `OPENAI_API_KEY` |
+| Google Gemini | `gemini` | `google-genai` | `GOOGLE_API_KEY` |
+| Qwen | `qwen` | `dashscope` | `DASHSCOPE_API_KEY` |
+
+Each provider implements a common `LLMProvider` interface. The provider and model are selected per-request by the frontend. If no API keys are configured, mock mode returns pre-written programs from a built-in pool.
 
 The `DEFAULT_MODEL` is read from the `LLM_MODEL` environment variable, defaulting to `claude-sonnet-4-20250514`.
 
