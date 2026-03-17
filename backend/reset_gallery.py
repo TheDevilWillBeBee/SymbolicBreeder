@@ -1,6 +1,6 @@
 import os
 
-os.environ['DATABASE_URL'] = os.environ.get("POSTGRES_URL_NON_POOLING")
+os.environ["DATABASE_URL"] = os.environ.get("DATABASE_URL_UNPOOLED", os.environ.get("DATABASE_URL", ""))
 
 from app.database import SessionLocal
 from app.models.db import SharedProgram
