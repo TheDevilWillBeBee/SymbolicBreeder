@@ -414,7 +414,7 @@ export function ProgramDetailPage() {
   const [codeModalProgram, setCodeModalProgram] = useState<LineageProgram | null>(null);
   const [playingCode, setPlayingCode] = useState<string | null>(null);
   const [playingShaderId, setPlayingShaderId] = useState<string | null>(null);
-  const [showEdgeLabels, setShowEdgeLabels] = useState(false);
+  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
 
   const handlePlayShader = useCallback((id: string) => {
     setPlayingShaderId(id);
