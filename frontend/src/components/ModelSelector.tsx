@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSessionStore } from '../store/sessionStore';
+import { useSessionStore, ContextProfile } from '../store/sessionStore';
 import { api } from '../api/client';
 
 interface ProviderInfo {
@@ -29,7 +29,6 @@ export function ModelSelector() {
         setServerKeyAvailable(res.server_key_available);
       })
       .catch(() => {
-        // Fallback if backend is unreachable
         setProviders([
           { key: 'anthropic', label: 'Anthropic', models: ['claude-sonnet-4-20250514', 'claude-opus-4-5', 'claude-haiku-4-5-20251001'] },
           { key: 'openai', label: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'o3-mini'] },
@@ -135,6 +134,24 @@ export function ModelSelector() {
           </p>
         </>
       )}
+
+      <div className="model-selector-row context-profile-row">
+        <label className="model-selector-label">Context Complexity</label>
+        <div className="context-profile-selector">
+          {(['simple', 'intermediate', 'advanced'] as ContextProfile[]).map((profile) => (
+            <label key={profile} className="context-profile-option">
+              <input
+                type="radio"
+                name="contextProfile"
+                value={profile}
+                checked={llmConfig.contextProfile === profile}
+                onChange={() => setLLMConfig({ contextProfile: profile })}
+              />
+              <span>{profile.charAt(0).toUpperCase() + profile.slice(1)}</span>
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

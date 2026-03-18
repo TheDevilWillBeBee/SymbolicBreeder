@@ -25,6 +25,7 @@ export interface EvolveRequest {
   guidance?: string;
   population_size?: number;
   session_id?: string;
+  context_profile?: string;
 }
 
 export interface EvolveResponse {

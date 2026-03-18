@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { Program, Session } from '../types';
 
+export type ContextProfile = 'simple' | 'intermediate' | 'advanced';
+
 export interface LLMConfig {
   provider: string;
   model: string;
   apiKey: string;
   baseUrl?: string;
+  contextProfile: ContextProfile;
 }
 
 interface SessionState {
@@ -44,6 +47,7 @@ const initialLLMConfig: LLMConfig = {
   provider: 'anthropic',
   model: 'claude-sonnet-4-20250514',
   apiKey: '',
+  contextProfile: 'intermediate',
 };
 
 const initialState = {

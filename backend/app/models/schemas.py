@@ -30,6 +30,7 @@ class EvolveRequest(BaseModel):
     provider: str = "anthropic"
     model: str = "claude-sonnet-4-20250514"
     base_url: Optional[str] = None
+    context_profile: str = "intermediate"
 
 
 class EvolveResponse(BaseModel):
@@ -85,6 +86,7 @@ class CreateSessionRequest(BaseModel):
     provider: str = "anthropic"
     model: str = "claude-sonnet-4-20250514"
     base_url: Optional[str] = None
+    context_profile: str = "intermediate"
 
 
 class SessionResponse(BaseModel):

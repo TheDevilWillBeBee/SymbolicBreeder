@@ -114,7 +114,7 @@ export function useEvolution() {
       store.setIsLoading(true);
 
       try {
-        const { provider, model, baseUrl } = llmConfig;
+        const { provider, model, baseUrl, contextProfile } = llmConfig;
         const res = await api.post<{
           id: string;
           name: string;
@@ -137,6 +137,7 @@ export function useEvolution() {
           provider,
           model,
           ...(baseUrl ? { base_url: baseUrl } : {}),
+          context_profile: contextProfile || 'intermediate',
         });
 
         store.setSession({
@@ -205,7 +206,7 @@ export function useEvolution() {
       }));
 
       try {
-        const { provider, model, baseUrl } = store.llmConfig;
+        const { provider, model, baseUrl, contextProfile } = store.llmConfig;
         const res = await api.post<{
           programs: Array<{
             id: string;
@@ -228,6 +229,7 @@ export function useEvolution() {
           provider,
           model,
           ...(baseUrl ? { base_url: baseUrl } : {}),
+          context_profile: contextProfile || 'intermediate',
         });
 
         // If no session existed locally, capture the backend-created one

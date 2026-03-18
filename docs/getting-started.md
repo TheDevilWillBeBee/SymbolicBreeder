@@ -311,11 +311,23 @@ cd frontend
 npx tsc --noEmit
 ```
 
+### Context profiles
+
+The LLM context system uses three complexity levels: **simple**, **intermediate** (default), and **advanced**. Users select this in the LLM settings panel. Each level inherits from the previous one — advanced includes all intermediate and simple content.
+
+To estimate token usage per profile, run:
+
+```bash
+python backend/scripts/estimate_tokens.py
+```
+
+Context files and prompts are in `backend/context/<modality>/`. Edit the `.md` files to change what the LLM knows. Prompts are in `prompts/prompt_bundle.yaml` — they stay fixed across profiles.
+
 ### Adding a new modality
 
 See [modality-plugin-guide.md](modality-plugin-guide.md) for the full walkthrough. The short version:
 
-1. Create `backend/context/<modality_key>/manifest.yaml` and populate `.md` files
+1. Create `backend/context/<modality_key>/manifest.yaml` (v2 format) and populate `.md` files + `prompts/prompt_bundle.yaml`
 2. Implement `ModalityPlugin` in `frontend/src/modalities/<key>/index.ts`
 3. Register it in `frontend/src/modalityRegistry.ts`
 

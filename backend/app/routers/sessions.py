@@ -32,6 +32,7 @@ async def create_session(
         model=request.model,
         api_key=x_api_key,
         base_url=request.base_url,
+        context_profile=request.context_profile,
     )
 
     return SessionResponse(

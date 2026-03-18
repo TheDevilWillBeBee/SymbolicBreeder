@@ -1264,6 +1264,32 @@ body.modality-non-strudel .cm-panels {
   line-height: 1.4;
 }
 
+/* ── Context Profile Selector ── */
+
+.context-profile-row {
+  margin-top: 0.75rem;
+}
+
+.context-profile-selector {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.context-profile-option {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.context-profile-option input[type="radio"] {
+  accent-color: var(--accent);
+}
+
 /* ── Log Toasts ── */
 
 .log-toast-container {

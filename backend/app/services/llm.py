@@ -7,7 +7,7 @@ import random
 from dataclasses import dataclass
 from typing import Optional
 
-from .context import get_system_context
+from .context import get_system_context, get_prompt_config
 from .providers import get_provider, LLMRequest
 
 logger = logging.getLogger(__name__)
@@ -21,189 +21,10 @@ class GenerationResult:
     message: str | None = None
 
 
-# ── Modality-specific prompt configuration ──
-
-_MODALITY_PROMPTS: dict[str, dict[str, str]] = {
-    "strudel": {
-        "role": (
-            "You are a music composer and live-coder. You write programs in the Strudel "
-            "live-coding language (strudel.cc). You output ONLY valid Strudel code, "
-            "one program per block, wrapped in ```strudel``` fences.\n\n"
-            "IMPORTANT RULES:\n"
-            "- Each program must be self-contained and runnable in the Strudel REPL\n"
-            "- Use only standard Strudel functions documented below\n"
-            "- ALWAYS start every program with setcpm(tempo) (e.g. setcpm(120/4) for 120bpm)\n"
-            "- Use $: to run multiple parts in parallel — each $: line is a separate musical part\n"
-            "- For drum-like sounds, append ._scope() to show the waveform\n"
-            "- For melodic/pitched sounds, append ._pianoroll() or ._punchcard() to visualize notes\n"
-            "- Do NOT use slider(), initHydra(), or other interactive/visual features\n"
-            "- Do NOT use external samples or custom sample URLs\n\n"
-            "COMPOSITION RULES — FOLLOW THESE CAREFULLY:\n"
-            "- Think like a music producer: songs have PARTS (drums, bass, chords, melody, pads, leads)\n"
-            "- All melodic parts in a song MUST share a common scale or chord progression for harmonic coherence\n"
-            '  Use `var scale = "D:minor"` at the top to define a shared scale, then reference it in all melodic parts\n'
-            '  OR use `const chords = chord("Dm C F G")` for a shared chord progression\n'
-            '  OR use `.scale("<D:dorian G:mixolydian C:dorian F:mixolydian>")` for scale progressions\n'
-            "- Parts should be RHYTHMICALLY ALIGNED — use the same time subdivision or complementary rhythms\n"
-            "- Use `stack()` or multiple `$:` lines to layer parts simultaneously\n"
-            "- Use `arrange()` for song structure with intros, verses, choruses, breakdowns\n"
-            "- Use `rand`, `perlin`, `irand`, `wchoose` for variation in rhythms, gains, and parameters\n"
-            "- Prefer musical variety: different timbres, registers, and rhythmic roles per part\n"
-            "- Keep programs concise but musically complete — aim for 2-6 distinct parts\n"
-        ),
-        "fence": "strudel",
-        "reference_header": "Strudel Language Reference",
-        "seed_prompt": (
-            "Generate {n} diverse Strudel compositions. Each should be a COMPLETE MUSICAL PIECE with "
-            "multiple parts layered using $: lines. Every song must:\n"
-            "1. Start with setcpm(tempo) — vary tempos (80-160 bpm range, expressed as setcpm(bpm/4))\n"
-            '2. Define a shared scale or chord progression (var scale = "X:minor" or similar)\n'
-            "3. Have at least 2-4 distinct parts (e.g. drums + bass + chords, or drums + bass + melody + pad)\n"
-            "4. End each $: line with ._scope() for drums or ._pianoroll() for melodic parts\n\n"
-            "Vary the styles: some tracks should be electronic/dance, some ambient/atmospheric, "
-            "some hip-hop/lo-fi, some jazz/funk, some experimental. "
-            "Use different drum banks, synth sounds, GM instruments, and effects."
-        ),
-        "evolve_prompt": (
-            "Generate {n} new Strudel compositions descended from the parent programs below. "
-            "The children MUST be clearly recognizable as descendants — a listener should hear the family resemblance.\n\n"
-            "MUTATION STRATEGIES (from subtle to bold):\n"
-            "- TWEAK: Change specific values — tempo, note choices within the scale, pattern density, gain, effect parameters\n"
-            "- SUBSTITUTE: Swap a sound/bank for a different one, replace one effect chain with another\n"
-            "- AUGMENT: Add one new part or layer to an existing parent (e.g. add a pad, a counter-melody, a percussion fill)\n"
-            "- RESTRUCTURE: Rearrange parts using arrange(), add intro/breakdown, change time feel\n"
-            "- CROSSOVER: Take parts from different parents and combine them into one coherent piece (align scales and tempos)\n"
-            "- INSPIRED: Keep the mood/genre/harmonic language of a parent but write a new variation in the same spirit\n\n"
-            "CRITICAL RULES:\n"
-            "- All melodic parts MUST share a common scale or chord progression\n"
-            "- Every song must start with setcpm()\n"
-            "- Every $: line must end with ._scope() or ._pianoroll() or ._punchcard()\n"
-            "- Preserve the parents' core identity: keep their key/scale, tempo (or close), and signature sounds unless deliberately crossing over"
-        ),
-        "variety_suffix": (
-            "\n\nDistribute your {n} outputs across the mutation spectrum: "
-            "~half should be close mutations (small tweaks, substitutions, single additions to a parent), "
-            "~1-2 should be crossovers combining elements from multiple parents, "
-            "and ~1 can be a bolder reinterpretation inspired by the parents' style. "
-            "Output ONLY ```strudel``` code blocks, no explanations."
-        ),
-    },
-    "shader": {
-        "role": (
-            "You are an expert shader programmer and creative coder. You write GLSL fragment shaders using the "
-            "Shadertoy-compatible mainImage convention. You output ONLY valid GLSL code, "
-            "one shader per block, wrapped in ```glsl``` fences.\n\n"
-            "IMPORTANT RULES:\n"
-            "- Your code block must contain the mainImage function: void mainImage(out vec4 fragColor, in vec2 fragCoord)\n"
-            "- You SHOULD define helper functions (e.g. noise, fbm, palette, sdf shapes, rotation) ABOVE mainImage in the same code block\n"
-            "- Available uniforms (always): uniform vec2 iResolution; uniform float iTime;\n"
-            "- iTime is elapsed time in seconds — use it freely for animation (sin(iTime), cos(iTime*0.5), fract(iTime), etc.)\n"
-            "- Prefer concise, elegant code but don't sacrifice visual complexity for brevity\n"
-            "- Use for loops for iterative effects: FBM noise octaves, raymarching steps, fractal iterations, repeated geometry\n"
-            "- Use helper functions to keep mainImage readable and enable complex effects\n"
-            "- Do NOT declare your own uniforms or attributes\n"
-            "- Do NOT include a main() function — only mainImage() and optional helpers\n"
-            "- Do NOT use iMouse or iChannel1–iChannel3. You MAY use iChannel0 for ping-pong buffer effects (see below)\n"
-            "- Prefer visually striking, colorful, artistic output — aim for Shadertoy quality\n"
-            "- Use standard GLSL ES 3.0 (WebGL 2) functions — tanh, sinh, cosh, round, trunc, etc. are all available\n"
-            "- For loops may use dynamic bounds in ES 3.0, but prefer reasonable limits for performance\n\n"
-            "TECHNIQUES TO USE:\n"
-            "- Cosine palettes: 0.5+0.5*cos(t+vec3(0,2,4))\n"
-            "- FBM (fractal Brownian motion) for organic noise textures\n"
-            "- Signed distance functions (SDFs) for crisp geometric shapes\n"
-            "- Raymarching for 3D scenes\n"
-            "- Domain repetition with mod() for infinite patterns\n"
-            "- Domain warping for fluid, organic distortion\n"
-            "- Polar coordinates for radial symmetry\n"
-            "- Iterative geometric folding for fractal-like patterns\n"
-            "- Compact math art using minimal code\n"
-            "- Ping-pong buffer effects for stateful simulations (see below)\n\n"
-            "PING-PONG BUFFER SHADERS (optional, advanced):\n"
-            "- For effects that need frame-to-frame memory (Game of Life, reaction-diffusion, fluid, trails):\n"
-            "  use `uniform sampler2D iChannel0` to read the previous frame's output\n"
-            "- The system auto-detects buffer mode when iChannel0 appears in your code\n"
-            "- Read previous frame: texture(iChannel0, uv) where uv = fragCoord / iResolution.xy (0-1 range)\n"
-            "- Additional uniform in buffer mode: uniform int iFrame (frame counter, starts at 0)\n"
-            "- Initialize buffer state inline: use `if (iFrame == 0) { /* seed state */; return; }` at the top of mainImage\n"
-            "  Buffers start as black (vec4(0.0)) — use iFrame == 0 for effects that need non-trivial initial state\n"
-            "- Do NOT define a separate initImage function — all initialization must be inline in mainImage\n"
-            "- mainImage runs every frame: read iChannel0, compute new state, write to fragColor\n"
-            "- IMPORTANT: use fragCoord / iResolution.xy for texture lookups (0-1 normalized), NOT centered coordinates\n"
-            "- WHEN TO USE: only when the effect genuinely needs frame-to-frame memory\n"
-            "  Most effects (noise, SDF, raymarching, fractals) do NOT need buffers — prefer memoryless shaders when possible\n\n"
-            "ORIGINALITY:\n"
-            "- Do NOT copy or closely replicate the provided examples — they show valid syntax and techniques, but your output must be original\n"
-            "- Combine techniques in novel ways, use different parameter values, and create your own visual ideas\n"
-            "- Each shader should feel like a unique composition, not a variation of an example\n\n"
-            "GLSL ES 3.0 FUNCTIONS (use these freely for richer effects):\n"
-            "- tanh(x): hyperbolic tangent — excellent for soft clamping and tone mapping (e.g. col = tanh(col * 2.0) for white balancing)\n"
-            "- sinh(x), cosh(x): hyperbolic sine/cosine for smooth exponential curves\n"
-            "- round(x), trunc(x): rounding and truncation — useful for pixelation and quantization effects\n"
-            "- uint type and bitwise operators (&, |, ^, <<, >>): useful for hash functions and cellular automata\n"
-            "- texture() replaces texture2D() — use texture(sampler, uv) for all texture lookups\n"
-            "- transpose(m), determinant(m), inverse(m): matrix operations\n\n"
-            "The wrapper around your code block is:\n"
-            "```\n"
-            "#version 300 es\n"
-            "// Standard mode:\n"
-            "precision mediump float;\n"
-            "out vec4 fragColor_out;\n"
-            "uniform vec2  iResolution;\n"
-            "uniform float iTime;\n"
-            "\n"
-            "#version 300 es\n"
-            "// Buffer mode (auto-applied when iChannel0 is used):\n"
-            "precision mediump float;\n"
-            "out vec4 fragColor_out;\n"
-            "uniform vec2  iResolution;\n"
-            "uniform float iTime;\n"
-            "uniform int   iFrame;\n"
-            "uniform sampler2D iChannel0;\n"
-            "\n"
-            "// YOUR CODE IS INSERTED HERE\n"
-            "// (helper functions first, then mainImage)\n"
-            "\n"
-            "void main() {\n"
-            "  vec4 col = vec4(0.0);\n"
-            "  mainImage(col, gl_FragCoord.xy);\n"
-            "  fragColor_out = col;\n"
-            "}\n"
-            "```\n"
-        ),
-        "fence": "glsl",
-        "reference_header": "GLSL Reference",
-        "seed_prompt": (
-            "Generate {n} diverse GLSL fragment shaders using the mainImage convention. "
-            "Each should produce a visually distinct animated output using iTime. "
-            "Include a variety of styles and techniques: "
-            "FBM noise landscapes, raymarched 3D SDF scenes, fractal patterns (Julia/Mandelbrot), "
-            "geometric patterns with domain repetition, plasma and domain warping, "
-            "kaleidoscopes, particle-like effects, abstract math art, "
-            "and optionally 1-2 ping-pong buffer shaders (Game of Life, reaction-diffusion, trail effects using iChannel0). "
-            "Define helper functions (noise, fbm, sdf, palette, rotation) to enable complex effects. "
-            "Use for loops where appropriate (FBM octaves, raymarching, fractal iteration)."
-        ),
-        "evolve_prompt": (
-            "Generate {n} new GLSL shaders descended from the parent shaders below. "
-            "Each child MUST be visually recognizable as a descendant — the viewer should see the family resemblance.\n\n"
-            "MUTATION STRATEGIES (from subtle to bold):\n"
-            "- TWEAK: Adjust constants — color offsets, frequencies, speeds, scale factors, iteration counts\n"
-            "- REPARAMETRIZE: Change the math slightly — swap sin for cos, adjust exponents, shift phase offsets\n"
-            "- AUGMENT: Add one new visual element — an extra layer, a glow, a vignette, domain repetition, a color remap\n"
-            "- RECOMBINE: Swap a helper function from one parent into another parent's structure\n"
-            "- CROSSOVER: Merge the SDF/noise/color techniques of multiple parents into one shader\n"
-            "- INSPIRED: Keep the visual mood and palette of a parent but explore a new geometric or procedural idea in the same style\n\n"
-            "PRESERVE the parents' core identity: keep their dominant colors, animation tempo, and spatial structure unless deliberately crossing over."
-        ),
-        "variety_suffix": (
-            "\n\nDistribute your {n} outputs across the mutation spectrum: "
-            "~half should be close mutations (tweaked constants, swapped functions, single additions), "
-            "~1-2 should be crossovers blending techniques from multiple parents, "
-            "and ~1 can be a bolder reinterpretation inspired by the parents' visual language. "
-            "Output ONLY ```glsl``` code blocks containing helper functions (if any) followed by mainImage "
-            "(use `if (iFrame == 0)` inline for buffer initialization). No explanations."
-        ),
-    },
+# Fence type per modality (for code block extraction)
+_MODALITY_FENCES: dict[str, str] = {
+    "strudel": "strudel",
+    "shader": "glsl",
 }
 
 
@@ -216,17 +37,19 @@ async def generate_programs(
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
+    context_profile: str = "intermediate",
 ) -> GenerationResult:
     """Generate new programs for the given modality. Uses LLM if API key is available, else mock."""
     if not api_key:
         api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
     if api_key:
         logger.info(
-            "Using LLM (%s/%s) to generate %d %s programs",
+            "Using LLM (%s/%s) to generate %d %s programs (profile=%s)",
             provider_key,
             model,
             population_size,
             modality,
+            context_profile,
         )
         try:
             codes = await _llm_generate(
@@ -238,6 +61,7 @@ async def generate_programs(
                 model,
                 api_key,
                 base_url,
+                context_profile,
             )
             return GenerationResult(codes=codes, source="llm")
         except Exception as exc:
@@ -257,15 +81,14 @@ async def generate_programs(
     )
 
 
-def _build_system_prompt(modality: str) -> str:
-    """Build the full system prompt by combining modality instructions with context."""
-    config = _MODALITY_PROMPTS.get(modality, _MODALITY_PROMPTS["strudel"])
-    base = config["role"]
-    system_context = get_system_context(modality)
+def _build_system_prompt(modality: str, context_profile: str) -> str:
+    """Build the full system prompt by combining role from prompt bundle with profile context."""
+    config = get_prompt_config(modality)
+    role = config.get("role", "")
+    system_context = get_system_context(modality, profile=context_profile)
     if system_context:
-        header = config.get("reference_header", "Reference")
-        return base + f"\n\n## {header}\n\n" + system_context
-    return base
+        return role + "\n\n" + system_context
+    return role
 
 
 async def _llm_generate(
@@ -277,11 +100,12 @@ async def _llm_generate(
     model: str,
     api_key: str,
     base_url: Optional[str],
+    context_profile: str,
 ) -> list[str]:
     provider = get_provider(provider_key, model, base_url)
-    config = _MODALITY_PROMPTS.get(modality, _MODALITY_PROMPTS["strudel"])
-    system_prompt = _build_system_prompt(modality)
-    fence = config["fence"]
+    config = get_prompt_config(modality)
+    system_prompt = _build_system_prompt(modality, context_profile)
+    fence = _MODALITY_FENCES.get(modality, "")
 
     if parent_codes:
         # ── Evolution mode ──
@@ -293,22 +117,25 @@ async def _llm_generate(
         prompt = (
             f"Here are the parent programs the user selected:\n\n"
             f"{parent_section}\n\n"
-            + config["evolve_prompt"].format(n=population_size)
+            + config.get("evolve_prompt", "").format(n=population_size)
         )
     else:
         # ── Seed mode ──
-        prompt = config["seed_prompt"].format(n=population_size)
+        prompt = config.get("seed_prompt", "").format(n=population_size)
 
     if guidance:
         prompt += f'\n\nThe user requested: "{guidance}"'
 
-    prompt += config.get("variety_suffix", "")
+    variety = config.get("variety_suffix", "")
+    if variety:
+        prompt += "\n\n" + variety.format(n=population_size)
 
     logger.info(
-        "Sending LLM request (provider=%s, model=%s, modality=%s, system=%d chars, user=%d chars)",
+        "Sending LLM request (provider=%s, model=%s, modality=%s, profile=%s, system=%d chars, user=%d chars)",
         provider_key,
         model,
         modality,
+        context_profile,
         len(system_prompt),
         len(prompt),
     )
@@ -336,7 +163,6 @@ def _parse_code_blocks(
 
 _MOCK_POOLS: dict[str, list[str]] = {
     "strudel": [
-        # Multi-part compositions with setcpm, scale, and visualization
         'setcpm(120/4)\nvar scale = "D:minor"\n$: s("bd*4, [~ sd]*2, hh*8").bank("RolandTR909")._scope()\n$: note("<d2 a2 bb2 g2>").s("sawtooth").lpf(600).gain(0.6).scale(scale)._pianoroll()',
         'setcpm(130/4)\nvar scale = "C:minor"\n$: s("bd [~ bd] sd [~ sd:2], hh*8").bank("RolandTR808")._scope()\n$: note("<c2 eb2 f2 g2>*2").s("sawtooth").lpf(500).gain(0.5)._pianoroll()\n$: n("0 2 4 <[6,8] [7,9]>").scale("C4:minor").s("gm_epiano1").room(0.5)._pianoroll()',
         'setcpm(90/4)\nvar scale = "A:minor"\n$: s("bd sd:1 [bd bd] sd:2, hh*8").gain(0.8)._scope()\n$: note("<a1 e2 f2 g2>").s("triangle").lpf(400).gain(0.7)._pianoroll()\n$: n("0 [2 4] <3 5> [~ <4 1>]").scale("A4:minor").s("gm_xylophone").room(0.4).delay(0.125)._pianoroll()',

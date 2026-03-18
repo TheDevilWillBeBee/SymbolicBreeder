@@ -36,6 +36,7 @@ Creates a new breeding session and immediately seeds generation 0 via the LLM (o
 | `provider` | string | No | LLM provider key (default: `"anthropic"`) |
 | `model` | string | No | Model identifier (default: `"claude-sonnet-4-20250514"`) |
 | `base_url` | string | No | Custom API base URL override |
+| `context_profile` | string | No | Context complexity level: `"simple"`, `"intermediate"` (default), or `"advanced"` |
 
 **Example**
 
@@ -44,7 +45,8 @@ Creates a new breeding session and immediately seeds generation 0 via the LLM (o
   "modality": "shader",
   "name": "Sunday experiments",
   "provider": "openai",
-  "model": "gpt-4o"
+  "model": "gpt-4o",
+  "context_profile": "advanced"
 }
 ```
 
@@ -160,6 +162,7 @@ Generates a new generation of programs by mutating/crossing the provided parents
 | `session_id` | string | No | Session UUID — used to associate the new programs |
 | `provider` | string | No | LLM provider key (default: `"anthropic"`) |
 | `model` | string | No | Model identifier (default: `"claude-sonnet-4-20250514"`) |
+| `context_profile` | string | No | Context complexity level: `"simple"`, `"intermediate"` (default), or `"advanced"` |
 
 **Example**
 
