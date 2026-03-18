@@ -30,6 +30,7 @@ class EvolveRequest(BaseModel):
     provider: str = "anthropic"
     model: str = "claude-sonnet-4-20250514"
     base_url: Optional[str] = None
+    context_profile: str = "intermediate"
 
 
 class EvolveResponse(BaseModel):
@@ -45,6 +46,9 @@ class LineageProgramSchema(BaseModel):
     modality: str
     generation: int
     parentIds: list[str] = Field(default_factory=list, alias="parentIds")
+    guidance: Optional[str] = None
+    llm_model: Optional[str] = Field(default=None, alias="llmModel")
+    context_profile: Optional[str] = Field(default=None, alias="contextProfile")
 
     model_config = {"populate_by_name": True}
 
@@ -85,6 +89,7 @@ class CreateSessionRequest(BaseModel):
     provider: str = "anthropic"
     model: str = "claude-sonnet-4-20250514"
     base_url: Optional[str] = None
+    context_profile: str = "intermediate"
 
 
 class SessionResponse(BaseModel):

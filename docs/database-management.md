@@ -34,7 +34,7 @@ This runs all pending migrations in order.
 | Table | Purpose | Key columns |
 |---|---|---|
 | `users` | Authenticated users | `id`, `external_id`, `email`, `display_name` |
-| `sessions` | Breeding sessions | `id`, `name`, `modality`, `owner_user_id` |
+| `sessions` | Breeding sessions | `id`, `name`, `modality`, `context_profile`, `owner_user_id` |
 | `programs` | Individual program variants | `id`, `code`, `modality`, `generation`, `parent_ids` (JSON), `session_id`, `creator_user_id` |
 | `shared_programs` | Publicly shared snapshots of programs | `id`, `program_id` (FK to programs), `sharer_name`, `modality`, `code`, `lineage` (JSON), `llm_model` |
 | `program_reactions` | User upvotes/downvotes on programs | `id`, `user_id`, `program_id`, `reaction` (-1 or 1), unique per user+program |
@@ -73,6 +73,21 @@ alembic upgrade head
 ```
 
 This drops and recreates all tables. All data is lost.
+
+## Migration: Adding context_profile (v0003)
+
+Migration `20260318_0003` adds a `context_profile` column to `sessions`. To apply:
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+If running on Vercel Postgres and you prefer to apply SQL directly:
+
+```sql
+ALTER TABLE sessions ADD COLUMN context_profile VARCHAR DEFAULT 'intermediate';
+```
 
 ## Checking migration state
 

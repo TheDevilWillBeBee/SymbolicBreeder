@@ -1,8 +1,22 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { SharedProgram, RenderHandle } from '../types';
+import { SharedProgram, RenderHandle, LineageProgram } from '../types';
 import { getPlugin } from '../modalityRegistry';
 import { StrudelHighlight } from './StrudelHighlight';
 import { useNavStore } from '../store/navStore';
+
+function summarizeLineageModels(lineage: LineageProgram[]): string {
+  const models = new Set(lineage.map((p) => p.llmModel).filter(Boolean));
+  if (models.size === 0) return 'Unknown';
+  if (models.size === 1) return [...models][0]!;
+  return 'Several models';
+}
+
+function summarizeLineageComplexity(lineage: LineageProgram[]): string {
+  const levels = new Set(lineage.map((p) => p.contextProfile).filter(Boolean));
+  if (levels.size === 0) return '';
+  if (levels.size === 1) return [...levels][0]!;
+  return 'Multiple levels';
+}
 
 interface Props {
   program: SharedProgram;
@@ -114,7 +128,13 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
         <span className="gallery-card-sharer">{program.sharerName}</span>
       </div>
       <div className="gallery-card-labels">
-        <span className="gallery-card-model">Evolved using: {program.llmModel || 'Mock'}</span>
+        <span className="gallery-card-model">
+          Evolved using: {program.lineage.some((p) => p.llmModel) ? summarizeLineageModels(program.lineage) : (program.llmModel || 'Mock')}
+        </span>
+        {(() => {
+          const complexity = summarizeLineageComplexity(program.lineage);
+          return complexity ? <span className="gallery-card-complexity">{complexity}</span> : null;
+        })()}
       </div>
     </div>
   );

@@ -41,6 +41,7 @@ class Session(Base):
     id = Column(String, primary_key=True, default=_uuid)
     name = Column(String, default="Untitled Session")
     modality = Column(String, nullable=False, default="strudel")
+    context_profile = Column(String, nullable=True, default="intermediate")
     owner_user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=_now)
 

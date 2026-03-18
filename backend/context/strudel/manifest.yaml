@@ -1,67 +1,94 @@
-# Context Manifest — Strudel Modality
-#
-# Controls which context sources are loaded and injected into LLM prompts.
-# Each source has:
-#   - enabled: true/false to toggle inclusion
-#   - category: "tutorial" | "examples"
-#   - path: relative path from this modality's context folder
-#   - description: human-readable note
-#   - inject_into: list of prompt sections where this context is used
-#       "system"  — always included in the system prompt
-#       "seed"    — included when generating seed (gen-0) programs
-#       "evolve"  — included when evolving from parents
-# Context Manifest — Strudel Modality
+version: 2
+modality: strudel
+default_profile: intermediate
+
+profiles:
+  simple:
+    description: "Essential Strudel craft: cycles, mini-notation, rhythmic roles, scales, motifs, basic harmony, and basic sound shaping."
+    includes:
+    - runtime_contract
+    - simple_cycles_parts
+    - simple_pitch_harmony_sound
+    - evolution_playbook
+
+  intermediate:
+    description: "Adds groove design, arrangement, voice-leading, modulation, sampling, effects architecture, and richer timbral motion."
+    extends: simple
+    includes:
+    - intermediate_groove_arrangement
+    - intermediate_sampling_effects
+
+  advanced:
+    description: "Adds advanced pattern architecture, stepwise/polymetric design, deep harmony, advanced synthesis, sample transformation, xenharmony, and experimental form."
+    extends: intermediate
+    includes:
+    - advanced_pattern_architecture
+    - advanced_harmony_timbre
+
 sources:
-
-# ── Tutorials ──
-
-- id: language_reference
+- id: runtime_contract
   enabled: true
+  level: shared
   category: tutorial
-  path: tutorials/language_reference.md
-  description: "Core Strudel functions, methods, synths, and signals"
+  path: shared/00_runtime_contract.md
   inject_into: [ system ]
+  description: "Runtime rules, visualization conventions, allowed sound sources, harmonic coherence, and orbit/effect cautions."
 
-- id: mini_notation
+- id: simple_cycles_parts
   enabled: true
+  level: simple
   category: tutorial
-  path: tutorials/mini_notation.md
-  description: "Mini-notation syntax for writing patterns"
+  path: simple/10_cycles_mini_notation_and_parts.md
   inject_into: [ system ]
+  description: "Cycles, implied meter, subdivision, mini-notation, rhythmic roles, density control, and reusable part fragments."
 
-- id: audio_effects
+- id: simple_pitch_harmony_sound
   enabled: true
+  level: simple
   category: tutorial
-  path: tutorials/audio_effects.md
-  description: "Audio effects: filters, reverb, delay, distortion, etc."
+  path: simple/11_pitch_rhythm_harmony_and_basic_sound.md
   inject_into: [ system ]
+  description: "Pitch representations, motifs, scales, chord progressions, cadential motion, register, waveforms, envelopes, and basic mix choices."
 
-- id: pattern_effects
+- id: intermediate_groove_arrangement
   enabled: true
+  level: intermediate
   category: tutorial
-  path: tutorials/pattern_effects.md
-  description: "Pattern-level effects: jux, off, ply, euclidean, arrangement"
+  path: intermediate/20_groove_arrangement_and_melodic_development.md
   inject_into: [ system ]
+  description: "Syncopation, swing, fills, section design, mask/struct/arrange logic, melody development, voice-leading, and role interaction."
 
-- id: composition_tips
+- id: intermediate_sampling_effects
   enabled: true
+  level: intermediate
   category: tutorial
-  path: tutorials/composition_tips.md
-  description: "Tips and tricks for composing full multi-part songs"
+  path: intermediate/21_synthesis_sampling_effects_and_motion.md
   inject_into: [ system ]
+  description: "Sample and synth sources, variants, chopping, signals, automation, filter/pitch motion, orbits, ducking, and timbral choreography."
 
-# ── Examples ──
-
-- id: community_examples
+- id: advanced_pattern_architecture
   enabled: true
-  category: examples
-  path: examples/community_examples.md
-  description: "Curated community compositions showing diverse styles and full arrangements"
+  level: advanced
+  category: tutorial
+  path: advanced/30_pattern_architecture_polymeter_and_form.md
   inject_into: [ system ]
+  description: "Function-first pattern design, polymeter, stepwise tools, phasing, accumulation, conditional transforms, and large-scale formal planning."
 
-- id: simple_patterns
+- id: advanced_harmony_timbre
   enabled: true
-  category: examples
-  path: examples/simple_patterns.md
-  description: "Short atomic patterns ideal for seed generation"
+  level: advanced
+  category: tutorial
+  path: advanced/31_advanced_harmony_timbre_and_experimental_worlds.md
   inject_into: [ system ]
+  description: "Extended harmony, dictionaries, advanced voicing control, FM, partials, phases, envelopes, wavetable/sample repurposing, xenharmony, and experimental worlds."
+
+- id: evolution_playbook
+  enabled: true
+  level: shared
+  category: strategy
+  path: strategies/90_strudel_evolution_playbook.md
+  inject_into: [ system ]
+  description: "Mutation and crossover operators, phenotype preservation, structural edits, novelty injection, and one-shot breeding strategy."
+
+prompt_bundle:
+  path: prompts/prompt_bundle.yaml

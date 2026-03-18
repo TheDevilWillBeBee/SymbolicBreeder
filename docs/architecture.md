@@ -78,6 +78,7 @@ SQLAlchemy ORM models, defined in `app/models/db.py`:
 | `id` | string (UUID) | Primary key |
 | `name` | string | Optional label |
 | `modality` | string | `"strudel"` or `"shader"` |
+| `context_profile` | string | `"simple"`, `"intermediate"`, or `"advanced"` (nullable, default `"intermediate"`) |
 | `owner_user_id` | string | Optional FK → User |
 | `created_at` | datetime | Auto-set on creation |
 
@@ -115,8 +116,8 @@ Unique constraint: `(user_id, program_id)` ensures one reaction per user per pro
 | `sharer_name` | string | Display name of sharer |
 | `modality` | string | `"strudel"` or `"shader"` |
 | `code` | text | Program source code |
-| `lineage` | JSON | Ancestry chain of parent programs |
-| `llm_model` | string | Model used to generate the program |
+| `lineage` | JSON | Ancestry chain of parent programs. Each entry includes optional per-generation metadata: `guidance` (user prompt text), `llmModel` (provider/model used), and `contextProfile` (simple/intermediate/advanced) |
+| `llm_model` | string | Model used to generate the program (top-level, for the final generation) |
 | `created_at` | datetime | Auto-set on creation |
 
 ### Routers
@@ -153,54 +154,80 @@ The `DEFAULT_MODEL` is read from the `LLM_MODEL` environment variable, defaultin
 
 ### Modality Context System (`services/context.py`)
 
-The context system injects relevant documentation and examples into LLM prompts. Each modality has its own folder under `backend/context/`:
+The context system injects technique-focused documentation into LLM prompts. Each modality has its own folder under `backend/context/` with a v2 manifest that defines **complexity profiles** (simple, intermediate, advanced). The system teaches the LLM *how* to compose via reusable snippets and heuristics rather than providing full examples to copy.
 
 ```
 backend/context/
-├── strudel/
-│   ├── manifest.yaml
-│   ├── tutorials/
-│   │   ├── language_reference.md
-│   │   ├── mini_notation.md
-│   │   ├── audio_effects.md
-│   │   └── pattern_effects.md
-│   └── examples/
-│       ├── community_examples.md
-│       └── simple_patterns.md
-└── shader/
-    ├── manifest.yaml
-    ├── tutorials/
-    │   ├── glsl_reference.md
-    │   ├── shadertoy_conventions.md
-    │   └── animation_patterns.md
-    └── examples/
-        ├── example_shaders.md
-        └── simple_patterns.md
+├── shader/
+│   ├── manifest.yaml              # v2 manifest with profiles
+│   ├── prompts/
+│   │   └── prompt_bundle.yaml     # role, seed, evolve, variety prompts
+│   ├── shared/
+│   │   └── 00_runtime_contract.md # always included
+│   ├── simple/
+│   │   ├── 10_building_blocks.md
+│   │   └── 11_color_motion_and_composition.md
+│   ├── intermediate/
+│   │   ├── 20_patterns_noise_and_warping.md
+│   │   └── 21_sdf_lighting_and_materials.md
+│   ├── advanced/
+│   │   ├── 30_raymarching_volumetrics_and_procedural_pbr.md
+│   │   └── 31_feedback_simulation_and_robustness.md
+│   └── strategies/
+│       └── 90_shader_evolution_playbook.md
+└── strudel/
+    └── (same structure)
 ```
 
-`manifest.yaml` lists every source file and declares which prompt sections it is injected into:
+#### Manifest v2 Format
 
 ```yaml
-sources:
-  - id: language_reference
-    enabled: true
-    category: tutorial
-    path: tutorials/language_reference.md
-    inject_into: [ system ]   # always in system prompt
+version: 2
+modality: shader
+default_profile: intermediate
 
-  - id: community_examples
+profiles:
+  simple:
+    description: "Essential shader craft..."
+    includes: [runtime_contract, simple_building_blocks, simple_color_motion, evolution_playbook]
+  intermediate:
+    extends: simple
+    includes: [intermediate_patterns_noise, intermediate_sdf_lighting]
+  advanced:
+    extends: intermediate
+    includes: [advanced_raymarching_pbr, advanced_feedback_perf]
+
+sources:
+  - id: runtime_contract
     enabled: true
-    category: examples
-    path: examples/community_examples.md
-    inject_into: [ seed, evolve ]   # only in seed/evolve prompts
+    level: shared
+    path: shared/00_runtime_contract.md
+    inject_into: [ system ]
+    # ...
+
+prompt_bundle:
+  path: prompts/prompt_bundle.yaml
 ```
 
-Three context functions are exported:
-- `get_system_context(modality)` — sources tagged `system`
-- `get_seed_context(modality)` — sources tagged `seed`
-- `get_evolve_context(modality)` — sources tagged `evolve`
+Profiles inherit via `extends` — `advanced` includes everything from `intermediate`, which includes everything from `simple`.
+
+#### Prompt Bundles
+
+LLM prompts (role, seed_prompt, evolve_prompt, variety_suffix) are stored in `prompts/prompt_bundle.yaml`, not in Python code. Prompts stay fixed across profiles — only the injected context changes with complexity level.
+
+#### Context API
+
+```python
+get_system_context(modality, profile="intermediate")  # context for system prompt
+get_prompt_config(modality)                            # prompt bundle dict
+get_context_version(modality)                          # manifest version number
+```
 
 All files are cached in memory after the first load. Adding a new modality requires only a new folder + `manifest.yaml` — no Python changes.
+
+#### Token Estimation
+
+Run `python backend/scripts/estimate_tokens.py` to see token counts per modality × profile.
 
 ---
 
@@ -315,7 +342,7 @@ useEvolution.evolve()
          │
          ▼
 POST /api/evolve
-  { modality, parents: [{id, code}], guidance, session_id }
+  { modality, parents: [{id, code}], guidance, session_id, context_profile }
          │
          ▼
 Backend: routers/evolve.py

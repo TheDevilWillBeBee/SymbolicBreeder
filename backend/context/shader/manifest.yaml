@@ -1,59 +1,94 @@
-# Context Manifest — Shader Modality
-#
-# Controls which context sources are loaded and injected into LLM prompts
-# for the WebGL shader breeding modality.
+version: 2
+modality: shader
+default_profile: intermediate
+
+profiles:
+  simple:
+    description: "Essential shader craft: notation, spaces, masks, color, motion, and compositional basics."
+    includes:
+    - runtime_contract
+    - simple_building_blocks
+    - simple_color_motion
+    - evolution_playbook
+
+  intermediate:
+    description: "Adds noise, warping, richer SDF construction, procedural lighting, and material logic."
+    extends: simple
+    includes:
+    - intermediate_patterns_noise
+    - intermediate_sdf_lighting
+
+  advanced:
+    description: "Adds raymarching, procedural PBR, volumetrics, feedback simulation, and advanced robustness/performance."
+    extends: intermediate
+    includes:
+    - advanced_raymarching_pbr
+    - advanced_feedback_perf
 
 sources:
-
-# ── Tutorials ──
-
-- id: glsl_reference
+- id: runtime_contract
   enabled: true
+  level: shared
   category: tutorial
-  path: tutorials/glsl_reference.md
-  description: "GLSL ES 3.0 basics: types, built-in functions, swizzling"
+  path: shared/00_runtime_contract.md
   inject_into: [ system ]
+  description: "Renderer contract, GLSL notation, coordinate spaces, anti-aliased masks, and buffer conventions."
 
-- id: shadertoy_conventions
+- id: simple_building_blocks
   enabled: true
+  level: simple
   category: tutorial
-  path: tutorials/shadertoy_conventions.md
-  description: "mainImage convention, coordinate systems, uniform usage"
+  path: simple/10_building_blocks.md
   inject_into: [ system ]
+  description: "Beginner-friendly scalar shaping, masks, transforms, tiling, layering, and motion snippets."
 
-- id: animation_patterns
+- id: simple_color_motion
   enabled: true
+  level: simple
   category: tutorial
-  path: tutorials/animation_patterns.md
-  description: "Animation with iTime, color tricks, for loops, SDF, FBM, domain warping"
+  path: simple/11_color_motion_and_composition.md
   inject_into: [ system ]
+  description: "Palettes, contrast, edge glow, fake depth, focal composition, and motion direction."
 
-- id: buffer_shaders
+- id: intermediate_patterns_noise
   enabled: true
+  level: intermediate
   category: tutorial
-  path: tutorials/buffer_shaders.md
-  description: "Ping-pong buffer patterns: Game of Life, reaction-diffusion, trails"
+  path: intermediate/20_patterns_noise_and_warping.md
   inject_into: [ system ]
+  description: "Hashing, value noise, fbm variants, cellular patterns, symmetry, domain warping, and procedural layout."
 
-# ── Examples ──
-
-- id: example_shaders
+- id: intermediate_sdf_lighting
   enabled: true
-  category: examples
-  path: examples/example_shaders.md
-  description: "Diverse seed shaders demonstrating different visual styles"
+  level: intermediate
+  category: tutorial
+  path: intermediate/21_sdf_lighting_and_materials.md
   inject_into: [ system ]
+  description: "2D and 2.5D SDF composition, gradients, normals, point and directional lights, procedural bump, and material cues."
 
-- id: simple_patterns
+- id: advanced_raymarching_pbr
   enabled: true
-  category: examples
-  path: examples/simple_patterns.md
-  description: "Minimal atomic visual patterns for seed generation"
+  level: advanced
+  category: tutorial
+  path: advanced/30_raymarching_volumetrics_and_procedural_pbr.md
   inject_into: [ system ]
+  description: "3D SDF scenes, raymarching, normals, ambient occlusion, soft shadows, camera construction, volumetric accumulation, and procedural PBR."
 
-- id: buffer_examples
+- id: advanced_feedback_perf
   enabled: true
-  category: examples
-  path: examples/buffer_examples.md
-  description: "Buffer shader examples: Game of Life, reaction-diffusion, trails"
+  level: advanced
+  category: tutorial
+  path: advanced/31_feedback_simulation_and_robustness.md
   inject_into: [ system ]
+  description: "Ping-pong buffers, state packing, reaction-diffusion, trails, advection, derivative tricks, optimization, and debug visualization."
+
+- id: evolution_playbook
+  enabled: true
+  level: shared
+  category: strategy
+  path: strategies/90_shader_evolution_playbook.md
+  inject_into: [ system ]
+  description: "Mutation and crossover operators, phenotype preservation, novelty injection, and one-shot breeding strategy."
+
+prompt_bundle:
+  path: prompts/prompt_bundle.yaml

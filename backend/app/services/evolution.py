@@ -23,6 +23,7 @@ async def create_seed_generation(
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
+    context_profile: str = "intermediate",
 ) -> tuple[list[models.Program], str, str | None]:
     """Create generation-0 programs for a brand-new session.
 
@@ -31,6 +32,7 @@ async def create_seed_generation(
     result = await generate_programs(
         modality, [], population_size=6, guidance=guidance,
         provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
+        context_profile=context_profile,
     )
 
     programs: list[models.Program] = []
@@ -63,6 +65,7 @@ async def evolve_programs(
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
+    context_profile: str = "intermediate",
 ) -> EvolveResponse:
     """Evolve the next generation from selected parents."""
     if not session_id:
@@ -93,6 +96,7 @@ async def evolve_programs(
     result = await generate_programs(
         modality, parent_codes, population_size, guidance,
         provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
+        context_profile=context_profile,
     )
 
     programs: list[models.Program] = []

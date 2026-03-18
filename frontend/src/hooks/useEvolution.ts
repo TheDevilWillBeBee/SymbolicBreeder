@@ -114,7 +114,7 @@ export function useEvolution() {
       store.setIsLoading(true);
 
       try {
-        const { provider, model, baseUrl } = llmConfig;
+        const { provider, model, baseUrl, contextProfile } = llmConfig;
         const res = await api.post<{
           id: string;
           name: string;
@@ -137,6 +137,7 @@ export function useEvolution() {
           provider,
           model,
           ...(baseUrl ? { base_url: baseUrl } : {}),
+          context_profile: contextProfile || 'intermediate',
         });
 
         store.setSession({
@@ -158,7 +159,13 @@ export function useEvolution() {
         );
 
         const addLog = useLogStore.getState().addLog;
-        if (res.source === 'mock') {
+        const isMock = res.source === 'mock';
+        store.addGenerationMeta({
+          guidance: initialPrompt || '',
+          llmModel: isMock ? 'Mock' : `${provider}/${model}`,
+          contextProfile: contextProfile || 'intermediate',
+        });
+        if (isMock) {
           store.setLastEvolveSource('mock');
           addLog('warning', res.message ?? 'Backend used mock examples');
         } else {
@@ -178,6 +185,11 @@ export function useEvolution() {
         store.addGeneration(
           seeds.map((code) => makeProgram(code, modality, 0, sessionId)),
         );
+        store.addGenerationMeta({
+          guidance: initialPrompt || '',
+          llmModel: 'Mock',
+          contextProfile: llmConfig.contextProfile || 'intermediate',
+        });
         const addLog = useLogStore.getState().addLog;
         store.setLastEvolveSource('mock');
         addLog('error', `Backend unavailable — using mock examples. ${err instanceof Error ? err.message : ''}`);
@@ -205,7 +217,7 @@ export function useEvolution() {
       }));
 
       try {
-        const { provider, model, baseUrl } = store.llmConfig;
+        const { provider, model, baseUrl, contextProfile } = store.llmConfig;
         const res = await api.post<{
           programs: Array<{
             id: string;
@@ -228,6 +240,7 @@ export function useEvolution() {
           provider,
           model,
           ...(baseUrl ? { base_url: baseUrl } : {}),
+          context_profile: contextProfile || 'intermediate',
         });
 
         // If no session existed locally, capture the backend-created one
@@ -256,7 +269,13 @@ export function useEvolution() {
         );
 
         const addLog = useLogStore.getState().addLog;
-        if (res.source === 'mock') {
+        const isMockEvolve = res.source === 'mock';
+        store.addGenerationMeta({
+          guidance: guidance || '',
+          llmModel: isMockEvolve ? 'Mock' : `${provider}/${model}`,
+          contextProfile: contextProfile || 'intermediate',
+        });
+        if (isMockEvolve) {
           store.setLastEvolveSource('mock');
           addLog('warning', res.message ?? 'Backend used mock examples');
         } else {
@@ -280,6 +299,11 @@ export function useEvolution() {
             ),
           ),
         );
+        store.addGenerationMeta({
+          guidance: guidance || '',
+          llmModel: 'Mock',
+          contextProfile: store.llmConfig.contextProfile || 'intermediate',
+        });
         const addLog = useLogStore.getState().addLog;
         addLog('error', `Backend unavailable — using mock evolution. ${err instanceof Error ? err.message : ''}`);
       } finally {
