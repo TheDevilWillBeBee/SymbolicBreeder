@@ -116,8 +116,8 @@ Unique constraint: `(user_id, program_id)` ensures one reaction per user per pro
 | `sharer_name` | string | Display name of sharer |
 | `modality` | string | `"strudel"` or `"shader"` |
 | `code` | text | Program source code |
-| `lineage` | JSON | Ancestry chain of parent programs |
-| `llm_model` | string | Model used to generate the program |
+| `lineage` | JSON | Ancestry chain of parent programs. Each entry includes optional per-generation metadata: `guidance` (user prompt text), `llmModel` (provider/model used), and `contextProfile` (simple/intermediate/advanced) |
+| `llm_model` | string | Model used to generate the program (top-level, for the final generation) |
 | `created_at` | datetime | Auto-set on creation |
 
 ### Routers

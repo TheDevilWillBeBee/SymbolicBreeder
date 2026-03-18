@@ -159,7 +159,13 @@ export function useEvolution() {
         );
 
         const addLog = useLogStore.getState().addLog;
-        if (res.source === 'mock') {
+        const isMock = res.source === 'mock';
+        store.addGenerationMeta({
+          guidance: initialPrompt || '',
+          llmModel: isMock ? 'Mock' : `${provider}/${model}`,
+          contextProfile: contextProfile || 'intermediate',
+        });
+        if (isMock) {
           store.setLastEvolveSource('mock');
           addLog('warning', res.message ?? 'Backend used mock examples');
         } else {
@@ -179,6 +185,11 @@ export function useEvolution() {
         store.addGeneration(
           seeds.map((code) => makeProgram(code, modality, 0, sessionId)),
         );
+        store.addGenerationMeta({
+          guidance: initialPrompt || '',
+          llmModel: 'Mock',
+          contextProfile: llmConfig.contextProfile || 'intermediate',
+        });
         const addLog = useLogStore.getState().addLog;
         store.setLastEvolveSource('mock');
         addLog('error', `Backend unavailable — using mock examples. ${err instanceof Error ? err.message : ''}`);
@@ -258,7 +269,13 @@ export function useEvolution() {
         );
 
         const addLog = useLogStore.getState().addLog;
-        if (res.source === 'mock') {
+        const isMockEvolve = res.source === 'mock';
+        store.addGenerationMeta({
+          guidance: guidance || '',
+          llmModel: isMockEvolve ? 'Mock' : `${provider}/${model}`,
+          contextProfile: contextProfile || 'intermediate',
+        });
+        if (isMockEvolve) {
           store.setLastEvolveSource('mock');
           addLog('warning', res.message ?? 'Backend used mock examples');
         } else {
@@ -282,6 +299,11 @@ export function useEvolution() {
             ),
           ),
         );
+        store.addGenerationMeta({
+          guidance: guidance || '',
+          llmModel: 'Mock',
+          contextProfile: store.llmConfig.contextProfile || 'intermediate',
+        });
         const addLog = useLogStore.getState().addLog;
         addLog('error', `Backend unavailable — using mock evolution. ${err instanceof Error ? err.message : ''}`);
       } finally {

@@ -46,6 +46,9 @@ class LineageProgramSchema(BaseModel):
     modality: str
     generation: int
     parentIds: list[str] = Field(default_factory=list, alias="parentIds")
+    guidance: Optional[str] = None
+    llm_model: Optional[str] = Field(default=None, alias="llmModel")
+    context_profile: Optional[str] = Field(default=None, alias="contextProfile")
 
     model_config = {"populate_by_name": True}
 

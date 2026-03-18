@@ -46,6 +46,14 @@ export interface RenderHandle {
   reset?(): void;
 }
 
+// ── Per-generation evolution metadata ──
+
+export interface GenerationMeta {
+  guidance: string;
+  llmModel: string;
+  contextProfile: string;
+}
+
 // ── Gallery types ──
 
 export interface LineageProgram {
@@ -54,6 +62,9 @@ export interface LineageProgram {
   modality: string;
   generation: number;
   parentIds: string[];
+  guidance?: string;
+  llmModel?: string;
+  contextProfile?: string;
 }
 
 export interface SharedProgram {
@@ -97,4 +108,10 @@ export interface ModalityPlugin {
    * Returns error message or null.
    */
   validate?(code: string): string | null;
+
+  /**
+   * Render a single-frame snapshot and return the canvas.
+   * Uses preserveDrawingBuffer: true so the result is readable.
+   */
+  renderSnapshot?(code: string, width: number, height: number): HTMLCanvasElement | null;
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Program, Session } from '../types';
+import { Program, Session, GenerationMeta } from '../types';
 
 export type ContextProfile = 'simple' | 'intermediate' | 'advanced';
 
@@ -23,6 +23,7 @@ interface SessionState {
   isEvolving: boolean;
   isLoading: boolean;
   customizedPrograms: Record<string, string>;
+  generationMeta: GenerationMeta[];
   llmConfig: LLMConfig;
   lastEvolveSource: 'llm' | 'mock';
 
@@ -38,6 +39,7 @@ interface SessionState {
   setIsEvolving: (v: boolean) => void;
   setIsLoading: (v: boolean) => void;
   setCustomizedCode: (programId: string, code: string) => void;
+  addGenerationMeta: (meta: GenerationMeta) => void;
   setLLMConfig: (config: Partial<LLMConfig>) => void;
   setLastEvolveSource: (source: 'llm' | 'mock') => void;
   reset: () => void;
@@ -61,6 +63,7 @@ const initialState = {
   isEvolving: false,
   isLoading: false,
   customizedPrograms: {} as Record<string, string>,
+  generationMeta: [] as GenerationMeta[],
   llmConfig: { ...initialLLMConfig },
   lastEvolveSource: 'llm' as const,
 };
@@ -105,6 +108,12 @@ export const useSessionStore = create<SessionState>((set) => ({
     set((state) => ({
       customizedPrograms: { ...state.customizedPrograms, [programId]: code },
     })),
+
+  addGenerationMeta: (meta) =>
+    set((state) => {
+      const base = state.generationMeta.slice(0, state.currentGeneration + 1);
+      return { generationMeta: [...base, meta] };
+    }),
 
   setLLMConfig: (config) =>
     set((state) => ({

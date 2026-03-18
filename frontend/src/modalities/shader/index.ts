@@ -415,6 +415,80 @@ function renderShader(code: string, container: HTMLElement): RenderHandle {
   };
 }
 
+// ── Snapshot rendering (preserveDrawingBuffer: true for reliable capture) ──
+
+function renderSnapshotCanvas(
+  code: string,
+  width: number,
+  height: number,
+): HTMLCanvasElement | null {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true });
+  if (!gl) return null;
+
+  const vs = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+  if (typeof vs === 'string') return null;
+
+  const fragSource = buildFragmentSource(code);
+  const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragSource);
+  if (typeof fs === 'string') return null;
+
+  const program = linkProgram(gl, vs, fs);
+  if (typeof program === 'string') return null;
+
+  gl.useProgram(program);
+
+  const posAttr = gl.getAttribLocation(program, 'position');
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+    gl.STATIC_DRAW,
+  );
+  gl.enableVertexAttribArray(posAttr);
+  gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
+
+  // Render one frame at t=0.5s for a representative snapshot
+  gl.viewport(0, 0, width, height);
+  const uRes = gl.getUniformLocation(program, 'iResolution');
+  const uTime = gl.getUniformLocation(program, 'iTime');
+  gl.uniform2f(uRes, width, height);
+  gl.uniform1f(uTime, 0.5);
+
+  // For buffer shaders, also set iFrame=0 and provide a blank iChannel0
+  if (isBufferShader(code)) {
+    const uFrame = gl.getUniformLocation(program, 'iFrame');
+    const uChannel0 = gl.getUniformLocation(program, 'iChannel0');
+    gl.uniform1i(uFrame, 0);
+    const tex = createTexture(gl, width, height);
+    if (tex) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniform1i(uChannel0, 0);
+    }
+  }
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  gl.finish();
+
+  // Copy to a 2D canvas before destroying the WebGL context
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = width;
+  outCanvas.height = height;
+  const ctx2d = outCanvas.getContext('2d');
+  ctx2d?.drawImage(canvas, 0, 0);
+
+  // Clean up WebGL context
+  const ext = gl.getExtension('WEBGL_lose_context');
+  ext?.loseContext();
+
+  return outCanvas;
+}
+
 // ── Plugin implementation ──
 
 export const shaderPlugin: ModalityPlugin = {
@@ -429,6 +503,10 @@ export const shaderPlugin: ModalityPlugin = {
 
   previewInModal(code: string, container: HTMLElement): RenderHandle {
     return renderShader(code, container);
+  },
+
+  renderSnapshot(code: string, width: number, height: number): HTMLCanvasElement | null {
+    return renderSnapshotCanvas(code, width, height);
   },
 
   validate(code: string): string | null {

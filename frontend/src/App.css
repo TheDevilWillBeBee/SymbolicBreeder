@@ -1962,34 +1962,109 @@ body.modality-non-strudel .cm-panels {
   padding: 1rem 0;
 }
 
-.lineage-tree-node {
+/* Layered DAG layout */
+.layered-tree {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.lineage-children {
+.layered-tree-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.generation-row {
   display: flex;
   gap: 1.5rem;
   justify-content: center;
 }
 
-.lineage-child-branch {
+/* Edge connector between generations */
+.generation-edge {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.lineage-edge-down {
+.edge-fan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.edge-stubs {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.edge-stub {
+  width: 160px;
+  display: flex;
+  justify-content: center;
+}
+
+.edge-stub-line {
   width: 2px;
-  height: 24px;
+  height: 12px;
   background: var(--border);
 }
 
-.lineage-edge-up {
-  width: 2px;
-  height: 24px;
+.edge-bar {
+  width: 100%;
+  height: 2px;
   background: var(--border);
+}
+
+.edge-trunk {
+  width: 2px;
+  height: 16px;
+  background: var(--border);
+}
+
+/* Transition card (shared evolution metadata) */
+.transition-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  max-width: 300px;
+  text-align: center;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.transition-card-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.transition-model {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.7rem;
+}
+
+.transition-profile {
+  font-size: 0.6rem;
+  text-transform: capitalize;
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.transition-guidance {
+  font-style: italic;
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  opacity: 0.85;
 }
 
 .lineage-card {
@@ -2069,6 +2144,39 @@ body.modality-non-strudel .cm-panels {
 
 .lineage-card-labels {
   padding: 0 0.4rem 0.35rem;
+}
+
+/* Lineage header with toggle */
+.lineage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.lineage-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  margin-top: 0.2rem;
+}
+
+.lineage-toggle input {
+  accent-color: var(--accent);
+}
+
+
+/* Gallery card complexity */
+.gallery-card-complexity,
+.detail-complexity {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  margin-left: 0.5rem;
 }
 
 .lineage-card-gen {

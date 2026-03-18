@@ -27,6 +27,8 @@ More modalities (p5.js, Tone.js, SVG, etc.) can be added without touching core l
 
 Multiple LLM providers are supported (Anthropic, OpenAI, Google Gemini, Qwen). Users can select their preferred provider and model in the UI, or the server can use pre-configured API keys.
 
+The **context system** supports three complexity profiles — simple, intermediate, and advanced — with inheritance. Prompts are stored in per-modality `prompts/prompt_bundle.yaml` files, not in Python code. The **gallery** stores per-generation metadata (guidance text, LLM model, and context profile) in each lineage entry, so viewers can see exactly how a program was evolved.
+
 ## Documentation
 
 | Document | Description |

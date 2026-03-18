@@ -8,32 +8,82 @@ import { StrudelHighlight } from './StrudelHighlight';
 import { highlightCode } from '../utils/syntaxHighlight';
 import { LineageProgram, RenderHandle } from '../types';
 
-// ── Tree building ──
+// ── Layered DAG building ──
 
-interface TreeNode {
-  program: LineageProgram;
-  children: TreeNode[];
+interface GenerationLayer {
+  generation: number;
+  programs: LineageProgram[];
 }
 
-function buildTree(lineage: LineageProgram[]): TreeNode | null {
+interface TransitionNode {
+  guidance?: string;
+  llmModel?: string;
+  contextProfile?: string;
+  parentIds: string[]; // IDs in the layer below (lower gen = parents)
+  childIds: string[];  // IDs in this layer (higher gen = produced programs)
+}
+
+interface LayeredDAG {
+  layers: GenerationLayer[];       // sorted descending by generation
+  transitions: (TransitionNode | null)[]; // transitions[i] between layers[i] and layers[i+1]
+}
+
+function buildLayeredDAG(lineage: LineageProgram[]): LayeredDAG | null {
   if (lineage.length === 0) return null;
-  const byId = new Map(lineage.map((p) => [p.id, p]));
 
-  const root = lineage.reduce((a, b) => (a.generation >= b.generation ? a : b));
-  const visited = new Set<string>();
-
-  function build(id: string): TreeNode | null {
-    if (visited.has(id)) return null;
-    visited.add(id);
-    const prog = byId.get(id)!;
-    const parentIds = prog.parentIds.filter((pid) => byId.has(pid));
-    return {
-      program: prog,
-      children: parentIds.map((pid) => build(pid)).filter((n): n is TreeNode => n !== null),
-    };
+  // Group by generation
+  const genMap = new Map<number, LineageProgram[]>();
+  for (const p of lineage) {
+    const arr = genMap.get(p.generation) || [];
+    arr.push(p);
+    genMap.set(p.generation, arr);
   }
 
-  return build(root.id);
+  // Sort generations descending (highest first = top of display)
+  const gens = [...genMap.keys()].sort((a, b) => b - a);
+  const layers: GenerationLayer[] = gens.map((g) => ({ generation: g, programs: genMap.get(g)! }));
+
+  // Build transitions between adjacent layers
+  const transitions: (TransitionNode | null)[] = [];
+  for (let i = 0; i < layers.length - 1; i++) {
+    const upperLayer = layers[i]; // higher gen (children = produced programs)
+    const lowerLayer = layers[i + 1]; // lower gen (parents)
+    const lowerIds = new Set(lowerLayer.programs.map((p) => p.id));
+
+    // Collect parent IDs from upper layer that exist in lower layer
+    const parentIds = new Set<string>();
+    for (const p of upperLayer.programs) {
+      for (const pid of p.parentIds) {
+        if (lowerIds.has(pid)) parentIds.add(pid);
+      }
+    }
+
+    // Metadata comes from the upper layer (the produced generation)
+    const rep = upperLayer.programs[0];
+    transitions.push({
+      guidance: rep.guidance,
+      llmModel: rep.llmModel,
+      contextProfile: rep.contextProfile,
+      parentIds: [...parentIds],
+      childIds: upperLayer.programs.map((p) => p.id),
+    });
+  }
+  // Gen 0 (bottom layer) also gets a transition showing its own metadata
+  const bottomLayer = layers[layers.length - 1];
+  const bottomRep = bottomLayer.programs[0];
+  if (bottomRep.llmModel || bottomRep.guidance || bottomRep.contextProfile) {
+    transitions.push({
+      guidance: bottomRep.guidance,
+      llmModel: bottomRep.llmModel,
+      contextProfile: bottomRep.contextProfile,
+      parentIds: [],
+      childIds: bottomLayer.programs.map((p) => p.id),
+    });
+  } else {
+    transitions.push(null);
+  }
+
+  return { layers, transitions };
 }
 
 // ── Mini card for lineage ──
@@ -67,10 +117,24 @@ function LineageCard({
   const handleRef = useRef<RenderHandle | null>(null);
   const [paused, setPaused] = useState(false);
 
-  // Render a single-frame snapshot for shaders
+  // Render a single-frame snapshot for shaders (uses preserveDrawingBuffer for mobile)
   useEffect(() => {
     if (!isShader || !canvasRef.current || isPlayingShader) return;
     const canvas = canvasRef.current;
+    const plugin = getPlugin('shader');
+
+    if (plugin.renderSnapshot) {
+      const srcCanvas = plugin.renderSnapshot(program.code, 160, 160);
+      if (srcCanvas) {
+        canvas.width = srcCanvas.width;
+        canvas.height = srcCanvas.height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(srcCanvas, 0, 0);
+      }
+      return;
+    }
+
+    // Fallback: off-screen render
     const container = document.createElement('div');
     container.style.width = '160px';
     container.style.height = '160px';
@@ -78,9 +142,7 @@ function LineageCard({
     container.style.left = '-9999px';
     document.body.appendChild(container);
 
-    const plugin = getPlugin('shader');
     const handle = plugin.render(program.code, container);
-
     const timer = setTimeout(() => {
       const srcCanvas = container.querySelector('canvas');
       if (srcCanvas && canvas) {
@@ -189,11 +251,35 @@ function LineageCard({
   );
 }
 
-// ── Tree renderer ──
+// ── Transition card (shared evolution metadata between generations) ──
 
-function TreeView({
-  node,
+function TransitionCard({ transition }: { transition: TransitionNode }) {
+  const guidance = transition.guidance || '';
+  const truncated = guidance.length > 120 ? guidance.slice(0, 120) + '...' : guidance;
+
+  return (
+    <div className="transition-card">
+      <div className="transition-card-row">
+        {transition.llmModel && (
+          <span className="transition-model">{transition.llmModel}</span>
+        )}
+        {transition.contextProfile && (
+          <span className="transition-profile">{transition.contextProfile}</span>
+        )}
+      </div>
+      <div className="transition-guidance" title={guidance || undefined}>
+        {truncated || 'No guidance'}
+      </div>
+    </div>
+  );
+}
+
+// ── Layered DAG renderer ──
+
+function LayeredTreeView({
+  dag,
   isShader,
+  showDetails,
   onShowCode,
   onPlayStrudel,
   playingCode,
@@ -202,8 +288,9 @@ function TreeView({
   onPlayShader,
   onStopShader,
 }: {
-  node: TreeNode;
+  dag: LayeredDAG;
   isShader: boolean;
+  showDetails: boolean;
   onShowCode: (p: LineageProgram) => void;
   onPlayStrudel?: (code: string) => void;
   playingCode?: string | null;
@@ -213,41 +300,70 @@ function TreeView({
   onStopShader?: () => void;
 }) {
   return (
-    <div className="lineage-tree-node">
-      <LineageCard
-        program={node.program}
-        isShader={isShader}
-        onShowCode={onShowCode}
-        onPlayStrudel={onPlayStrudel}
-        isPlayingStrudel={playingCode === node.program.code}
-        onStopStrudel={onStopStrudel}
-        isPlayingShader={playingShaderId === node.program.id}
-        onPlayShader={onPlayShader}
-        onStopShader={onStopShader}
-      />
-      {node.children.length > 0 && (
-        <>
-          <div className="lineage-edge-down" />
-          <div className="lineage-children">
-            {node.children.map((child) => (
-              <div key={child.program.id} className="lineage-child-branch">
-                <div className="lineage-edge-up" />
-                <TreeView
-                  node={child}
-                  isShader={isShader}
-                  onShowCode={onShowCode}
-                  onPlayStrudel={onPlayStrudel}
-                  playingCode={playingCode}
-                  onStopStrudel={onStopStrudel}
-                  playingShaderId={playingShaderId}
-                  onPlayShader={onPlayShader}
-                  onStopShader={onStopShader}
-                />
-              </div>
+    <div className="layered-tree">
+      {dag.layers.map((layer, i) => (
+        <div key={layer.generation} className="layered-tree-section">
+          {/* Generation row of cards */}
+          <div className="generation-row">
+            {layer.programs.map((p) => (
+              <LineageCard
+                key={p.id}
+                program={p}
+                isShader={isShader}
+                onShowCode={onShowCode}
+                onPlayStrudel={onPlayStrudel}
+                isPlayingStrudel={playingCode === p.code}
+                onStopStrudel={onStopStrudel}
+                isPlayingShader={playingShaderId === p.id}
+                onPlayShader={onPlayShader}
+                onStopShader={onStopShader}
+              />
             ))}
           </div>
-        </>
-      )}
+
+          {/* Edge + transition to next generation */}
+          {dag.transitions[i] && (
+            <div className="generation-edge">
+              {/* Fan-in lines from cards above */}
+              <div className="edge-fan">
+                {layer.programs.length > 1 && (
+                  <div className="edge-stubs">
+                    {layer.programs.map((p) => (
+                      <div key={p.id} className="edge-stub">
+                        <div className="edge-stub-line" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {layer.programs.length > 1 && <div className="edge-bar" />}
+                <div className="edge-trunk" />
+              </div>
+
+              {/* Transition node with shared metadata */}
+              {showDetails && <TransitionCard transition={dag.transitions[i]!} />}
+
+              {/* Fan-out lines to cards below (skip if no next layer) */}
+              {dag.layers[i + 1] && (
+                <div className="edge-fan">
+                  <div className="edge-trunk" />
+                  {dag.layers[i + 1].programs.length > 1 && (
+                    <>
+                      <div className="edge-bar" />
+                      <div className="edge-stubs">
+                        {dag.layers[i + 1].programs.map((p) => (
+                          <div key={p.id} className="edge-stub">
+                            <div className="edge-stub-line" />
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -298,6 +414,7 @@ export function ProgramDetailPage() {
   const [codeModalProgram, setCodeModalProgram] = useState<LineageProgram | null>(null);
   const [playingCode, setPlayingCode] = useState<string | null>(null);
   const [playingShaderId, setPlayingShaderId] = useState<string | null>(null);
+  const [showEdgeLabels, setShowEdgeLabels] = useState(false);
 
   const handlePlayShader = useCallback((id: string) => {
     setPlayingShaderId(id);
@@ -399,9 +516,9 @@ export function ProgramDetailPage() {
     goToBreeding();
   }, [program, handleStop, goToBreeding]);
 
-  const tree = useMemo(() => {
+  const dag = useMemo(() => {
     if (!program) return null;
-    return buildTree(program.lineage);
+    return buildLayeredDAG(program.lineage);
   }, [program]);
 
   if (isLoading) {
@@ -473,21 +590,47 @@ export function ProgramDetailPage() {
             </span>
           </div>
           <div className="detail-labels">
-            <span className="gallery-card-model">Evolved using: {program.llmModel || 'Mock'}</span>
+            <span className="gallery-card-model">
+              Evolved using: {(() => {
+                const models = new Set(program.lineage.map((p) => p.llmModel).filter(Boolean));
+                if (models.size === 0) return program.llmModel || 'Mock';
+                if (models.size === 1) return [...models][0];
+                return 'Several models';
+              })()}
+            </span>
+            {(() => {
+              const levels = new Set(program.lineage.map((p) => p.contextProfile).filter(Boolean));
+              if (levels.size === 0) return null;
+              const label = levels.size === 1 ? [...levels][0] : 'Multiple levels';
+              return <span className="detail-complexity">{label}</span>;
+            })()}
           </div>
         </div>
       </div>
 
-      {tree && program.lineage.length > 1 && (
+      {dag && program.lineage.length > 1 && (
         <div className="detail-lineage">
-          <h3>Lineage</h3>
-          <p className="lineage-subtitle">
-            Evolution tree showing how this program was bred
-          </p>
+          <div className="lineage-header">
+            <div>
+              <h3>Lineage</h3>
+              <p className="lineage-subtitle">
+                Evolution tree showing how this program was bred
+              </p>
+            </div>
+            <label className="lineage-toggle">
+              <input
+                type="checkbox"
+                checked={showEdgeLabels}
+                onChange={(e) => setShowEdgeLabels(e.target.checked)}
+              />
+              <span>Show evolution details</span>
+            </label>
+          </div>
           <div className="lineage-tree">
-            <TreeView
-              node={tree}
+            <LayeredTreeView
+              dag={dag}
               isShader={isShader}
+              showDetails={showEdgeLabels}
               onShowCode={setCodeModalProgram}
               onPlayStrudel={handlePlayStrudel}
               playingCode={playingCode}

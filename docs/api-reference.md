@@ -264,8 +264,20 @@ Shares a program to the public gallery.
 | `sharer_name` | string | Yes | Display name of the sharer |
 | `code` | string | Yes | Program source code |
 | `modality` | string | Yes | `"strudel"` or `"shader"` |
-| `lineage` | array | No | Ancestry chain of parent programs |
+| `lineage` | array | No | Ancestry chain of parent programs (see `LineageProgramSchema` below) |
 | `llm_model` | string | No | Model used to generate the program |
+
+**`LineageProgramSchema`** — each entry in the `lineage` array:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | Yes | UUID of the program |
+| `code` | string | Yes | Program source code |
+| `generation` | int | Yes | Generation number |
+| `parent_ids` | array | No | Parent program UUIDs |
+| `guidance` | string | No | User guidance text used for this generation |
+| `llm_model` | string | No | Provider/model used (e.g. `"anthropic/claude-sonnet-4-20250514"`) |
+| `context_profile` | string | No | Context complexity level: `"simple"`, `"intermediate"`, or `"advanced"` |
 
 **Response `200`**
 
@@ -276,7 +288,17 @@ Shares a program to the public gallery.
   "sharer_name": "Alice",
   "modality": "shader",
   "code": "void mainImage(...) { ... }",
-  "lineage": [],
+  "lineage": [
+    {
+      "id": "f1a2b3c4-...",
+      "code": "...",
+      "generation": 0,
+      "parent_ids": [],
+      "guidance": null,
+      "llm_model": "anthropic/claude-sonnet-4-20250514",
+      "context_profile": "intermediate"
+    }
+  ],
   "llm_model": "claude-sonnet-4-20250514",
   "created_at": "2026-03-16T10:00:00Z"
 }

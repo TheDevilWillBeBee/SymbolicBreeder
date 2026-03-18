@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Program, SharedProgram, LineageProgram } from '../types';
+import { Program, SharedProgram, LineageProgram, GenerationMeta } from '../types';
 import { useSessionStore } from '../store/sessionStore';
 import { useGalleryStore } from '../store/galleryStore';
 import { useLogStore } from '../store/logStore';
@@ -10,7 +10,11 @@ interface Props {
   onClose: () => void;
 }
 
-function buildLineage(program: Program, generations: Program[][]): LineageProgram[] {
+function buildLineage(
+  program: Program,
+  generations: Program[][],
+  generationMeta: GenerationMeta[],
+): LineageProgram[] {
   const allPrograms = new Map<string, Program>();
   for (const gen of generations) {
     for (const p of gen) {
@@ -26,12 +30,16 @@ function buildLineage(program: Program, generations: Program[][]): LineageProgra
     visited.add(id);
     const p = allPrograms.get(id);
     if (!p) return;
+    const meta = generationMeta[p.generation];
     lineage.push({
       id: p.id,
       code: p.code,
       modality: p.modality,
       generation: p.generation,
       parentIds: p.parentIds,
+      guidance: meta?.guidance ?? '',
+      llmModel: meta?.llmModel ?? '',
+      contextProfile: meta?.contextProfile ?? '',
     });
     for (const pid of p.parentIds) {
       walk(pid);
@@ -40,6 +48,16 @@ function buildLineage(program: Program, generations: Program[][]): LineageProgra
 
   walk(program.id);
   return lineage;
+}
+
+function summarizeLineageField(
+  lineage: LineageProgram[],
+  field: 'llmModel' | 'contextProfile',
+): string {
+  const values = new Set(lineage.map((p) => p[field]).filter(Boolean));
+  if (values.size === 0) return field === 'llmModel' ? 'Unknown' : '';
+  if (values.size === 1) return [...values][0]!;
+  return field === 'llmModel' ? 'Several models' : 'Multiple levels';
 }
 
 export function ShareModal({ program, onClose }: Props) {
@@ -51,6 +69,7 @@ export function ShareModal({ program, onClose }: Props) {
 
   const generations = useSessionStore((s) => s.generations);
   const customizedPrograms = useSessionStore((s) => s.customizedPrograms);
+  const generationMeta = useSessionStore((s) => s.generationMeta);
   const llmConfig = useSessionStore((s) => s.llmConfig);
   const lastEvolveSource = useSessionStore((s) => s.lastEvolveSource);
   const addLog = useLogStore((s) => s.addLog);
@@ -64,7 +83,7 @@ export function ShareModal({ program, onClose }: Props) {
     localStorage.setItem('symbolicBreeder_sharerName', sharerName.trim());
     setIsSharing(true);
 
-    const lineage = buildLineage(program, generations);
+    const lineage = buildLineage(program, generations, generationMeta);
     // Update the final program's code with customized version if any
     const finalInLineage = lineage.find((p) => p.id === program.id);
     if (finalInLineage) {
@@ -72,7 +91,7 @@ export function ShareModal({ program, onClose }: Props) {
     }
 
     const sharedId = crypto.randomUUID();
-    const llmLabel = lastEvolveSource === 'mock' ? 'Mock' : `${llmConfig.provider}/${llmConfig.model}`;
+    const llmLabel = summarizeLineageField(lineage, 'llmModel') || (lastEvolveSource === 'mock' ? 'Mock' : `${llmConfig.provider}/${llmConfig.model}`);
     const sharedProgram: SharedProgram = {
       id: sharedId,
       programId: program.id,
@@ -103,7 +122,7 @@ export function ShareModal({ program, onClose }: Props) {
     setShareUrl(url);
     setIsSharing(false);
     addLog('success', 'Program shared to the gallery!');
-  }, [sharerName, program, generations, displayCode, llmConfig, addLog, addSharedProgram]);
+  }, [sharerName, program, generations, generationMeta, displayCode, llmConfig, addLog, addSharedProgram]);
 
   const handleCopyUrl = useCallback(() => {
     if (!shareUrl) return;
@@ -141,6 +160,7 @@ export function ShareModal({ program, onClose }: Props) {
                 <span className="share-modality">{program.modality}</span>
                 <span className="share-gen">Generation {program.generation + 1}</span>
                 <span className="share-model">{lastEvolveSource === 'mock' ? 'Mock' : `${llmConfig.provider}/${llmConfig.model}`}</span>
+                <span className="share-profile">{llmConfig.contextProfile}</span>
               </div>
               <button
                 className="share-submit-btn"
