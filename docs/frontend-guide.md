@@ -27,11 +27,13 @@ frontend/src/
 ├── modalities/
 │   ├── strudel/
 │   │   └── index.ts         # Strudel ModalityPlugin implementation
-│   └── shader/
-│       └── index.ts         # Shader ModalityPlugin implementation
+│   ├── shader/
+│   │   └── index.ts         # Shader ModalityPlugin implementation
+│   └── openscad/
+│       └── index.ts         # OpenSCAD ModalityPlugin implementation
 │
 ├── components/
-│   ├── ModalitySelector.tsx # Splash screen — pick Strudel or Shader
+│   ├── ModalitySelector.tsx # Splash screen — pick Strudel, Shader, or OpenSCAD
 │   ├── ProgramGrid.tsx      # Responsive grid of ProgramCards
 │   ├── ProgramCard.tsx      # Individual card: live preview + controls
 │   ├── GuidanceInput.tsx    # Free-text hint + Evolve button

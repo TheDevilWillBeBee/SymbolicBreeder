@@ -84,6 +84,13 @@ export function GalleryPage() {
         >
           Strudel
         </button>
+        <button
+          className={'gallery-tab' + (modality === 'openscad' ? ' active' : '')}
+          onClick={() => { handleStop(); setModality('openscad'); }}
+          title="Browse shared 3D model programs"
+        >
+          OpenSCAD
+        </button>
       </div>
 
       {isLoading ? (

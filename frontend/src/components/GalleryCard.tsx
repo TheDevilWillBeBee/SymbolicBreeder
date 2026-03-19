@@ -27,37 +27,38 @@ interface Props {
 }
 
 export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Props) {
-  const isShader = program.modality === 'shader';
+  const isStrudel = program.modality === 'strudel';
+  const hasVisualRender = !isStrudel;
   const previewRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
-  const [shaderPaused, setShaderPaused] = useState(false);
+  const [visualPaused, setVisualPaused] = useState(false);
 
   useEffect(() => {
-    if (!isShader || !previewRef.current) return;
+    if (!hasVisualRender || !previewRef.current) return;
     handleRef.current?.cleanup();
-    const plugin = getPlugin('shader');
+    const plugin = getPlugin(program.modality);
     handleRef.current = plugin.render(program.code, previewRef.current);
-    setShaderPaused(false);
+    setVisualPaused(false);
     return () => {
       handleRef.current?.cleanup();
       handleRef.current = null;
     };
-  }, [isShader, program.code]);
+  }, [hasVisualRender, program.code, program.modality]);
 
-  const handleToggleShader = useCallback(() => {
+  const handleTogglePause = useCallback(() => {
     if (!handleRef.current) return;
-    if (shaderPaused) {
+    if (visualPaused) {
       handleRef.current.resume?.();
-      setShaderPaused(false);
+      setVisualPaused(false);
     } else {
       handleRef.current.pause?.();
-      setShaderPaused(true);
+      setVisualPaused(true);
     }
-  }, [shaderPaused]);
+  }, [visualPaused]);
 
   const handleReset = useCallback(() => {
     handleRef.current?.reset?.();
-    setShaderPaused(false);
+    setVisualPaused(false);
   }, []);
 
   const goToDetail = useNavStore((s) => s.goToDetail);
@@ -68,9 +69,9 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
 
   return (
     <div className={'gallery-card' + (isPlaying ? ' playing' : '')}>
-      {isShader ? (
+      {hasVisualRender ? (
         <div className="gallery-card-preview-wrapper" onClick={handleCardClick}>
-          <div className="gallery-card-preview shader-preview" ref={previewRef} />
+          <div className={'gallery-card-preview ' + program.modality + '-preview'} ref={previewRef} />
         </div>
       ) : (
         <div className="gallery-card-preview strudel-preview" onClick={handleCardClick}>
@@ -82,19 +83,19 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
       {/* Controls row: play/pause+reset left, breed right */}
       <div className="gallery-card-controls">
         <div className="gallery-card-controls-left">
-          {isShader ? (
+          {hasVisualRender ? (
             <>
               <button
-                className={'play-btn' + (shaderPaused ? '' : ' active')}
-                onClick={(e) => { e.stopPropagation(); handleToggleShader(); }}
-                title={shaderPaused ? 'Resume shader animation' : 'Pause shader animation'}
+                className={'play-btn' + (visualPaused ? '' : ' active')}
+                onClick={(e) => { e.stopPropagation(); handleTogglePause(); }}
+                title={visualPaused ? 'Resume' : 'Pause'}
               >
-                {shaderPaused ? '\u25B6' : '\u23F8'}
+                {visualPaused ? '\u25B6' : '\u23F8'}
               </button>
               <button
                 className="reset-btn"
                 onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                title="Reset shader to initial state"
+                title="Reset to initial state"
               >
                 ↺
               </button>

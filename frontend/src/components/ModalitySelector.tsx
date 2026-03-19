@@ -17,7 +17,7 @@ export function ModalitySelector({ onSelect }: Props) {
             onClick={() => onSelect(plugin.key)}
           >
             <div className="modality-tile-icon">
-              {plugin.key === 'strudel' ? '♪' : '◆'}
+              {plugin.key === 'strudel' ? '♪' : plugin.key === 'shader' ? '◆' : '⬡'}
             </div>
             <div className="modality-tile-label">{plugin.label}</div>
             <div className="modality-tile-desc">{plugin.description}</div>

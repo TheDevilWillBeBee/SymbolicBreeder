@@ -605,9 +605,10 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.program-card-preview.shader-preview {
+.program-card-preview.shader-preview,
+.program-card-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .strudel-preview {
@@ -1727,9 +1728,10 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.gallery-card-preview.shader-preview {
+.gallery-card-preview.shader-preview,
+.gallery-card-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .gallery-card-preview.strudel-preview {
@@ -1745,9 +1747,10 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.gallery-card-preview-wrapper .shader-preview {
+.gallery-card-preview-wrapper .shader-preview,
+.gallery-card-preview-wrapper .openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .shader-play-overlay {
@@ -1892,9 +1895,10 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.detail-preview.shader-preview {
+.detail-preview.shader-preview,
+.detail-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .detail-preview.strudel-preview {
@@ -2099,19 +2103,21 @@ body.modality-non-strudel .cm-panels {
   object-fit: cover;
 }
 
-.lineage-card-preview-wrapper .shader-preview {
+.lineage-card-preview-wrapper .shader-preview,
+.lineage-card-preview-wrapper .openscad-preview {
   width: 100%;
   height: 100%;
-  background: #000;
+  background: #12121e;
 }
 
 .lineage-card-preview-wrapper .shader-play-overlay span {
   font-size: 0.6rem;
 }
 
-.lineage-card-preview.shader-preview {
+.lineage-card-preview.shader-preview,
+.lineage-card-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .lineage-card-preview.strudel-preview {
@@ -2383,4 +2389,38 @@ body.modality-non-strudel .cm-panels {
 .about-cta-secondary:hover {
   background: var(--bg-secondary);
   border-color: var(--accent);
+}
+
+/* ── OpenSCAD 3D preview states ── */
+
+.openscad-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  background: #12121e;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  gap: 0.6rem;
+  border-radius: 4px;
+}
+
+.openscad-spinner {
+  font-size: 2rem;
+  color: #4d9de0;
+  animation: openscad-spin 3s linear infinite;
+}
+
+.openscad-loading-text {
+  color: #64748b;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+@keyframes openscad-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

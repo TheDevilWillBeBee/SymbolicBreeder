@@ -32,11 +32,11 @@ interface GalleryState {
   programs: SharedProgram[];
   total: number;
   page: number;
-  modality: 'shader' | 'strudel';
+  modality: 'shader' | 'strudel' | 'openscad';
   isLoading: boolean;
   selectedProgram: SharedProgram | null;
 
-  setModality: (mod: 'shader' | 'strudel') => void;
+  setModality: (mod: 'shader' | 'strudel' | 'openscad') => void;
   setPage: (page: number) => void;
   fetchPrograms: () => Promise<void>;
   fetchProgramDetail: (id: string) => Promise<void>;

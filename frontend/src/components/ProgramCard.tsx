@@ -29,7 +29,9 @@ export function ProgramCard({
 
   const isPlaying = playingProgramId === program.id;
   const isSelected = selectedProgramIds.has(program.id);
+  const isStrudel = modality === 'strudel';
   const isShader = modality === 'shader';
+  const hasVisualRender = !isStrudel;
 
   // Use customized code if available
   const displayCode = customizedPrograms[program.id] ?? program.code;
@@ -38,44 +40,42 @@ export function ProgramCard({
   const previewRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
 
-  // Shader-specific: track paused state locally
-  const [shaderPaused, setShaderPaused] = useState(false);
+  const [visualPaused, setVisualPaused] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // For shader cards, render WebGL canvas continuously
+  // For visual modalities (shader, openscad), render into canvas container
   useEffect(() => {
-    if (!isShader || !previewRef.current) return;
+    if (!hasVisualRender || !previewRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin(modality!);
     handleRef.current = plugin.render(displayCode, previewRef.current);
-    setShaderPaused(false);
+    setVisualPaused(false);
     return () => {
       handleRef.current?.cleanup();
       handleRef.current = null;
     };
-  }, [isShader, displayCode, modality]);
+  }, [hasVisualRender, displayCode, modality]);
 
-  const handleToggleShaderPause = useCallback(() => {
+  const handleTogglePause = useCallback(() => {
     if (!handleRef.current) return;
-    if (shaderPaused) {
+    if (visualPaused) {
       handleRef.current.resume?.();
-      setShaderPaused(false);
+      setVisualPaused(false);
     } else {
       handleRef.current.pause?.();
-      setShaderPaused(true);
+      setVisualPaused(true);
     }
-  }, [shaderPaused]);
+  }, [visualPaused]);
 
   const handleReset = useCallback(() => {
     handleRef.current?.reset?.();
-    setShaderPaused(false);
+    setVisualPaused(false);
   }, []);
 
   const handleCopy = useCallback(() => {
     let code = displayCode;
     if (isShader) {
       const isBuffer = /iChannel0/.test(code);
-      // Add Shadertoy setup instructions for buffer shaders
       if (isBuffer) {
         code =
           '// Shadertoy setup: paste into "Buffer A" tab,\n' +
@@ -96,13 +96,13 @@ export function ProgramCard({
         'program-card' +
         (isSelected ? ' selected' : '') +
         (isPlaying ? ' playing' : '') +
-        (isShader && shaderPaused ? ' paused' : '')
+        (hasVisualRender && visualPaused ? ' paused' : '')
       }
     >
       {/* Preview area */}
-      {isShader ? (
+      {hasVisualRender ? (
         <div
-          className="program-card-preview shader-preview"
+          className={'program-card-preview ' + modality + '-preview'}
           ref={previewRef}
           onClick={() => toggleProgramSelection(program.id)}
         />
@@ -119,13 +119,13 @@ export function ProgramCard({
       {/* Controls */}
       <div className="program-card-controls">
         <div className="program-card-left">
-          {isShader ? (
+          {hasVisualRender ? (
             <button
-              className={'play-btn' + (shaderPaused ? '' : ' active')}
-              onClick={handleToggleShaderPause}
-              title={shaderPaused ? 'Resume shader animation' : 'Pause shader animation'}
+              className={'play-btn' + (visualPaused ? '' : ' active')}
+              onClick={handleTogglePause}
+              title={visualPaused ? 'Resume' : 'Pause'}
             >
-              {shaderPaused ? '▶' : '⏸'}
+              {visualPaused ? '▶' : '⏸'}
             </button>
           ) : (
             <button
@@ -136,11 +136,11 @@ export function ProgramCard({
               {isPlaying ? '⏸' : '▶'}
             </button>
           )}
-          {isShader && (
+          {hasVisualRender && (
             <button
               className="reset-btn"
               onClick={handleReset}
-              title="Reset shader to initial state"
+              title="Reset to initial state"
             >
               ↺
             </button>

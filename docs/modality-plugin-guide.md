@@ -1,6 +1,6 @@
 # Modality Plugin Guide
 
-A **modality** is a self-contained plugin that defines how programs are rendered, previewed, and what LLM context is used to generate them. Symbolic Breeder ships with two modalities — **Strudel** (live music) and **Shader** (animated WebGL visuals). This guide walks through adding a new one.
+A **modality** is a self-contained plugin that defines how programs are rendered, previewed, and what LLM context is used to generate them. Symbolic Breeder ships with three modalities — **Strudel** (live music), **Shader** (animated WebGL visuals), and **OpenSCAD** (parametric 3D models). This guide walks through adding a new one.
 
 ---
 
