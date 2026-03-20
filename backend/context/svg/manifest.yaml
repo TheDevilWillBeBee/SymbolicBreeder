@@ -1,0 +1,94 @@
+version: 2
+modality: svg
+default_profile: intermediate
+
+profiles:
+  simple:
+    description: "Essential SVG craft: basic shapes, coordinate system, grouping, transforms, fill/stroke, text, and compositional basics."
+    includes:
+    - runtime_contract
+    - simple_shapes_structure
+    - simple_composition_layout
+    - evolution_playbook
+
+  intermediate:
+    description: "Adds color theory, gradients, advanced path work, clipping, masking, patterns, filters, and reusable components."
+    extends: simple
+    includes:
+    - intermediate_color_primitives
+    - intermediate_filters_styling
+
+  advanced:
+    description: "Adds SMIL and CSS animation, advanced filter chains, generative techniques, blend modes, and optimization."
+    extends: intermediate
+    includes:
+    - advanced_animation_motion
+    - advanced_filters_generative
+
+sources:
+- id: runtime_contract
+  enabled: true
+  level: shared
+  category: tutorial
+  path: shared/00_runtime_contract.md
+  inject_into: [ system ]
+  description: "SVG output rules, viewBox conventions, allowed elements, structural requirements, and sanitization constraints."
+
+- id: simple_shapes_structure
+  enabled: true
+  level: simple
+  category: tutorial
+  path: simple/10_shapes_structure_and_transforms.md
+  inject_into: [ system ]
+  description: "Basic shapes, viewBox, grouping, transforms, fill/stroke, text fundamentals."
+
+- id: simple_composition_layout
+  enabled: true
+  level: simple
+  category: tutorial
+  path: simple/11_composition_and_layout.md
+  inject_into: [ system ]
+  description: "Spatial arrangement, alignment, visual hierarchy, whitespace, and basic typography for logos."
+
+- id: intermediate_color_primitives
+  enabled: true
+  level: intermediate
+  category: tutorial
+  path: intermediate/20_color_gradients_and_advanced_primitives.md
+  inject_into: [ system ]
+  description: "Gradients, opacity, color harmony, complex paths with bezier curves, clipPath, mask, and pattern elements."
+
+- id: intermediate_filters_styling
+  enabled: true
+  level: intermediate
+  category: tutorial
+  path: intermediate/21_filters_styling_and_reuse.md
+  inject_into: [ system ]
+  description: "Filter basics, drop-shadow, blur, inline CSS styling, symbol/use reuse, and CSS-in-SVG techniques."
+
+- id: advanced_animation_motion
+  enabled: true
+  level: advanced
+  category: tutorial
+  path: advanced/30_animation_and_motion.md
+  inject_into: [ system ]
+  description: "SMIL animate elements, animateTransform, animateMotion, CSS keyframes in SVG, timing, sequencing, and morphing."
+
+- id: advanced_filters_generative
+  enabled: true
+  level: advanced
+  category: tutorial
+  path: advanced/31_advanced_filters_generative_and_optimization.md
+  inject_into: [ system ]
+  description: "feTurbulence, feDisplacementMap, feBlend, feComposite, blend modes, generative patterns, nested SVGs, and optimization."
+
+- id: evolution_playbook
+  enabled: true
+  level: shared
+  category: strategy
+  path: strategies/90_svg_evolution_playbook.md
+  inject_into: [ system ]
+  description: "Mutation and crossover operators, phenotype preservation, novelty injection, and one-shot breeding strategy for SVG."
+
+prompt_bundle:
+  path: prompts/prompt_bundle.yaml

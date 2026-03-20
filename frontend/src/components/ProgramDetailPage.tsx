@@ -94,6 +94,7 @@ function buildLayeredDAG(lineage: LineageProgram[]): LayeredDAG | null {
 function LineageCard({
   program,
   isShader,
+  isVisual,
   onShowCode,
   onPlayStrudel,
   isPlayingStrudel,
@@ -104,6 +105,7 @@ function LineageCard({
 }: {
   program: LineageProgram;
   isShader: boolean;
+  isVisual: boolean;
   onShowCode: (p: LineageProgram) => void;
   onPlayStrudel?: (code: string) => void;
   isPlayingStrudel?: boolean;
@@ -117,7 +119,11 @@ function LineageCard({
   const handleRef = useRef<RenderHandle | null>(null);
   const [paused, setPaused] = useState(false);
 
-  // Render a single-frame snapshot for shaders (uses preserveDrawingBuffer for mobile)
+  // For visual modalities: render snapshot or live preview in lineage cards
+  // Shaders use snapshot → live toggle; SVG renders directly
+  const svgPreviewRef = useRef<HTMLDivElement>(null);
+
+  // Render a single-frame snapshot for shaders
   useEffect(() => {
     if (!isShader || !canvasRef.current || isPlayingShader) return;
     const canvas = canvasRef.current;
@@ -162,7 +168,15 @@ function LineageCard({
     };
   }, [isShader, program.code, isPlayingShader]);
 
-  // Live WebGL context when playing
+  // SVG inline preview
+  useEffect(() => {
+    if (program.modality !== 'svg' || !svgPreviewRef.current) return;
+    const plugin = getPlugin('svg');
+    const handle = plugin.render(program.code, svgPreviewRef.current);
+    return () => { handle.cleanup(); };
+  }, [program.modality, program.code]);
+
+  // Live WebGL context when playing (shader only)
   useEffect(() => {
     if (!isShader || !isPlayingShader || !liveRef.current) return;
     handleRef.current?.cleanup();
@@ -189,6 +203,10 @@ function LineageCard({
           ) : (
             <canvas className="lineage-card-snapshot" ref={canvasRef} />
           )}
+        </div>
+      ) : program.modality === 'svg' ? (
+        <div className="lineage-card-preview-wrapper">
+          <div className="lineage-card-preview svg-preview" ref={svgPreviewRef} />
         </div>
       ) : (
         <div className="lineage-card-preview strudel-preview">
@@ -226,7 +244,7 @@ function LineageCard({
                 title="Play shader live"
               >{'\u25B6'}</button>
             )
-          ) : (
+          ) : !isVisual ? (
             <button
               className={'play-btn play-btn-sm' + (isPlayingStrudel ? ' active' : '')}
               onClick={() => isPlayingStrudel ? onStopStrudel?.() : onPlayStrudel?.(program.code)}
@@ -234,7 +252,7 @@ function LineageCard({
             >
               {isPlayingStrudel ? '\u23F8' : '\u25B6'}
             </button>
-          )}
+          ) : null}
         </div>
         <button
           className="code-btn code-btn-sm"
@@ -279,6 +297,7 @@ function TransitionCard({ transition }: { transition: TransitionNode }) {
 function LayeredTreeView({
   dag,
   isShader,
+  isVisual,
   showDetails,
   onShowCode,
   onPlayStrudel,
@@ -290,6 +309,7 @@ function LayeredTreeView({
 }: {
   dag: LayeredDAG;
   isShader: boolean;
+  isVisual: boolean;
   showDetails: boolean;
   onShowCode: (p: LineageProgram) => void;
   onPlayStrudel?: (code: string) => void;
@@ -310,6 +330,7 @@ function LayeredTreeView({
                 key={p.id}
                 program={p}
                 isShader={isShader}
+                isVisual={isVisual}
                 onShowCode={onShowCode}
                 onPlayStrudel={onPlayStrudel}
                 isPlayingStrudel={playingCode === p.code}
@@ -429,6 +450,7 @@ export function ProgramDetailPage() {
   }, [detailId]);
 
   const isShader = program?.modality === 'shader';
+  const isVisual = program?.modality === 'shader' || program?.modality === 'svg';
   const { play, stop } = useStrudelPlayer(program?.modality === 'strudel');
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -440,33 +462,33 @@ export function ProgramDetailPage() {
 
   const mainRefCallback = useCallback((node: HTMLDivElement | null) => {
     mainPreviewRef.current = node;
-    if (node && isShader && program) {
+    if (node && isVisual && program) {
       mainHandleRef.current?.cleanup();
-      const plugin = getPlugin('shader');
+      const plugin = getPlugin(program.modality);
       mainHandleRef.current = plugin.render(program.code, node);
       prevCodeRef.current = program.code;
       setMainPaused(false);
     }
-  }, [isShader, program]);
+  }, [isVisual, program]);
 
-  // Re-render shader if code changes while div already exists
+  // Re-render visual preview if code changes while div already exists
   useEffect(() => {
-    if (!isShader || !mainPreviewRef.current || !program) return;
+    if (!isVisual || !mainPreviewRef.current || !program) return;
     if (prevCodeRef.current === program.code) return;
     mainHandleRef.current?.cleanup();
-    const plugin = getPlugin('shader');
+    const plugin = getPlugin(program.modality);
     mainHandleRef.current = plugin.render(program.code, mainPreviewRef.current);
     prevCodeRef.current = program.code;
     setMainPaused(false);
     return () => { mainHandleRef.current?.cleanup(); mainHandleRef.current = null; };
-  }, [isShader, program?.code]);
+  }, [isVisual, program?.code]);
 
   const handlePlay = useCallback(() => {
-    if (!program || isShader) return;
+    if (!program || isVisual) return;
     play(program.code);
     setIsPlaying(true);
     setPlayingCode(program.code);
-  }, [program, isShader, play]);
+  }, [program, isVisual, play]);
 
   const handleStop = useCallback(() => {
     stop();
@@ -542,8 +564,8 @@ export function ProgramDetailPage() {
 
       <div className="detail-main">
         <div className="detail-main-card">
-          {isShader ? (
-            <div className="detail-preview shader-preview" ref={mainRefCallback} />
+          {isVisual ? (
+            <div className={`detail-preview ${program.modality}-preview`} ref={mainRefCallback} />
           ) : (
             <div className="detail-preview strudel-preview">
               <StrudelHighlight code={program.code} />
@@ -569,7 +591,7 @@ export function ProgramDetailPage() {
                     ↺
                   </button>
                 </>
-              ) : (
+              ) : !isVisual ? (
                 <button
                   className={'play-btn' + (isPlaying ? ' active' : '')}
                   onClick={isPlaying ? handleStop : handlePlay}
@@ -577,7 +599,7 @@ export function ProgramDetailPage() {
                 >
                   {isPlaying ? '\u23F8 Stop' : '\u25B6 Play'}
                 </button>
-              )}
+              ) : null}
             </div>
             <button className="breed-btn breed-btn-lg" onClick={handleBreed} title="Start a new breeding session using this program as seed">
               Breed from this
@@ -630,6 +652,7 @@ export function ProgramDetailPage() {
             <LayeredTreeView
               dag={dag}
               isShader={isShader}
+              isVisual={isVisual}
               showDetails={showEdgeLabels}
               onShowCode={setCodeModalProgram}
               onPlayStrudel={handlePlayStrudel}

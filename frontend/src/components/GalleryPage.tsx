@@ -84,6 +84,13 @@ export function GalleryPage() {
         >
           Strudel
         </button>
+        <button
+          className={'gallery-tab' + (modality === 'svg' ? ' active' : '')}
+          onClick={() => { handleStop(); setModality('svg'); }}
+          title="Browse shared SVG designs"
+        >
+          SVG
+        </button>
       </div>
 
       {isLoading ? (

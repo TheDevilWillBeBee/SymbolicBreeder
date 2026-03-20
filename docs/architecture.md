@@ -8,11 +8,12 @@ Symbolic Breeder has a classic client-server architecture. The React frontend ha
 ┌──────────────────────────────────────────────────────────┐
 │                     React Frontend                        │
 │                                                           │
-│  ModalitySelector — pick Strudel or Shader               │
+│  ModalitySelector — pick Strudel, Shader, or SVG          │
 │  ProgramGrid — grid of ProgramCards                       │
 │  ProgramCard — renders preview + select/play/customize    │
 │    ├── StrudelRenderer  (modality plugin)                 │
-│    └── ShaderRenderer   (modality plugin)                 │
+│    ├── ShaderRenderer   (modality plugin)                 │
+│    └── SVGRenderer      (modality plugin)                 │
 │  GuidanceInput + Evolve button                            │
 │  GenerationNav — browse generation history                │
 │  CustomizeModal — code editor + live preview              │
@@ -77,7 +78,7 @@ SQLAlchemy ORM models, defined in `app/models/db.py`:
 |---|---|---|
 | `id` | string (UUID) | Primary key |
 | `name` | string | Optional label |
-| `modality` | string | `"strudel"` or `"shader"` |
+| `modality` | string | `"strudel"`, `"shader"`, or `"svg"` |
 | `context_profile` | string | `"simple"`, `"intermediate"`, or `"advanced"` (nullable, default `"intermediate"`) |
 | `owner_user_id` | string | Optional FK → User |
 | `created_at` | datetime | Auto-set on creation |
@@ -114,7 +115,7 @@ Unique constraint: `(user_id, program_id)` ensures one reaction per user per pro
 | `id` | string (UUID) | Primary key |
 | `program_id` | string | Optional FK → Program |
 | `sharer_name` | string | Display name of sharer |
-| `modality` | string | `"strudel"` or `"shader"` |
+| `modality` | string | `"strudel"`, `"shader"`, or `"svg"` |
 | `code` | text | Program source code |
 | `lineage` | JSON | Ancestry chain of parent programs. Each entry includes optional per-generation metadata: `guidance` (user prompt text), `llmModel` (provider/model used), and `contextProfile` (simple/intermediate/advanced) |
 | `llm_model` | string | Model used to generate the program (top-level, for the final generation) |
@@ -255,7 +256,7 @@ Defined in `src/types.ts`:
 
 ```typescript
 interface ModalityPlugin {
-  key: string;           // "strudel" | "shader"
+  key: string;           // "strudel" | "shader" | "svg"
   label: string;         // display name
   language: string;      // Monaco syntax language ("javascript" | "glsl")
   description: string;   // shown on ModalitySelector tile
@@ -274,12 +275,17 @@ All plugins are registered in `src/modalityRegistry.ts`:
 export const modalityRegistry: Record<string, ModalityPlugin> = {
   strudel: strudelPlugin,
   shader: shaderPlugin,
+  svg: svgPlugin,
 };
 ```
 
 ### Strudel Plugin (`modalities/strudel/index.ts`)
 
 Drives a single shared hidden `<strudel-editor>` web component. Only one program can play at a time. `render` plays the code; the cleanup function stops it.
+
+### SVG Plugin (`modalities/svg/index.ts`)
+
+Renders inline SVG markup via `innerHTML` into a wrapper div. Scripts and event handlers are stripped for security. Supports static SVG and declarative animations (SMIL `<animate>` and CSS `@keyframes`). Snapshot rendering uses SVG→Blob→Image→Canvas pipeline.
 
 ### Shader Plugin (`modalities/shader/index.ts`)
 

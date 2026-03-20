@@ -10,12 +10,13 @@ Select programs you like, optionally add guidance text, and press **Evolve** —
 |---|---|---|
 | **Strudel** | Live-coded music | [strudel.cc](https://strudel.cc) web component |
 | **WebGL Shader** | Animated visuals | WebGL / GLSL fragment shaders |
+| **SVG** | Vector graphics & logos | Inline SVG with SMIL/CSS animation |
 
-More modalities (p5.js, Tone.js, SVG, etc.) can be added without touching core logic — see [docs/modality-plugin-guide.md](docs/modality-plugin-guide.md).
+More modalities (p5.js, Tone.js, etc.) can be added without touching core logic — see [docs/modality-plugin-guide.md](docs/modality-plugin-guide.md).
 
 ## How It Works
 
-1. **Select a modality** (Strudel or Shader) on the splash screen
+1. **Select a modality** (Strudel, Shader, or SVG) on the splash screen
 2. A session is created and the backend seeds **generation 0** via LLM (or mock)
 3. Programs appear as interactive cards in the grid
 4. **Select** one or more cards you find interesting
@@ -62,8 +63,9 @@ SymbolicBreeder/
 │   │       ├── llm.py          # LLM orchestration + mock fallback
 │   │       └── providers/      # Multi-provider LLM support (Anthropic, OpenAI, Gemini, Qwen)
 │   ├── context/
-│   │   ├── strudel/            # Strudel tutorials + examples
-│   │   └── shader/             # GLSL tutorials + examples
+│   │   ├── strudel/            # Strudel tutorials + strategies
+│   │   ├── shader/             # GLSL tutorials + strategies
+│   │   └── svg/                # SVG tutorials + strategies
 │   ├── alembic/                # Database migration scripts
 │   └── pyproject.toml
 ├── api/
@@ -77,7 +79,8 @@ SymbolicBreeder/
     │   ├── modalityRegistry.ts  # Central plugin registry
     │   ├── modalities/
     │   │   ├── strudel/         # Strudel plugin
-    │   │   └── shader/          # WebGL shader plugin
+    │   │   ├── shader/          # WebGL shader plugin
+    │   │   └── svg/             # SVG vector graphics plugin
     │   ├── components/          # React UI components
     │   ├── hooks/               # useEvolution, useShaderRenderer
     │   ├── store/               # Zustand stores (session, nav, gallery, log)
@@ -87,7 +90,7 @@ SymbolicBreeder/
 
 ## Inspiration
 
-Symbolic Breeder is inspired by [PicBreeder](https://picbreeder.org), the landmark experiment in collaborative open-ended evolution by Kenneth Stanley and colleagues. Where PicBreeder evolves *Compositional Pattern-Producing Networks* (CPPNs) with hand-crafted mutation operators, Symbolic Breeder evolves **programs** using large language models as the variation engine — enabling mutation, crossover, and reinterpretation of code in expressive programming paradigms like Strudel (music) and GLSL shaders (visuals).
+Symbolic Breeder is inspired by [PicBreeder](https://picbreeder.org), the landmark experiment in collaborative open-ended evolution by Kenneth Stanley and colleagues. Where PicBreeder evolves *Compositional Pattern-Producing Networks* (CPPNs) with hand-crafted mutation operators, Symbolic Breeder evolves **programs** using large language models as the variation engine — enabling mutation, crossover, and reinterpretation of code in expressive programming paradigms like Strudel (music), GLSL shaders (visuals), and SVG (vector graphics).
 
 As Kenneth Stanley argues, open-ended processes driven by novelty rather than a fixed objective are essential for genuine discovery. There is no "target" shader or "goal" melody here — you explore freely, and the most interesting discoveries are the ones nobody planned for.
 
@@ -98,7 +101,7 @@ We welcome contributions! Here are some directions we'd love to explore:
 - **Free hosted LLM** — provide a default model so users can try the tool without supplying their own API key
 - **UI/UX improvements** — better mobile experience, richer card interactions, drag-and-drop lineage exploration
 - **Prompt engineering** — improve LLM prompts for higher-quality mutations and more diverse outputs
-- **New modalities** — p5.js sketches, SVG generative art, Tone.js synths, or any other live-renderable program format (see [modality plugin guide](docs/modality-plugin-guide.md))
+- **New modalities** — p5.js sketches, Tone.js synths, or any other live-renderable program format (see [modality plugin guide](docs/modality-plugin-guide.md))
 - **Collaborative breeding** — real-time multi-user sessions where participants vote on selections together
 - **Lineage analytics** — visualize evolutionary trajectories, track which mutations produced the most interesting results
 - **Export & embed** — download shaders as videos, export Strudel patterns as audio files, embed programs on other sites

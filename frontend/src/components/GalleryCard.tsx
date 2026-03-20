@@ -28,21 +28,22 @@ interface Props {
 
 export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Props) {
   const isShader = program.modality === 'shader';
+  const isVisual = program.modality === 'shader' || program.modality === 'svg';
   const previewRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
   const [shaderPaused, setShaderPaused] = useState(false);
 
   useEffect(() => {
-    if (!isShader || !previewRef.current) return;
+    if (!isVisual || !previewRef.current) return;
     handleRef.current?.cleanup();
-    const plugin = getPlugin('shader');
+    const plugin = getPlugin(program.modality);
     handleRef.current = plugin.render(program.code, previewRef.current);
     setShaderPaused(false);
     return () => {
       handleRef.current?.cleanup();
       handleRef.current = null;
     };
-  }, [isShader, program.code]);
+  }, [isVisual, program.code, program.modality]);
 
   const handleToggleShader = useCallback(() => {
     if (!handleRef.current) return;
@@ -68,9 +69,9 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
 
   return (
     <div className={'gallery-card' + (isPlaying ? ' playing' : '')}>
-      {isShader ? (
+      {isVisual ? (
         <div className="gallery-card-preview-wrapper" onClick={handleCardClick}>
-          <div className="gallery-card-preview shader-preview" ref={previewRef} />
+          <div className={`gallery-card-preview ${program.modality}-preview`} ref={previewRef} />
         </div>
       ) : (
         <div className="gallery-card-preview strudel-preview" onClick={handleCardClick}>
@@ -99,7 +100,7 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
                 ↺
               </button>
             </>
-          ) : (
+          ) : program.modality !== 'svg' ? (
             <button
               className={'play-btn' + (isPlaying ? ' active' : '')}
               onClick={(e) => {
@@ -110,7 +111,7 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
             >
               {isPlaying ? '\u23F8' : '\u25B6'}
             </button>
-          )}
+          ) : null}
         </div>
         {onBreed && (
           <button

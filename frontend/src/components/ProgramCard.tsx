@@ -30,6 +30,7 @@ export function ProgramCard({
   const isPlaying = playingProgramId === program.id;
   const isSelected = selectedProgramIds.has(program.id);
   const isShader = modality === 'shader';
+  const isVisual = modality === 'shader' || modality === 'svg';
 
   // Use customized code if available
   const displayCode = customizedPrograms[program.id] ?? program.code;
@@ -42,9 +43,9 @@ export function ProgramCard({
   const [shaderPaused, setShaderPaused] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // For shader cards, render WebGL canvas continuously
+  // For visual modalities (shader, svg), render preview continuously
   useEffect(() => {
-    if (!isShader || !previewRef.current) return;
+    if (!isVisual || !previewRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin(modality!);
     handleRef.current = plugin.render(displayCode, previewRef.current);
@@ -53,7 +54,7 @@ export function ProgramCard({
       handleRef.current?.cleanup();
       handleRef.current = null;
     };
-  }, [isShader, displayCode, modality]);
+  }, [isVisual, displayCode, modality]);
 
   const handleToggleShaderPause = useCallback(() => {
     if (!handleRef.current) return;
@@ -100,9 +101,9 @@ export function ProgramCard({
       }
     >
       {/* Preview area */}
-      {isShader ? (
+      {isVisual ? (
         <div
-          className="program-card-preview shader-preview"
+          className={`program-card-preview ${modality}-preview`}
           ref={previewRef}
           onClick={() => toggleProgramSelection(program.id)}
         />
@@ -127,7 +128,7 @@ export function ProgramCard({
             >
               {shaderPaused ? '▶' : '⏸'}
             </button>
-          ) : (
+          ) : modality !== 'svg' ? (
             <button
               className={'play-btn' + (isPlaying ? ' active' : '')}
               onClick={() => (isPlaying ? onStop() : onPlay(program))}
@@ -135,7 +136,7 @@ export function ProgramCard({
             >
               {isPlaying ? '⏸' : '▶'}
             </button>
-          )}
+          ) : null}
           {isShader && (
             <button
               className="reset-btn"
