@@ -823,4 +823,254 @@ $: n(irand(10).seg(0.5).add("[0 3]/4").add("0, 2, 4")).scale("G3:minor").sound("
       },
     ],
   },
+
+  // ── SVG programs ──
+
+  // SVG 1: Geometric logo — 3-gen evolution
+  {
+    id: 'shared-svg-1',
+    programId: 'prog-svg1-g2',
+    sharerName: 'vector_artist',
+    modality: 'svg',
+    code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { r: 15; } 50% { r: 20; } }
+    .outer-hex { animation: spin 20s linear infinite; transform-origin: 100px 100px; }
+    .inner-hex { animation: spin 15s linear infinite reverse; transform-origin: 100px 100px; }
+    .core { animation: pulse 3s ease-in-out infinite; }
+  </style>
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="#0a0a1a"/>
+  <g transform="translate(100,100)">
+    <polygon class="outer-hex" points="0,-65 56,-32 56,32 0,65 -56,32 -56,-32" fill="url(#g1)" opacity="0.9"/>
+    <polygon class="inner-hex" points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#0a0a1a"/>
+    <circle class="core" cx="0" cy="0" r="15" fill="#667eea"/>
+    <circle cx="0" cy="0" r="8" fill="#0a0a1a"/>
+  </g>
+</svg>`,
+    llmModel: 'anthropic/claude-sonnet-4-20250514',
+    createdAt: '2026-03-15T14:20:00Z',
+    lineage: [
+      {
+        id: 'prog-svg1-g0a',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#1a1a2e"/><g transform="translate(100,100)"><polygon points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30" fill="none" stroke="#e94560" stroke-width="3"/><circle cx="0" cy="0" r="15" fill="#e94560"/></g></svg>`,
+        modality: 'svg',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a geometric tech logo',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-svg1-g0b',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#0a0a1a"/><g transform="translate(100,100)"><rect x="-45" y="-45" width="90" height="90" rx="10" fill="#667eea" opacity="0.8"/><circle cx="0" cy="0" r="20" fill="#0a0a1a"/></g></svg>`,
+        modality: 'svg',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a geometric tech logo',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-svg1-g1',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#667eea"/><stop offset="100%" stop-color="#764ba2"/></linearGradient></defs><rect width="200" height="200" fill="#0a0a1a"/><g transform="translate(100,100)"><polygon points="0,-65 56,-32 56,32 0,65 -56,32 -56,-32" fill="url(#g1)"/><circle cx="0" cy="0" r="20" fill="#0a0a1a"/></g></svg>`,
+        modality: 'svg',
+        generation: 1,
+        parentIds: ['prog-svg1-g0a', 'prog-svg1-g0b'],
+        guidance: 'merge hexagon shape with gradient fill, add depth',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'intermediate',
+      },
+      {
+        id: 'prog-svg1-g2',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#667eea"/><stop offset="100%" stop-color="#764ba2"/></linearGradient></defs><rect width="200" height="200" fill="#0a0a1a"/><g transform="translate(100,100)"><polygon points="0,-65 56,-32 56,32 0,65 -56,32 -56,-32" fill="url(#g1)" opacity="0.9"/><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#0a0a1a"/><circle cx="0" cy="0" r="15" fill="#667eea"/><circle cx="0" cy="0" r="8" fill="#0a0a1a"/></g></svg>`,
+        modality: 'svg',
+        generation: 2,
+        parentIds: ['prog-svg1-g1'],
+        guidance: 'add inner hexagon cutout and nested circles for more depth',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'intermediate',
+      },
+    ],
+  },
+
+  // SVG 2: Abstract color mark — 2-gen evolution
+  {
+    id: 'shared-svg-2',
+    programId: 'prog-svg2-g1',
+    sharerName: 'logo_lab',
+    modality: 'svg',
+    code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#fff"/>
+  <g transform="translate(100,100)">
+    <circle cx="-22" cy="-15" r="35" fill="#e74c3c" opacity="0.75">
+      <animate attributeName="cx" values="-22;-18;-22" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="-15;-18;-15" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="22" cy="-15" r="35" fill="#3498db" opacity="0.75">
+      <animate attributeName="cx" values="22;18;22" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="-15;-18;-15" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="18" r="35" fill="#f1c40f" opacity="0.75">
+      <animate attributeName="cy" values="18;22;18" dur="4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>`,
+    llmModel: 'openai/gpt-4o',
+    createdAt: '2026-03-16T09:45:00Z',
+    lineage: [
+      {
+        id: 'prog-svg2-g0a',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#ecf0f1"/><circle cx="100" cy="100" r="50" fill="#e74c3c" opacity="0.8"/><circle cx="100" cy="100" r="30" fill="#3498db" opacity="0.8"/></svg>`,
+        modality: 'svg',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a colorful abstract logo',
+        llmModel: 'openai/gpt-4o',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-svg2-g0b',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#fff"/><g transform="translate(100,100)"><circle cx="-20" cy="0" r="30" fill="#f1c40f" opacity="0.7"/><circle cx="20" cy="0" r="30" fill="#e74c3c" opacity="0.7"/></g></svg>`,
+        modality: 'svg',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a colorful abstract logo',
+        llmModel: 'openai/gpt-4o',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-svg2-g1',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#fff"/><g transform="translate(100,100)"><circle cx="-22" cy="-15" r="35" fill="#e74c3c" opacity="0.75"/><circle cx="22" cy="-15" r="35" fill="#3498db" opacity="0.75"/><circle cx="0" cy="18" r="35" fill="#f1c40f" opacity="0.75"/></g></svg>`,
+        modality: 'svg',
+        generation: 1,
+        parentIds: ['prog-svg2-g0a', 'prog-svg2-g0b'],
+        guidance: 'use three overlapping circles in a triadic arrangement',
+        llmModel: 'openai/gpt-4o',
+        contextProfile: 'intermediate',
+      },
+    ],
+  },
+
+  // SVG 3: Nature motif — 3-gen with crossover
+  {
+    id: 'shared-svg-3',
+    programId: 'prog-svg3-g2',
+    sharerName: 'organic_forms',
+    modality: 'svg',
+    code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c3e50"/>
+      <stop offset="100%" stop-color="#3498db"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#f9ca24"/>
+      <stop offset="100%" stop-color="#f0932b"/>
+    </radialGradient>
+  </defs>
+  <rect width="200" height="200" fill="url(#sky)"/>
+  <circle cx="155" cy="40" r="22" fill="url(#sun)"/>
+  <g transform="translate(100,115)">
+    <path d="M-55,0 C-55,-60 55,-60 55,0" fill="#2ecc71"/>
+    <path d="M-35,0 C-35,-42 35,-42 35,0" fill="#27ae60"/>
+    <rect x="-5" y="0" width="10" height="30" fill="#8b6914" rx="2"/>
+  </g>
+  <path d="M-10,170 Q50,155 100,170 T210,170" fill="#27ae60" opacity="0.3"/>
+</svg>`,
+    llmModel: 'anthropic/claude-sonnet-4-20250514',
+    createdAt: '2026-03-17T16:00:00Z',
+    lineage: [
+      {
+        id: 'prog-svg3-g0a',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#87ceeb"/><circle cx="150" cy="40" r="20" fill="#f1c40f"/><g transform="translate(100,130)"><path d="M-40,0 C-40,-50 40,-50 40,0" fill="#2ecc71"/><rect x="-4" y="0" width="8" height="25" fill="#8b6914"/></g></svg>`,
+        modality: 'svg',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a nature-themed logo with a tree',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-svg3-g0b',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2c3e50"/><stop offset="100%" stop-color="#3498db"/></linearGradient></defs><rect width="200" height="200" fill="url(#sky)"/><circle cx="100" cy="100" r="40" fill="#f39c12" opacity="0.8"/></svg>`,
+        modality: 'svg',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a nature-themed logo with a tree',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-svg3-g1',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2c3e50"/><stop offset="100%" stop-color="#3498db"/></linearGradient></defs><rect width="200" height="200" fill="url(#sky)"/><circle cx="155" cy="40" r="20" fill="#f1c40f" opacity="0.9"/><g transform="translate(100,120)"><path d="M-50,0 C-50,-55 50,-55 50,0" fill="#2ecc71"/><rect x="-5" y="0" width="10" height="28" fill="#8b6914"/></g></svg>`,
+        modality: 'svg',
+        generation: 1,
+        parentIds: ['prog-svg3-g0a', 'prog-svg3-g0b'],
+        guidance: 'combine gradient sky with tree, position sun in corner',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'intermediate',
+      },
+      {
+        id: 'prog-svg3-g2',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2c3e50"/><stop offset="100%" stop-color="#3498db"/></linearGradient><radialGradient id="sun" cx="50%" cy="50%"><stop offset="0%" stop-color="#f9ca24"/><stop offset="100%" stop-color="#f0932b"/></radialGradient></defs><rect width="200" height="200" fill="url(#sky)"/><circle cx="155" cy="40" r="22" fill="url(#sun)"/><g transform="translate(100,115)"><path d="M-55,0 C-55,-60 55,-60 55,0" fill="#2ecc71"/><path d="M-35,0 C-35,-42 35,-42 35,0" fill="#27ae60"/><rect x="-5" y="0" width="10" height="30" fill="#8b6914" rx="2"/></g><path d="M-10,170 Q50,155 100,170 T210,170" fill="#27ae60" opacity="0.3"/></svg>`,
+        modality: 'svg',
+        generation: 2,
+        parentIds: ['prog-svg3-g1'],
+        guidance: 'add radial sun gradient, layered canopy, ground line',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'intermediate',
+      },
+    ],
+  },
+
+  // SVG 4: Typographic logo — 2-gen evolution
+  {
+    id: 'shared-svg-4',
+    programId: 'prog-svg4-g1',
+    sharerName: 'type_smith',
+    modality: 'svg',
+    code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="tg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6c5ce7"/>
+      <stop offset="100%" stop-color="#a29bfe"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="#0a0a0a"/>
+  <text x="100" y="112" text-anchor="middle" font-family="sans-serif" font-size="68" font-weight="bold" fill="url(#tg)">SB</text>
+  <line x1="35" y1="135" x2="165" y2="135" stroke="#6c5ce7" stroke-width="2"/>
+  <text x="100" y="155" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#a29bfe" letter-spacing="8">BREEDER</text>
+</svg>`,
+    llmModel: 'Mock',
+    createdAt: '2026-03-18T11:15:00Z',
+    lineage: [
+      {
+        id: 'prog-svg4-g0',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#111"/><text x="100" y="115" text-anchor="middle" font-family="sans-serif" font-size="60" font-weight="bold" fill="#6c5ce7">SB</text></svg>`,
+        modality: 'svg',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a typographic logo with initials',
+        llmModel: 'Mock',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-svg4-g1',
+        code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6c5ce7"/><stop offset="100%" stop-color="#a29bfe"/></linearGradient></defs><rect width="200" height="200" fill="#0a0a0a"/><text x="100" y="112" text-anchor="middle" font-family="sans-serif" font-size="68" font-weight="bold" fill="url(#tg)">SB</text><line x1="35" y1="135" x2="165" y2="135" stroke="#6c5ce7" stroke-width="2"/><text x="100" y="155" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#a29bfe" letter-spacing="8">BREEDER</text></svg>`,
+        modality: 'svg',
+        generation: 1,
+        parentIds: ['prog-svg4-g0'],
+        guidance: 'add gradient fill, subtitle text, and a divider line',
+        llmModel: 'Mock',
+        contextProfile: 'intermediate',
+      },
+    ],
+  },
 ];

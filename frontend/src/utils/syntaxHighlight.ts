@@ -28,6 +28,19 @@ const OPENSCAD_BUILTINS = new Set([
   'sqrt', 'pow', 'exp', 'log', 'ln', 'min', 'max', 'norm', 'cross', 'len', 'concat', 'str',
 ]);
 
+const SVG_KEYWORDS = new Set([
+  'svg', 'g', 'defs', 'symbol', 'use', 'rect', 'circle', 'ellipse', 'line',
+  'polyline', 'polygon', 'path', 'text', 'tspan', 'textPath', 'style',
+  'linearGradient', 'radialGradient', 'stop', 'pattern', 'clipPath', 'mask',
+  'filter', 'animate', 'animateTransform', 'animateMotion', 'set',
+]);
+
+const SVG_BUILTINS = new Set([
+  'viewBox', 'xmlns', 'fill', 'stroke', 'opacity', 'transform', 'id', 'class',
+  'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', 'height', 'd',
+  'stroke-width', 'font-size', 'font-family', 'text-anchor',
+]);
+
 const TOKEN_REGEX = /\/\/.*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b\d*\.?\d+\b|\b[A-Za-z_][A-Za-z0-9_]*\b|[()[\]{}.,;:+\-*/%<>=!&|^~?]/g;
 const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const NUMBER_REGEX = /^\d*\.?\d+$/;
@@ -40,8 +53,8 @@ function escapeHtml(value: string): string {
 }
 
 export function highlightCode(code: string, modality: string): string {
-  const keywordSet = modality === 'shader' ? SHADER_KEYWORDS : modality === 'openscad' ? OPENSCAD_KEYWORDS : STRUDEL_KEYWORDS;
-  const builtinSet = modality === 'shader' ? SHADER_BUILTINS : modality === 'openscad' ? OPENSCAD_BUILTINS : STRUDEL_BUILTINS;
+  const keywordSet = modality === 'shader' ? SHADER_KEYWORDS : modality === 'openscad' ? OPENSCAD_KEYWORDS : modality === 'svg' ? SVG_KEYWORDS : STRUDEL_KEYWORDS;
+  const builtinSet = modality === 'shader' ? SHADER_BUILTINS : modality === 'openscad' ? OPENSCAD_BUILTINS : modality === 'svg' ? SVG_BUILTINS : STRUDEL_BUILTINS;
 
   let result = '';
   let lastIndex = 0;

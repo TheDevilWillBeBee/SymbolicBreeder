@@ -104,7 +104,7 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
                 ↺
               </button>
             </>
-          ) : (
+          ) : program.modality !== 'svg' ? (
             <button
               className={'play-btn' + (isPlaying ? ' active' : '')}
               onClick={(e) => {
@@ -115,7 +115,7 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
             >
               {isPlaying ? '\u23F8' : '\u25B6'}
             </button>
-          )}
+          ) : null}
         </div>
         {onBreed && (
           <button

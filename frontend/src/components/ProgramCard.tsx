@@ -46,7 +46,7 @@ export function ProgramCard({
   const [copied, setCopied] = useState(false);
   const [useManifold, setUseManifold] = useState(true);
 
-  // For visual modalities (shader, openscad), render into canvas container
+  // For visual modalities (shader, openscad, svg), render into container
   useEffect(() => {
     if (!hasVisualRender || !previewRef.current) return;
     handleRef.current?.cleanup();
