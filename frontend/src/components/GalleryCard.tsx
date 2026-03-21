@@ -3,6 +3,7 @@ import { SharedProgram, RenderHandle, LineageProgram } from '../types';
 import { getPlugin } from '../modalityRegistry';
 import { StrudelHighlight } from './StrudelHighlight';
 import { useNavStore } from '../store/navStore';
+import { ManifoldToggle } from './ManifoldToggle';
 
 function summarizeLineageModels(lineage: LineageProgram[]): string {
   const models = new Set(lineage.map((p) => p.llmModel).filter(Boolean));
@@ -28,22 +29,24 @@ interface Props {
 
 export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Props) {
   const isStrudel = program.modality === 'strudel';
+  const isOpenSCAD = program.modality === 'openscad';
   const hasVisualRender = !isStrudel;
   const previewRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
   const [visualPaused, setVisualPaused] = useState(false);
+  const [useManifold, setUseManifold] = useState(true);
 
   useEffect(() => {
     if (!hasVisualRender || !previewRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin(program.modality);
-    handleRef.current = plugin.render(program.code, previewRef.current);
+    handleRef.current = plugin.render(program.code, previewRef.current, { useManifold });
     setVisualPaused(false);
     return () => {
       handleRef.current?.cleanup();
       handleRef.current = null;
     };
-  }, [hasVisualRender, program.code, program.modality]);
+  }, [hasVisualRender, program.code, program.modality, useManifold]);
 
   const handleTogglePause = useCallback(() => {
     if (!handleRef.current) return;
@@ -112,6 +115,7 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
               {isPlaying ? '\u23F8' : '\u25B6'}
             </button>
           )}
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
         {onBreed && (
           <button

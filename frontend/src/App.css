@@ -756,6 +756,24 @@ body.modality-non-strudel .cm-panels {
   cursor: pointer;
 }
 
+.manifold-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.manifold-toggle input[type='checkbox'] {
+  accent-color: #4d9de0;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
 .customized-badge {
   background: var(--accent);
   color: #fff;
@@ -2158,6 +2176,13 @@ body.modality-non-strudel .cm-panels {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.5rem;
+}
+
+.lineage-toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
 }
 
 .lineage-toggle {

@@ -3,6 +3,7 @@ import { Program, RenderHandle } from '../types';
 import { getPlugin } from '../modalityRegistry';
 import { useSessionStore } from '../store/sessionStore';
 import { highlightCode } from '../utils/syntaxHighlight';
+import { ManifoldToggle } from './ManifoldToggle';
 
 interface Props {
   program: Program;
@@ -17,6 +18,8 @@ export function CustomizeModal({ program, onClose }: Props) {
   const initialCode = customizedPrograms[program.id] ?? program.code;
   const [code, setCode] = useState(initialCode);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [useManifold, setUseManifold] = useState(true);
+  const isOpenSCAD = (modality ?? program.modality) === 'openscad';
 
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewHandleRef = useRef<RenderHandle | null>(null);
@@ -56,8 +59,8 @@ export function CustomizeModal({ program, onClose }: Props) {
 
     setPreviewError(null);
     previewHandleRef.current?.cleanup();
-    previewHandleRef.current = plugin.previewInModal(code, previewContainerRef.current);
-  }, [code, plugin]);
+    previewHandleRef.current = plugin.previewInModal(code, previewContainerRef.current, { useManifold });
+  }, [code, plugin, useManifold]);
 
   const handleUseAsParent = useCallback(() => {
     setCustomizedCode(program.id, code);
@@ -97,6 +100,7 @@ export function CustomizeModal({ program, onClose }: Props) {
         <div className="customize-header">
           <h3>Customize Program</h3>
           <div className="customize-header-actions">
+            {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
             <button className="preview-btn" onClick={handlePreview} title="Run and preview the edited code">
               ▶ Preview
             </button>

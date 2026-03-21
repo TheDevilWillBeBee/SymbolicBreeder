@@ -3,6 +3,7 @@ import { Program, RenderHandle } from '../types';
 import { useSessionStore } from '../store/sessionStore';
 import { getPlugin } from '../modalityRegistry';
 import { StrudelHighlight } from './StrudelHighlight';
+import { ManifoldToggle } from './ManifoldToggle';
 
 interface Props {
   program: Program;
@@ -31,6 +32,7 @@ export function ProgramCard({
   const isSelected = selectedProgramIds.has(program.id);
   const isStrudel = modality === 'strudel';
   const isShader = modality === 'shader';
+  const isOpenSCAD = modality === 'openscad';
   const hasVisualRender = !isStrudel;
 
   // Use customized code if available
@@ -42,19 +44,20 @@ export function ProgramCard({
 
   const [visualPaused, setVisualPaused] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [useManifold, setUseManifold] = useState(true);
 
   // For visual modalities (shader, openscad), render into canvas container
   useEffect(() => {
     if (!hasVisualRender || !previewRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin(modality!);
-    handleRef.current = plugin.render(displayCode, previewRef.current);
+    handleRef.current = plugin.render(displayCode, previewRef.current, { useManifold });
     setVisualPaused(false);
     return () => {
       handleRef.current?.cleanup();
       handleRef.current = null;
     };
-  }, [hasVisualRender, displayCode, modality]);
+  }, [hasVisualRender, displayCode, modality, useManifold]);
 
   const handleTogglePause = useCallback(() => {
     if (!handleRef.current) return;
@@ -153,6 +156,7 @@ export function ProgramCard({
             />
             Select
           </label>
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
           {isCustomized && <span className="customized-badge">edited</span>}
         </div>
         <div className="program-card-right">

@@ -1,4 +1,4 @@
-import type { ModalityPlugin, RenderHandle } from '../../types';
+import type { ModalityPlugin, RenderHandle, RenderOptions } from '../../types';
 
 /**
  * OpenSCAD modality plugin.
@@ -39,7 +39,7 @@ async function ensureThree(): Promise<void> {
 
 const stlCache = new Map<string, string>();
 
-function compileInWorker(code: string): Promise<string> {
+function compileInWorker(code: string, useManifold: boolean): Promise<string> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(
       new URL('./compiler.worker.ts', import.meta.url),
@@ -54,15 +54,20 @@ function compileInWorker(code: string): Promise<string> {
       worker.terminate();
       reject(new Error(e.message || 'Worker error'));
     };
-    worker.postMessage({ code });
+    worker.postMessage({ code, useManifold });
   });
 }
 
-async function compileToSTL(code: string): Promise<string> {
-  const cached = stlCache.get(code);
+function stlCacheKey(code: string, useManifold: boolean): string {
+  return useManifold ? code : `__no_manifold__${code}`;
+}
+
+async function compileToSTL(code: string, useManifold = true): Promise<string> {
+  const key = stlCacheKey(code, useManifold);
+  const cached = stlCache.get(key);
   if (cached) return cached;
-  const stl = await compileInWorker(code);
-  stlCache.set(code, stl);
+  const stl = await compileInWorker(code, useManifold);
+  stlCache.set(key, stl);
   return stl;
 }
 
@@ -245,7 +250,7 @@ function showError(container: HTMLElement, error: string): void {
 
 // ── Render orchestrator ──
 
-function renderOpenSCAD(code: string, container: HTMLElement): RenderHandle {
+function renderOpenSCAD(code: string, container: HTMLElement, options?: RenderOptions): RenderHandle {
   container.innerHTML = '';
   showLoading(container);
 
@@ -255,7 +260,7 @@ function renderOpenSCAD(code: string, container: HTMLElement): RenderHandle {
   (async () => {
     try {
       await ensureThree();
-      const stl = await compileToSTL(code);
+      const stl = await compileToSTL(code, options?.useManifold ?? true);
       if (cancelled) return;
       container.innerHTML = '';
       innerHandle = buildScene(container, stl);
@@ -346,12 +351,12 @@ export const openscadPlugin: ModalityPlugin = {
   language: 'c',
   description: 'Parametric 3D models — evolve sculptures, mechanisms, and mathematical forms',
 
-  render(code: string, container: HTMLElement): RenderHandle {
-    return renderOpenSCAD(code, container);
+  render(code: string, container: HTMLElement, options?: RenderOptions): RenderHandle {
+    return renderOpenSCAD(code, container, options);
   },
 
-  previewInModal(code: string, container: HTMLElement): RenderHandle {
-    return renderOpenSCAD(code, container);
+  previewInModal(code: string, container: HTMLElement, options?: RenderOptions): RenderHandle {
+    return renderOpenSCAD(code, container, options);
   },
 
   renderSnapshot(code: string, width: number, height: number): HTMLCanvasElement | null {

@@ -7,6 +7,7 @@ import { getPlugin } from '../modalityRegistry';
 import { StrudelHighlight } from './StrudelHighlight';
 import { highlightCode } from '../utils/syntaxHighlight';
 import { LineageProgram, RenderHandle } from '../types';
+import { ManifoldToggle } from './ManifoldToggle';
 
 // ── Layered DAG building ──
 
@@ -116,8 +117,10 @@ function LineageCard({
   const liveRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
   const [paused, setPaused] = useState(false);
+  const [useManifold, setUseManifold] = useState(true);
 
   const isStrudel = program.modality === 'strudel';
+  const isOpenSCAD = program.modality === 'openscad';
   const hasVisualRender = !isStrudel;
 
   // Render a single-frame snapshot for visual modalities (when not playing live)
@@ -170,10 +173,10 @@ function LineageCard({
     if (!hasVisualRender || !isPlayingVisual || !liveRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin(program.modality);
-    handleRef.current = plugin.render(program.code, liveRef.current);
+    handleRef.current = plugin.render(program.code, liveRef.current, { useManifold });
     setPaused(false);
     return () => { handleRef.current?.cleanup(); handleRef.current = null; };
-  }, [hasVisualRender, isPlayingVisual, program.code, program.modality]);
+  }, [hasVisualRender, isPlayingVisual, program.code, program.modality, useManifold]);
 
   const handleToggle = () => {
     if (!handleRef.current) return;
@@ -201,6 +204,7 @@ function LineageCard({
       )}
       <div className="lineage-card-controls">
         <div className="lineage-card-controls-left">
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
           {hasVisualRender ? (
             isPlayingVisual ? (
               <>
@@ -433,6 +437,7 @@ export function ProgramDetailPage() {
 
   const isShader = program?.modality === 'shader';
   const isStrudel = program?.modality === 'strudel';
+  const isOpenSCAD = program?.modality === 'openscad';
   const hasVisualRender = !isStrudel && !!program;
   const { play, stop } = useStrudelPlayer(isStrudel);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -441,6 +446,7 @@ export function ProgramDetailPage() {
   const mainHandleRef = useRef<RenderHandle | null>(null);
   const mainPreviewRef = useRef<HTMLDivElement | null>(null);
   const [mainPaused, setMainPaused] = useState(false);
+  const [useManifold, setUseManifold] = useState(true);
   const prevCodeRef = useRef<string | null>(null);
 
   const mainRefCallback = useCallback((node: HTMLDivElement | null) => {
@@ -448,23 +454,26 @@ export function ProgramDetailPage() {
     if (node && hasVisualRender && program) {
       mainHandleRef.current?.cleanup();
       const plugin = getPlugin(program.modality);
-      mainHandleRef.current = plugin.render(program.code, node);
+      mainHandleRef.current = plugin.render(program.code, node, { useManifold });
       prevCodeRef.current = program.code;
       setMainPaused(false);
     }
-  }, [hasVisualRender, program]);
+  }, [hasVisualRender, program, useManifold]);
 
   // Re-render if code changes while div already exists
+  const prevManifoldRef = useRef(true);
+
   useEffect(() => {
     if (!hasVisualRender || !mainPreviewRef.current || !program) return;
-    if (prevCodeRef.current === program.code) return;
+    if (prevCodeRef.current === program.code && prevManifoldRef.current === useManifold) return;
     mainHandleRef.current?.cleanup();
     const plugin = getPlugin(program.modality);
-    mainHandleRef.current = plugin.render(program.code, mainPreviewRef.current);
+    mainHandleRef.current = plugin.render(program.code, mainPreviewRef.current, { useManifold });
     prevCodeRef.current = program.code;
+    prevManifoldRef.current = useManifold;
     setMainPaused(false);
     return () => { mainHandleRef.current?.cleanup(); mainHandleRef.current = null; };
-  }, [hasVisualRender, program?.code, program?.modality]);
+  }, [hasVisualRender, program?.code, program?.modality, useManifold]);
 
   const handlePlay = useCallback(() => {
     if (!program || isShader) return;
@@ -584,6 +593,7 @@ export function ProgramDetailPage() {
                 </button>
               )}
             </div>
+            {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
             <button className="breed-btn breed-btn-lg" onClick={handleBreed} title="Start a new breeding session using this program as seed">
               Breed from this
             </button>
@@ -622,14 +632,17 @@ export function ProgramDetailPage() {
                 Evolution tree showing how this program was bred
               </p>
             </div>
-            <label className="lineage-toggle">
-              <input
-                type="checkbox"
-                checked={showEdgeLabels}
-                onChange={(e) => setShowEdgeLabels(e.target.checked)}
-              />
-              <span>Show evolution details</span>
-            </label>
+            <div className="lineage-toggles">
+              {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
+              <label className="lineage-toggle">
+                <input
+                  type="checkbox"
+                  checked={showEdgeLabels}
+                  onChange={(e) => setShowEdgeLabels(e.target.checked)}
+                />
+                <span>Show evolution details</span>
+              </label>
+            </div>
           </div>
           <div className="lineage-tree">
             <LayeredTreeView
