@@ -100,7 +100,6 @@ export function CustomizeModal({ program, onClose }: Props) {
         <div className="customize-header">
           <h3>Customize Program</h3>
           <div className="customize-header-actions">
-            {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
             <button className="preview-btn" onClick={handlePreview} title="Run and preview the edited code">
               ▶ Preview
             </button>
@@ -145,13 +144,16 @@ export function CustomizeModal({ program, onClose }: Props) {
             {previewError && (
               <div className="preview-error">{previewError}</div>
             )}
-            <div
-              className="preview-container"
-              ref={previewContainerRef}
-            >
-              <div className="preview-placeholder">
-                Press ▶ Preview to see your changes
+            <div className="preview-container-wrapper">
+              <div
+                className="preview-container"
+                ref={previewContainerRef}
+              >
+                <div className="preview-placeholder">
+                  Press ▶ Preview to see your changes
+                </div>
               </div>
+              {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
             </div>
           </div>
         </div>

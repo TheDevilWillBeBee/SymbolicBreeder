@@ -104,11 +104,13 @@ export function ProgramCard({
     >
       {/* Preview area */}
       {hasVisualRender ? (
-        <div
-          className={'program-card-preview ' + modality + '-preview'}
-          ref={previewRef}
-          onClick={() => toggleProgramSelection(program.id)}
-        />
+        <div className="program-card-preview-wrapper" onClick={() => toggleProgramSelection(program.id)}>
+          <div
+            className={'program-card-preview ' + modality + '-preview'}
+            ref={previewRef}
+          />
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
+        </div>
       ) : (
         <div
           className="program-card-preview strudel-preview"
@@ -156,7 +158,6 @@ export function ProgramCard({
             />
             Select
           </label>
-          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
           {isCustomized && <span className="customized-badge">edited</span>}
         </div>
         <div className="program-card-right">

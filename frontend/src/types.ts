@@ -121,4 +121,10 @@ export interface ModalityPlugin {
    * Uses preserveDrawingBuffer: true so the result is readable.
    */
   renderSnapshot?(code: string, width: number, height: number): HTMLCanvasElement | null;
+
+  /**
+   * Pre-compile/prepare the code so that renderSnapshot can produce a result.
+   * Returns a promise that resolves when compilation is done.
+   */
+  ensureCompiled?(code: string): Promise<void>;
 }

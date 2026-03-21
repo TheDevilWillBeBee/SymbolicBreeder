@@ -15,7 +15,7 @@ export function ManifoldToggle({ checked, onChange }: Props) {
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
-      <span>Manifold</span>
+      <span>Fast Mode</span>
     </label>
   );
 }

@@ -128,8 +128,10 @@ function LineageCard({
     if (!hasVisualRender || !canvasRef.current || isPlayingVisual) return;
     const canvas = canvasRef.current;
     const plugin = getPlugin(program.modality);
+    let cancelled = false;
 
-    if (plugin.renderSnapshot) {
+    const renderSnapshot = () => {
+      if (cancelled || !plugin.renderSnapshot) return;
       const srcCanvas = plugin.renderSnapshot(program.code, 160, 160);
       if (srcCanvas) {
         canvas.width = srcCanvas.width;
@@ -137,7 +139,26 @@ function LineageCard({
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(srcCanvas, 0, 0);
       }
-      return;
+    };
+
+    // Try synchronously first (works if already compiled/cached)
+    if (plugin.renderSnapshot) {
+      const srcCanvas = plugin.renderSnapshot(program.code, 160, 160);
+      if (srcCanvas) {
+        canvas.width = srcCanvas.width;
+        canvas.height = srcCanvas.height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(srcCanvas, 0, 0);
+        return;
+      }
+    }
+
+    // If plugin supports async pre-compilation, use it then snapshot
+    if (plugin.ensureCompiled) {
+      plugin.ensureCompiled(program.code).then(() => {
+        if (!cancelled) renderSnapshot();
+      });
+      return () => { cancelled = true; };
     }
 
     // Fallback: off-screen render
@@ -195,6 +216,7 @@ function LineageCard({
           ) : (
             <canvas className="lineage-card-snapshot" ref={canvasRef} />
           )}
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
       ) : (
         <div className="lineage-card-preview strudel-preview">
@@ -204,7 +226,6 @@ function LineageCard({
       )}
       <div className="lineage-card-controls">
         <div className="lineage-card-controls-left">
-          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
           {hasVisualRender ? (
             isPlayingVisual ? (
               <>
@@ -557,7 +578,10 @@ export function ProgramDetailPage() {
       <div className="detail-main">
         <div className="detail-main-card">
           {hasVisualRender ? (
-            <div className={'detail-preview ' + program.modality + '-preview'} ref={mainRefCallback} />
+            <div className="detail-preview-wrapper">
+              <div className={'detail-preview ' + program.modality + '-preview'} ref={mainRefCallback} />
+              {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
+            </div>
           ) : (
             <div className="detail-preview strudel-preview">
               <StrudelHighlight code={program.code} />
@@ -593,7 +617,6 @@ export function ProgramDetailPage() {
                 </button>
               )}
             </div>
-            {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
             <button className="breed-btn breed-btn-lg" onClick={handleBreed} title="Start a new breeding session using this program as seed">
               Breed from this
             </button>
@@ -632,17 +655,14 @@ export function ProgramDetailPage() {
                 Evolution tree showing how this program was bred
               </p>
             </div>
-            <div className="lineage-toggles">
-              {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
-              <label className="lineage-toggle">
-                <input
-                  type="checkbox"
-                  checked={showEdgeLabels}
-                  onChange={(e) => setShowEdgeLabels(e.target.checked)}
-                />
-                <span>Show evolution details</span>
-              </label>
-            </div>
+            <label className="lineage-toggle">
+              <input
+                type="checkbox"
+                checked={showEdgeLabels}
+                onChange={(e) => setShowEdgeLabels(e.target.checked)}
+              />
+              <span>Show evolution details</span>
+            </label>
           </div>
           <div className="lineage-tree">
             <LayeredTreeView

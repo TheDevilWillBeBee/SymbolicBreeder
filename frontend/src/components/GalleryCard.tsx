@@ -75,6 +75,7 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
       {hasVisualRender ? (
         <div className="gallery-card-preview-wrapper" onClick={handleCardClick}>
           <div className={'gallery-card-preview ' + program.modality + '-preview'} ref={previewRef} />
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
       ) : (
         <div className="gallery-card-preview strudel-preview" onClick={handleCardClick}>
@@ -115,7 +116,6 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
               {isPlaying ? '\u23F8' : '\u25B6'}
             </button>
           )}
-          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
         {onBreed && (
           <button

@@ -363,6 +363,11 @@ export const openscadPlugin: ModalityPlugin = {
     return renderSnapshotCanvas(code, width, height);
   },
 
+  async ensureCompiled(code: string): Promise<void> {
+    await ensureThree();
+    await compileToSTL(code, true);
+  },
+
   validate(code: string): string | null {
     if (!code.trim()) return 'Code cannot be empty';
     const hasShape =
