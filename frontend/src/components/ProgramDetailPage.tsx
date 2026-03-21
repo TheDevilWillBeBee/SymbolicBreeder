@@ -123,7 +123,8 @@ function LineageCard({
 
   const isStrudel = program.modality === 'strudel';
   const isOpenSCAD = program.modality === 'openscad';
-  const hasVisualRender = !isStrudel;
+  const isSvg = program.modality === 'svg';
+  const hasVisualRender = !isStrudel && !isSvg;
 
   // For visual modalities: render snapshot or live preview in lineage cards
   // Shaders use snapshot -> live toggle; SVG renders directly
