@@ -3,6 +3,7 @@ import { SharedProgram, RenderHandle, LineageProgram } from '../types';
 import { getPlugin } from '../modalityRegistry';
 import { StrudelHighlight } from './StrudelHighlight';
 import { useNavStore } from '../store/navStore';
+import { ManifoldToggle } from './ManifoldToggle';
 
 function summarizeLineageModels(lineage: LineageProgram[]): string {
   const models = new Set(lineage.map((p) => p.llmModel).filter(Boolean));
@@ -27,38 +28,40 @@ interface Props {
 }
 
 export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Props) {
-  const isShader = program.modality === 'shader';
-  const isVisual = program.modality === 'shader' || program.modality === 'svg';
+  const isStrudel = program.modality === 'strudel';
+  const isOpenSCAD = program.modality === 'openscad';
+  const hasVisualRender = !isStrudel;
   const previewRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
-  const [shaderPaused, setShaderPaused] = useState(false);
+  const [visualPaused, setVisualPaused] = useState(false);
+  const [useManifold, setUseManifold] = useState(true);
 
   useEffect(() => {
-    if (!isVisual || !previewRef.current) return;
+    if (!hasVisualRender || !previewRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin(program.modality);
-    handleRef.current = plugin.render(program.code, previewRef.current);
-    setShaderPaused(false);
+    handleRef.current = plugin.render(program.code, previewRef.current, { useManifold });
+    setVisualPaused(false);
     return () => {
       handleRef.current?.cleanup();
       handleRef.current = null;
     };
-  }, [isVisual, program.code, program.modality]);
+  }, [hasVisualRender, program.code, program.modality, useManifold]);
 
-  const handleToggleShader = useCallback(() => {
+  const handleTogglePause = useCallback(() => {
     if (!handleRef.current) return;
-    if (shaderPaused) {
+    if (visualPaused) {
       handleRef.current.resume?.();
-      setShaderPaused(false);
+      setVisualPaused(false);
     } else {
       handleRef.current.pause?.();
-      setShaderPaused(true);
+      setVisualPaused(true);
     }
-  }, [shaderPaused]);
+  }, [visualPaused]);
 
   const handleReset = useCallback(() => {
     handleRef.current?.reset?.();
-    setShaderPaused(false);
+    setVisualPaused(false);
   }, []);
 
   const goToDetail = useNavStore((s) => s.goToDetail);
@@ -69,9 +72,10 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
 
   return (
     <div className={'gallery-card' + (isPlaying ? ' playing' : '')}>
-      {isVisual ? (
+      {hasVisualRender ? (
         <div className="gallery-card-preview-wrapper" onClick={handleCardClick}>
-          <div className={`gallery-card-preview ${program.modality}-preview`} ref={previewRef} />
+          <div className={'gallery-card-preview ' + program.modality + '-preview'} ref={previewRef} />
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
       ) : (
         <div className="gallery-card-preview strudel-preview" onClick={handleCardClick}>
@@ -83,19 +87,19 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
       {/* Controls row: play/pause+reset left, breed right */}
       <div className="gallery-card-controls">
         <div className="gallery-card-controls-left">
-          {isShader ? (
+          {hasVisualRender ? (
             <>
               <button
-                className={'play-btn' + (shaderPaused ? '' : ' active')}
-                onClick={(e) => { e.stopPropagation(); handleToggleShader(); }}
-                title={shaderPaused ? 'Resume shader animation' : 'Pause shader animation'}
+                className={'play-btn' + (visualPaused ? '' : ' active')}
+                onClick={(e) => { e.stopPropagation(); handleTogglePause(); }}
+                title={visualPaused ? 'Resume' : 'Pause'}
               >
-                {shaderPaused ? '\u25B6' : '\u23F8'}
+                {visualPaused ? '\u25B6' : '\u23F8'}
               </button>
               <button
                 className="reset-btn"
                 onClick={(e) => { e.stopPropagation(); handleReset(); }}
-                title="Reset shader to initial state"
+                title="Reset to initial state"
               >
                 ↺
               </button>

@@ -617,6 +617,168 @@ $: note("<e1 b1 c2 d2>").s("triangle").lpf(300).gain(0.7)._pianoroll()`,
     ],
   },
 
+  // ── OpenSCAD programs ──
+
+  // OpenSCAD 1: Simple 2-gen — crystal cluster evolved into a garden
+  {
+    id: 'shared-openscad-1',
+    programId: 'prog-o1-final',
+    sharerName: 'cad_sculptor',
+    modality: 'openscad',
+    code: `$fn = 48;
+// Crystal garden on a pedestal
+color("DarkSlateGray") cylinder(h=2, r=25, center=true);
+
+for (i = [0:11]) {
+    a = i * 137.508;
+    r = 3 + i * 1.5;
+    h = 8 + (i % 5) * 6;
+    translate([r * cos(a), r * sin(a), 1])
+      color([0.5 + i*0.04, 0.7, 1 - i*0.03])
+        cylinder(h=h, r1=2.5 - i*0.1, r2=0.3, $fn=6);
+}
+
+color("Gold") translate([0, 0, 1])
+  sphere(r=4);`,
+    llmModel: 'Mock',
+    createdAt: '2026-03-16T11:00:00Z',
+    lineage: [
+      {
+        id: 'prog-o1-g0',
+        code: `$fn = 6;
+for (i = [0:8]) {
+    a = i * 137.508;
+    r = 3 + i * 1.2;
+    h = 8 + (i % 4) * 5;
+    translate([r * cos(a), r * sin(a), 0])
+      color([0.6 + i*0.04, 0.8, 1])
+        cylinder(h=h, r1=2.5, r2=0.5);
+}`,
+        modality: 'openscad',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a crystal cluster',
+        llmModel: 'Mock',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-o1-final',
+        code: `$fn = 48;
+color("DarkSlateGray") cylinder(h=2, r=25, center=true);
+
+for (i = [0:11]) {
+    a = i * 137.508;
+    r = 3 + i * 1.5;
+    h = 8 + (i % 5) * 6;
+    translate([r * cos(a), r * sin(a), 1])
+      color([0.5 + i*0.04, 0.7, 1 - i*0.03])
+        cylinder(h=h, r1=2.5 - i*0.1, r2=0.3, $fn=6);
+}
+
+color("Gold") translate([0, 0, 1])
+  sphere(r=4);`,
+        modality: 'openscad',
+        generation: 1,
+        parentIds: ['prog-o1-g0'],
+        guidance: 'add a pedestal and golden centerpiece, refine the growth pattern',
+        llmModel: 'Mock',
+        contextProfile: 'intermediate',
+      },
+    ],
+  },
+
+  // OpenSCAD 2: Architectural arch evolved from a simple column
+  {
+    id: 'shared-openscad-2',
+    programId: 'prog-o2-final',
+    sharerName: 'arch_dreamer',
+    modality: 'openscad',
+    code: `$fn = 48;
+
+// Base platform
+color("DarkSlateGray") cube([40, 10, 3], center=true);
+
+// Twin columns
+for (x = [-14, 14]) {
+    translate([x, 0, 3])
+      color("White") cylinder(h=30, r=2.5);
+    translate([x, 0, 33])
+      color("Gold") cylinder(h=2, r1=2.5, r2=3.5);
+}
+
+// Arch
+color("Coral")
+  translate([0, 0, 35])
+    rotate([90, 0, 0])
+      difference() {
+          cylinder(h=10, r=16, center=true);
+          cylinder(h=12, r=13, center=true);
+          translate([0, -20, 0]) cube([40, 40, 14], center=true);
+      }`,
+    llmModel: 'Several models',
+    createdAt: '2026-03-15T16:20:00Z',
+    lineage: [
+      {
+        id: 'prog-o2-g0a',
+        code: `$fn = 48;
+color("White") cylinder(h=25, r=3);
+color("Gold") translate([0, 0, 25])
+  cylinder(h=2, r1=3, r2=5);`,
+        modality: 'openscad',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a classical column',
+        llmModel: 'openai/gpt-4o',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-o2-g0b',
+        code: `$fn = 48;
+color("Coral")
+  rotate([90, 0, 0])
+    difference() {
+        cylinder(h=4, r=12);
+        cylinder(h=6, r=9, center=true);
+        translate([0, -15, 0]) cube([30, 30, 8], center=true);
+    }`,
+        modality: 'openscad',
+        generation: 0,
+        parentIds: [],
+        guidance: 'create a classical column',
+        llmModel: 'openai/gpt-4o',
+        contextProfile: 'simple',
+      },
+      {
+        id: 'prog-o2-final',
+        code: `$fn = 48;
+
+color("DarkSlateGray") cube([40, 10, 3], center=true);
+
+for (x = [-14, 14]) {
+    translate([x, 0, 3])
+      color("White") cylinder(h=30, r=2.5);
+    translate([x, 0, 33])
+      color("Gold") cylinder(h=2, r1=2.5, r2=3.5);
+}
+
+color("Coral")
+  translate([0, 0, 35])
+    rotate([90, 0, 0])
+      difference() {
+          cylinder(h=10, r=16, center=true);
+          cylinder(h=12, r=13, center=true);
+          translate([0, -20, 0]) cube([40, 40, 14], center=true);
+      }`,
+        modality: 'openscad',
+        generation: 1,
+        parentIds: ['prog-o2-g0a', 'prog-o2-g0b'],
+        guidance: 'combine column and arch into a full architectural element with a base',
+        llmModel: 'anthropic/claude-sonnet-4-20250514',
+        contextProfile: 'intermediate',
+      },
+    ],
+  },
+
   // Strudel 4: Simple 2-gen with guidance on Gen 0
   {
     id: 'shared-strudel-4',

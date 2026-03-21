@@ -150,6 +150,14 @@ curl -s -X POST http://localhost:8000/api/sessions \
 
 You should see a JSON response with a `session` object and a `programs` array containing six shader programs.
 
+You can also test the OpenSCAD modality:
+
+```bash
+curl -s -X POST http://localhost:8000/api/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"modality": "openscad", "name": "test-3d"}' | python -m json.tool
+```
+
 ---
 
 ## Local Testing Checklist

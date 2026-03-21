@@ -7,6 +7,7 @@ import { getPlugin } from '../modalityRegistry';
 import { StrudelHighlight } from './StrudelHighlight';
 import { highlightCode } from '../utils/syntaxHighlight';
 import { LineageProgram, RenderHandle } from '../types';
+import { ManifoldToggle } from './ManifoldToggle';
 
 // ── Layered DAG building ──
 
@@ -99,9 +100,9 @@ function LineageCard({
   onPlayStrudel,
   isPlayingStrudel,
   onStopStrudel,
-  isPlayingShader,
-  onPlayShader,
-  onStopShader,
+  isPlayingVisual,
+  onPlayVisual,
+  onStopVisual,
 }: {
   program: LineageProgram;
   isShader: boolean;
@@ -110,26 +111,34 @@ function LineageCard({
   onPlayStrudel?: (code: string) => void;
   isPlayingStrudel?: boolean;
   onStopStrudel?: () => void;
-  isPlayingShader?: boolean;
-  onPlayShader?: (id: string) => void;
-  onStopShader?: () => void;
+  isPlayingVisual?: boolean;
+  onPlayVisual?: (id: string) => void;
+  onStopVisual?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const liveRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<RenderHandle | null>(null);
   const [paused, setPaused] = useState(false);
+  const [useManifold, setUseManifold] = useState(true);
+
+  const isStrudel = program.modality === 'strudel';
+  const isOpenSCAD = program.modality === 'openscad';
+  const isSvg = program.modality === 'svg';
+  const hasVisualRender = !isStrudel && !isSvg;
 
   // For visual modalities: render snapshot or live preview in lineage cards
-  // Shaders use snapshot → live toggle; SVG renders directly
+  // Shaders use snapshot -> live toggle; SVG renders directly
   const svgPreviewRef = useRef<HTMLDivElement>(null);
 
-  // Render a single-frame snapshot for shaders
+  // Render a single-frame snapshot for visual modalities (when not playing live)
   useEffect(() => {
-    if (!isShader || !canvasRef.current || isPlayingShader) return;
+    if (!hasVisualRender || !canvasRef.current || isPlayingVisual) return;
     const canvas = canvasRef.current;
-    const plugin = getPlugin('shader');
+    const plugin = getPlugin(program.modality);
+    let cancelled = false;
 
-    if (plugin.renderSnapshot) {
+    const renderSnapshot = () => {
+      if (cancelled || !plugin.renderSnapshot) return;
       const srcCanvas = plugin.renderSnapshot(program.code, 160, 160);
       if (srcCanvas) {
         canvas.width = srcCanvas.width;
@@ -137,7 +146,26 @@ function LineageCard({
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(srcCanvas, 0, 0);
       }
-      return;
+    };
+
+    // Try synchronously first (works if already compiled/cached)
+    if (plugin.renderSnapshot) {
+      const srcCanvas = plugin.renderSnapshot(program.code, 160, 160);
+      if (srcCanvas) {
+        canvas.width = srcCanvas.width;
+        canvas.height = srcCanvas.height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(srcCanvas, 0, 0);
+        return;
+      }
+    }
+
+    // If plugin supports async pre-compilation, use it then snapshot
+    if (plugin.ensureCompiled) {
+      plugin.ensureCompiled(program.code).then(() => {
+        if (!cancelled) renderSnapshot();
+      });
+      return () => { cancelled = true; };
     }
 
     // Fallback: off-screen render
@@ -159,14 +187,14 @@ function LineageCard({
       }
       handle.cleanup();
       document.body.removeChild(container);
-    }, 200);
+    }, 2000);
 
     return () => {
       clearTimeout(timer);
       handle.cleanup();
       if (container.parentNode) document.body.removeChild(container);
     };
-  }, [isShader, program.code, isPlayingShader]);
+  }, [hasVisualRender, program.code, program.modality, isPlayingVisual]);
 
   // SVG inline preview
   useEffect(() => {
@@ -176,15 +204,15 @@ function LineageCard({
     return () => { handle.cleanup(); };
   }, [program.modality, program.code]);
 
-  // Live WebGL context when playing (shader only)
+  // Live WebGL/Three.js context when playing
   useEffect(() => {
-    if (!isShader || !isPlayingShader || !liveRef.current) return;
+    if (!hasVisualRender || !isPlayingVisual || !liveRef.current) return;
     handleRef.current?.cleanup();
-    const plugin = getPlugin('shader');
-    handleRef.current = plugin.render(program.code, liveRef.current);
+    const plugin = getPlugin(program.modality);
+    handleRef.current = plugin.render(program.code, liveRef.current, { useManifold });
     setPaused(false);
     return () => { handleRef.current?.cleanup(); handleRef.current = null; };
-  }, [isShader, isPlayingShader, program.code]);
+  }, [hasVisualRender, isPlayingVisual, program.code, program.modality, useManifold]);
 
   const handleToggle = () => {
     if (!handleRef.current) return;
@@ -196,13 +224,14 @@ function LineageCard({
 
   return (
     <div className="lineage-card">
-      {isShader ? (
+      {hasVisualRender ? (
         <div className="lineage-card-preview-wrapper">
-          {isPlayingShader ? (
-            <div className="lineage-card-preview shader-preview" ref={liveRef} />
+          {isPlayingVisual ? (
+            <div className={'lineage-card-preview ' + program.modality + '-preview'} ref={liveRef} />
           ) : (
             <canvas className="lineage-card-snapshot" ref={canvasRef} />
           )}
+          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
       ) : program.modality === 'svg' ? (
         <div className="lineage-card-preview-wrapper">
@@ -216,32 +245,32 @@ function LineageCard({
       )}
       <div className="lineage-card-controls">
         <div className="lineage-card-controls-left">
-          {isShader ? (
-            isPlayingShader ? (
+          {hasVisualRender ? (
+            isPlayingVisual ? (
               <>
                 <button
                   className={'play-btn play-btn-sm' + (paused ? '' : ' active')}
                   onClick={handleToggle}
-                  title={paused ? 'Resume shader' : 'Pause shader'}
+                  title={paused ? 'Resume' : 'Pause'}
                 >
                   {paused ? '\u25B6' : '\u23F8'}
                 </button>
                 <button
                   className="reset-btn reset-btn-sm"
                   onClick={handleReset}
-                  title="Reset shader"
+                  title="Reset"
                 >↺</button>
                 <button
                   className="play-btn play-btn-sm"
-                  onClick={() => onStopShader?.()}
-                  title="Stop live shader"
+                  onClick={() => onStopVisual?.()}
+                  title="Stop live preview"
                 >&#x25A0;</button>
               </>
             ) : (
               <button
                 className="play-btn play-btn-sm"
-                onClick={() => onPlayShader?.(program.id)}
-                title="Play shader live"
+                onClick={() => onPlayVisual?.(program.id)}
+                title="Play live preview"
               >{'\u25B6'}</button>
             )
           ) : !isVisual ? (
@@ -303,9 +332,9 @@ function LayeredTreeView({
   onPlayStrudel,
   playingCode,
   onStopStrudel,
-  playingShaderId,
-  onPlayShader,
-  onStopShader,
+  playingVisualId,
+  onPlayVisual,
+  onStopVisual,
 }: {
   dag: LayeredDAG;
   isShader: boolean;
@@ -315,9 +344,9 @@ function LayeredTreeView({
   onPlayStrudel?: (code: string) => void;
   playingCode?: string | null;
   onStopStrudel?: () => void;
-  playingShaderId?: string | null;
-  onPlayShader?: (id: string) => void;
-  onStopShader?: () => void;
+  playingVisualId?: string | null;
+  onPlayVisual?: (id: string) => void;
+  onStopVisual?: () => void;
 }) {
   return (
     <div className="layered-tree">
@@ -335,9 +364,9 @@ function LayeredTreeView({
                 onPlayStrudel={onPlayStrudel}
                 isPlayingStrudel={playingCode === p.code}
                 onStopStrudel={onStopStrudel}
-                isPlayingShader={playingShaderId === p.id}
-                onPlayShader={onPlayShader}
-                onStopShader={onStopShader}
+                isPlayingVisual={playingVisualId === p.id}
+                onPlayVisual={onPlayVisual}
+                onStopVisual={onStopVisual}
               />
             ))}
           </div>
@@ -434,15 +463,15 @@ export function ProgramDetailPage() {
 
   const [codeModalProgram, setCodeModalProgram] = useState<LineageProgram | null>(null);
   const [playingCode, setPlayingCode] = useState<string | null>(null);
-  const [playingShaderId, setPlayingShaderId] = useState<string | null>(null);
+  const [playingVisualId, setPlayingVisualId] = useState<string | null>(null);
   const [showEdgeLabels, setShowEdgeLabels] = useState(true);
 
-  const handlePlayShader = useCallback((id: string) => {
-    setPlayingShaderId(id);
+  const handlePlayVisual = useCallback((id: string) => {
+    setPlayingVisualId(id);
   }, []);
 
-  const handleStopShader = useCallback(() => {
-    setPlayingShaderId(null);
+  const handleStopVisual = useCallback(() => {
+    setPlayingVisualId(null);
   }, []);
 
   useEffect(() => {
@@ -450,38 +479,45 @@ export function ProgramDetailPage() {
   }, [detailId]);
 
   const isShader = program?.modality === 'shader';
-  const isVisual = program?.modality === 'shader' || program?.modality === 'svg';
-  const { play, stop } = useStrudelPlayer(program?.modality === 'strudel');
+  const isStrudel = program?.modality === 'strudel';
+  const isOpenSCAD = program?.modality === 'openscad';
+  const isVisual = program?.modality === 'shader' || program?.modality === 'svg' || program?.modality === 'openscad';
+  const hasVisualRender = !isStrudel && !!program;
+  const { play, stop } = useStrudelPlayer(isStrudel);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Main preview — use callback ref so shader renders even when div appears after fetch
+  // Main preview — use callback ref so visual modality renders even when div appears after fetch
   const mainHandleRef = useRef<RenderHandle | null>(null);
   const mainPreviewRef = useRef<HTMLDivElement | null>(null);
   const [mainPaused, setMainPaused] = useState(false);
+  const [useManifold, setUseManifold] = useState(true);
   const prevCodeRef = useRef<string | null>(null);
 
   const mainRefCallback = useCallback((node: HTMLDivElement | null) => {
     mainPreviewRef.current = node;
-    if (node && isVisual && program) {
+    if (node && hasVisualRender && program) {
       mainHandleRef.current?.cleanup();
       const plugin = getPlugin(program.modality);
-      mainHandleRef.current = plugin.render(program.code, node);
+      mainHandleRef.current = plugin.render(program.code, node, { useManifold });
       prevCodeRef.current = program.code;
       setMainPaused(false);
     }
-  }, [isVisual, program]);
+  }, [hasVisualRender, program, useManifold]);
 
-  // Re-render visual preview if code changes while div already exists
+  // Re-render if code changes while div already exists
+  const prevManifoldRef = useRef(true);
+
   useEffect(() => {
-    if (!isVisual || !mainPreviewRef.current || !program) return;
-    if (prevCodeRef.current === program.code) return;
+    if (!hasVisualRender || !mainPreviewRef.current || !program) return;
+    if (prevCodeRef.current === program.code && prevManifoldRef.current === useManifold) return;
     mainHandleRef.current?.cleanup();
     const plugin = getPlugin(program.modality);
-    mainHandleRef.current = plugin.render(program.code, mainPreviewRef.current);
+    mainHandleRef.current = plugin.render(program.code, mainPreviewRef.current, { useManifold });
     prevCodeRef.current = program.code;
+    prevManifoldRef.current = useManifold;
     setMainPaused(false);
     return () => { mainHandleRef.current?.cleanup(); mainHandleRef.current = null; };
-  }, [isVisual, program?.code]);
+  }, [hasVisualRender, program?.code, program?.modality, useManifold]);
 
   const handlePlay = useCallback(() => {
     if (!program || isVisual) return;
@@ -564,8 +600,11 @@ export function ProgramDetailPage() {
 
       <div className="detail-main">
         <div className="detail-main-card">
-          {isVisual ? (
-            <div className={`detail-preview ${program.modality}-preview`} ref={mainRefCallback} />
+          {hasVisualRender ? (
+            <div className="detail-preview-wrapper">
+              <div className={'detail-preview ' + program.modality + '-preview'} ref={mainRefCallback} />
+              {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
+            </div>
           ) : (
             <div className="detail-preview strudel-preview">
               <StrudelHighlight code={program.code} />
@@ -574,19 +613,19 @@ export function ProgramDetailPage() {
           )}
           <div className="detail-controls">
             <div className="detail-controls-left">
-              {isShader ? (
+              {hasVisualRender ? (
                 <>
                   <button
                     className={'play-btn' + (mainPaused ? '' : ' active')}
                     onClick={handleMainToggle}
-                    title={mainPaused ? 'Resume shader animation' : 'Pause shader animation'}
+                    title={mainPaused ? 'Resume' : 'Pause'}
                   >
                     {mainPaused ? '\u25B6' : '\u23F8'}
                   </button>
                   <button
                     className="reset-btn"
                     onClick={handleMainReset}
-                    title="Reset shader to initial state"
+                    title="Reset to initial state"
                   >
                     ↺
                   </button>
@@ -658,9 +697,9 @@ export function ProgramDetailPage() {
               onPlayStrudel={handlePlayStrudel}
               playingCode={playingCode}
               onStopStrudel={handleStop}
-              playingShaderId={playingShaderId}
-              onPlayShader={handlePlayShader}
-              onStopShader={handleStopShader}
+              playingVisualId={playingVisualId}
+              onPlayVisual={handlePlayVisual}
+              onStopVisual={handleStopVisual}
             />
           </div>
         </div>

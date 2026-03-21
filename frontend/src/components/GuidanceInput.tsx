@@ -8,7 +8,9 @@ export function GuidanceInput() {
   const placeholder =
     modality === 'shader'
       ? 'Optional guidance: "more geometric", "add color", "make it spiral"…'
-      : 'Optional guidance: "make it darker", "add bass", "speed it up"…';
+      : modality === 'openscad'
+        ? 'Optional guidance: "more organic", "add symmetry", "make it taller"…'
+        : 'Optional guidance: "make it darker", "add bass", "speed it up"…';
 
   return (
     <div className="guidance-input">

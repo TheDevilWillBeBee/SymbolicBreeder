@@ -8,11 +8,12 @@ Symbolic Breeder has a classic client-server architecture. The React frontend ha
 ┌──────────────────────────────────────────────────────────┐
 │                     React Frontend                        │
 │                                                           │
-│  ModalitySelector — pick Strudel, Shader, or SVG          │
+│  ModalitySelector — pick Strudel, Shader, OpenSCAD, or SVG│
 │  ProgramGrid — grid of ProgramCards                       │
 │  ProgramCard — renders preview + select/play/customize    │
 │    ├── StrudelRenderer  (modality plugin)                 │
 │    ├── ShaderRenderer   (modality plugin)                 │
+│    ├── OpenSCADRenderer (modality plugin)                 │
 │    └── SVGRenderer      (modality plugin)                 │
 │  GuidanceInput + Evolve button                            │
 │  GenerationNav — browse generation history                │
@@ -42,9 +43,10 @@ Symbolic Breeder has a classic client-server architecture. The React frontend ha
 │ users            │   │  ModalityContextRegistry                │
 │ sessions         │   │    strudel/manifest.yaml + .md files    │
 │ programs         │   │    shader/manifest.yaml  + .md files    │
-│ shared_programs  │   │  Prompt assembly (system/seed/evolve)   │
-│ program_reactions│   │  Providers: Anthropic, OpenAI,          │
-└──────────────────┘   │             Gemini, Qwen                │
+│ shared_programs  │   │    openscad/manifest.yaml + .md files   │
+│ program_reactions│   │  Prompt assembly (system/seed/evolve)   │
+└──────────────────┘   │  Providers: Anthropic, OpenAI,          │
+                       │             Gemini, Qwen                │
                        └────────────────────────────────────────┘
 ```
 
@@ -78,7 +80,7 @@ SQLAlchemy ORM models, defined in `app/models/db.py`:
 |---|---|---|
 | `id` | string (UUID) | Primary key |
 | `name` | string | Optional label |
-| `modality` | string | `"strudel"`, `"shader"`, or `"svg"` |
+| `modality` | string | `"strudel"`, `"shader"`, `"openscad"`, or `"svg"` |
 | `context_profile` | string | `"simple"`, `"intermediate"`, or `"advanced"` (nullable, default `"intermediate"`) |
 | `owner_user_id` | string | Optional FK → User |
 | `created_at` | datetime | Auto-set on creation |
@@ -115,7 +117,7 @@ Unique constraint: `(user_id, program_id)` ensures one reaction per user per pro
 | `id` | string (UUID) | Primary key |
 | `program_id` | string | Optional FK → Program |
 | `sharer_name` | string | Display name of sharer |
-| `modality` | string | `"strudel"`, `"shader"`, or `"svg"` |
+| `modality` | string | `"strudel"`, `"shader"`, `"openscad"`, or `"svg"` |
 | `code` | text | Program source code |
 | `lineage` | JSON | Ancestry chain of parent programs. Each entry includes optional per-generation metadata: `guidance` (user prompt text), `llmModel` (provider/model used), and `contextProfile` (simple/intermediate/advanced) |
 | `llm_model` | string | Model used to generate the program (top-level, for the final generation) |
@@ -176,7 +178,9 @@ backend/context/
 │   │   └── 31_feedback_simulation_and_robustness.md
 │   └── strategies/
 │       └── 90_shader_evolution_playbook.md
-└── strudel/
+├── strudel/
+│   └── (same structure)
+└── openscad/
     └── (same structure)
 ```
 
@@ -256,9 +260,9 @@ Defined in `src/types.ts`:
 
 ```typescript
 interface ModalityPlugin {
-  key: string;           // "strudel" | "shader" | "svg"
+  key: string;           // "strudel" | "shader" | "openscad" | "svg"
   label: string;         // display name
-  language: string;      // Monaco syntax language ("javascript" | "glsl")
+  language: string;      // Monaco syntax language ("javascript" | "glsl" | "c")
   description: string;   // shown on ModalitySelector tile
 
   render(code: string, container: HTMLElement): () => void;
@@ -275,6 +279,7 @@ All plugins are registered in `src/modalityRegistry.ts`:
 export const modalityRegistry: Record<string, ModalityPlugin> = {
   strudel: strudelPlugin,
   shader: shaderPlugin,
+  openscad: openscadPlugin,
   svg: svgPlugin,
 };
 ```
@@ -290,6 +295,10 @@ Renders inline SVG markup via `innerHTML` into a wrapper div. Scripts and event 
 ### Shader Plugin (`modalities/shader/index.ts`)
 
 Creates a `<canvas>` element per card. Every card gets its own WebGL context — contexts are never shared between cards.
+
+### OpenSCAD Plugin (`modalities/openscad/index.ts`)
+
+Renders parametric 3D model code as syntax-highlighted previews in cards (similar to Strudel). OpenSCAD produces static geometry, so there is no animation timeline or audio playback. The preview modal displays the code with a visual indicator. Users can copy code to the OpenSCAD desktop app or online playground for full 3D rendering.
 
 **Fragment shader wrapper** (applied around the user's `mainImage` function):
 

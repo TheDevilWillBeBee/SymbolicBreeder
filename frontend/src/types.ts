@@ -78,6 +78,13 @@ export interface SharedProgram {
   createdAt: string;
 }
 
+// ── Render options passed to plugin render methods ──
+
+export interface RenderOptions {
+  /** Use Manifold backend for OpenSCAD compilation (default: true). */
+  useManifold?: boolean;
+}
+
 // ── Modality plugin interface ──
 
 export interface ModalityPlugin {
@@ -94,14 +101,14 @@ export interface ModalityPlugin {
    * Renders a live preview into the provided container element.
    * Returns a RenderHandle with cleanup and optional pause/resume/reset.
    */
-  render(code: string, container: HTMLElement): RenderHandle;
+  render(code: string, container: HTMLElement, options?: RenderOptions): RenderHandle;
 
   /**
    * Called when the user presses Preview in CustomizeModal.
    * Renders/plays the program into the preview container.
    * Returns a RenderHandle with cleanup and optional pause/resume/reset.
    */
-  previewInModal(code: string, container: HTMLElement): RenderHandle;
+  previewInModal(code: string, container: HTMLElement, options?: RenderOptions): RenderHandle;
 
   /**
    * Validate/lint code before submission (optional).
@@ -114,4 +121,10 @@ export interface ModalityPlugin {
    * Uses preserveDrawingBuffer: true so the result is readable.
    */
   renderSnapshot?(code: string, width: number, height: number): HTMLCanvasElement | null;
+
+  /**
+   * Pre-compile/prepare the code so that renderSnapshot can produce a result.
+   * Returns a promise that resolves when compilation is done.
+   */
+  ensureCompiled?(code: string): Promise<void>;
 }

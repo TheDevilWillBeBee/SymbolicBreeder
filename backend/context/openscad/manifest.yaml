@@ -1,0 +1,94 @@
+version: 2
+modality: openscad
+default_profile: intermediate
+
+profiles:
+  simple:
+    description: "Essential OpenSCAD craft: primitives, transforms, boolean operations, basic parametric design, and compositional basics."
+    includes:
+    - runtime_contract
+    - simple_primitives_transforms
+    - simple_booleans_and_composition
+    - evolution_playbook
+
+  intermediate:
+    description: "Adds modules, loops, recursion, hull/minkowski, text, and parametric pattern generation."
+    extends: simple
+    includes:
+    - intermediate_modules_and_loops
+    - intermediate_hull_minkowski_and_patterns
+
+  advanced:
+    description: "Adds advanced surface techniques, polyhedra, functional transforms, generative structures, and optimization."
+    extends: intermediate
+    includes:
+    - advanced_surfaces_and_polyhedra
+    - advanced_generative_and_optimization
+
+sources:
+- id: runtime_contract
+  enabled: true
+  level: shared
+  category: tutorial
+  path: shared/00_runtime_contract.md
+  inject_into: [ system ]
+  description: "Renderer contract, OpenSCAD syntax rules, coordinate system, output constraints, and preview conventions."
+
+- id: simple_primitives_transforms
+  enabled: true
+  level: simple
+  category: tutorial
+  path: simple/10_primitives_and_transforms.md
+  inject_into: [ system ]
+  description: "3D and 2D primitives, translate/rotate/scale, color, and basic spatial composition."
+
+- id: simple_booleans_and_composition
+  enabled: true
+  level: simple
+  category: tutorial
+  path: simple/11_booleans_and_composition.md
+  inject_into: [ system ]
+  description: "Union, difference, intersection, nesting, symmetry, and basic design patterns."
+
+- id: intermediate_modules_and_loops
+  enabled: true
+  level: intermediate
+  category: tutorial
+  path: intermediate/20_modules_and_loops.md
+  inject_into: [ system ]
+  description: "Parameterized modules, for loops, conditional geometry, recursion, and reusable components."
+
+- id: intermediate_hull_minkowski_and_patterns
+  enabled: true
+  level: intermediate
+  category: tutorial
+  path: intermediate/21_hull_minkowski_and_patterns.md
+  inject_into: [ system ]
+  description: "Hull, minkowski, linear/rotate extrude, text, radial and grid patterns, and organic forms."
+
+- id: advanced_surfaces_and_polyhedra
+  enabled: true
+  level: advanced
+  category: tutorial
+  path: advanced/30_surfaces_and_polyhedra.md
+  inject_into: [ system ]
+  description: "Polyhedron construction, parametric surfaces via polyhedra, mesh-like techniques, and mathematical surfaces."
+
+- id: advanced_generative_and_optimization
+  enabled: true
+  level: advanced
+  category: tutorial
+  path: advanced/31_generative_and_optimization.md
+  inject_into: [ system ]
+  description: "Generative design patterns, L-systems, fractal structures, performance optimization, and robust modeling practices."
+
+- id: evolution_playbook
+  enabled: true
+  level: shared
+  category: strategy
+  path: strategies/90_openscad_evolution_playbook.md
+  inject_into: [ system ]
+  description: "Mutation and crossover operators, phenotype preservation, novelty injection, and one-shot breeding strategy for 3D models."
+
+prompt_bundle:
+  path: prompts/prompt_bundle.yaml

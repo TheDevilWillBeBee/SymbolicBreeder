@@ -1,11 +1,13 @@
 import { strudelPlugin } from './modalities/strudel';
 import { shaderPlugin } from './modalities/shader';
+import { openscadPlugin } from './modalities/openscad';
 import { svgPlugin } from './modalities/svg';
 import type { ModalityPlugin } from './types';
 
 export const modalityRegistry: Record<string, ModalityPlugin> = {
   strudel: strudelPlugin,
   shader: shaderPlugin,
+  openscad: openscadPlugin,
   svg: svgPlugin,
 };
 

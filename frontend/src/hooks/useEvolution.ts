@@ -57,6 +57,28 @@ const MOCK_SHADER_POOL = [
   'float hash(vec2 p) {\n    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);\n}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    if (iFrame == 0) {\n        float r = hash(fragCoord + vec2(42.0, 17.0));\n        float alive = step(0.62, r);\n        fragColor = vec4(alive, alive, alive, 1.0);\n        return;\n    }\n    vec2 px = 1.0 / iResolution.xy;\n    float sum = 0.0;\n    for (int x = -1; x <= 1; x++) {\n        for (int y = -1; y <= 1; y++) {\n            if (x == 0 && y == 0) continue;\n            sum += texture(iChannel0, uv + vec2(float(x), float(y)) * px).r;\n        }\n    }\n    vec2 prev = texture(iChannel0, uv).rg;\n    float self = prev.r;\n    float trail = prev.g;\n    float alive = 0.0;\n    if (self > 0.5) {\n        alive = (sum > 1.5 && sum < 3.5) ? 1.0 : 0.0;\n    } else {\n        alive = (sum > 2.5 && sum < 3.5) ? 1.0 : 0.0;\n    }\n    trail = max(trail * 0.95, alive);\n    vec3 col = mix(vec3(0.0, 0.02, 0.1) * trail, vec3(0.1, 0.8, 0.4), alive);\n    fragColor = vec4(alive, trail, 0.0, 1.0);\n}',
 ];
 
+const MOCK_OPENSCAD_SEEDS = [
+  '// Layered Tower\n$fn = 48;\nfor (i = [0:6]) {\n    translate([0, 0, i * 5])\n      color([i/7, 0.4, 1 - i/7])\n        cube([18 - i*2, 18 - i*2, 4], center=true);\n}',
+  '// Radial Spokes\n$fn = 48;\ncolor("DarkSlateGray") cylinder(h=3, r=20, center=true);\nfor (i = [0:7]) {\n    rotate([0, 0, i * 45])\n      color("Coral")\n        translate([10, 0, 3])\n          cube([12, 2, 6], center=true);\n}\ncolor("Gold") translate([0, 0, 6]) sphere(r=5);',
+  '// Hollow Sphere\n$fn = 64;\ndifference() {\n    sphere(r=15);\n    sphere(r=13);\n    translate([0, 0, 10]) cube([40, 40, 10], center=true);\n    for (i = [0:5]) {\n        rotate([0, 0, i * 60])\n          rotate([90, 0, 0])\n            cylinder(h=40, r=2, center=true);\n    }\n}',
+  '// Twisted Star\n$fn = 48;\nlinear_extrude(height=30, twist=90, slices=60, scale=0.5) {\n    difference() {\n        circle(r=12);\n        for (i = [0:4])\n            rotate([0, 0, i * 72])\n              translate([7, 0, 0])\n                circle(r=4);\n    }\n}',
+  '// Crystal Cluster\n$fn = 6;\nfor (i = [0:8]) {\n    a = i * 137.508;\n    r = 3 + i * 1.2;\n    h = 8 + (i % 4) * 5;\n    translate([r * cos(a), r * sin(a), 0])\n      color([0.6 + i*0.04, 0.8, 1])\n        cylinder(h=h, r1=2.5, r2=0.5);\n}',
+  '// Toroidal Ring\n$fn = 64;\nrotate_extrude()\n    translate([15, 0, 0])\n      difference() {\n          circle(r=5);\n          circle(r=3);\n      }',
+];
+
+const MOCK_OPENSCAD_POOL = [
+  '// Gear\n$fn = 48;\nn_teeth = 16;\nouter_r = 20;\ninner_r = 16;\ntooth_w = 3;\n\ncolor("SteelBlue")\nlinear_extrude(height=5)\n    difference() {\n        union() {\n            circle(r=inner_r);\n            for (i = [0:n_teeth-1])\n                rotate([0, 0, i * 360/n_teeth])\n                  translate([0, -tooth_w/2, 0])\n                    square([outer_r, tooth_w]);\n        }\n        circle(r=5);\n    }',
+  '// Tree\n$fn = 16;\nmodule branch(len, thick, depth) {\n    if (depth > 0) {\n        color([0.4, 0.2 + depth*0.1, 0.1])\n          cylinder(h=len, r1=thick, r2=thick*0.65);\n        translate([0, 0, len]) {\n            rotate([0, 25, 0]) branch(len*0.7, thick*0.6, depth-1);\n            rotate([0, -25, 120]) branch(len*0.7, thick*0.6, depth-1);\n            rotate([0, -25, 240]) branch(len*0.7, thick*0.6, depth-1);\n        }\n    } else {\n        color("LimeGreen") sphere(r=thick*3);\n    }\n}\nbranch(15, 2, 4);',
+  '// Spiral Staircase\n$fn = 32;\nsteps = 20;\nfor (i = [0:steps-1]) {\n    rotate([0, 0, i * 18])\n      translate([8, -3, i * 2])\n        color([i/steps, 0.5, 1 - i/steps])\n          cube([10, 6, 1.5]);\n}\ncolor("Gray") cylinder(h=steps * 2 + 2, r=2);',
+  '// Architectural Arch\n$fn = 48;\ncolor("Chocolate") {\n    translate([-12, 0, 0]) cube([4, 4, 25]);\n    translate([8, 0, 0]) cube([4, 4, 25]);\n}\ncolor("Gold")\n  translate([0, 2, 25])\n    rotate([90, 0, 0])\n      difference() {\n          cylinder(h=4, r=12);\n          cylinder(h=6, r=9, center=true);\n          translate([0, -15, 0]) cube([30, 30, 6], center=true);\n      }',
+  '// Vase\n$fn = 64;\ncolor("Teal")\ndifference() {\n    rotate_extrude()\n        polygon([for (i = [0:40])\n            let(t = i/40,\n                r = 8 + 4*sin(t*360) + 2*sin(t*720),\n                z = t * 30)\n            [r, z]\n        ]);\n    translate([0, 0, 2])\n      rotate_extrude()\n        polygon([for (i = [0:40])\n            let(t = i/40,\n                r = 7 + 4*sin(t*360) + 2*sin(t*720),\n                z = t * 30)\n            [r, z]\n        ]);\n}',
+  '// Interlocking Rings\n$fn = 64;\ncolor("Gold")\nrotate_extrude()\n    translate([12, 0, 0]) circle(r=2);\ncolor("Silver")\nrotate([90, 0, 0])\n  rotate_extrude()\n    translate([12, 0, 0]) circle(r=2);',
+  '// Parametric Shell\n$fn = 48;\nfor (i = [0:60]) {\n    a = i * 20;\n    r = 1 + i * 0.25;\n    z = i * 0.4;\n    translate([r*cos(a), r*sin(a), z])\n      color([0.9, 0.7 - i*0.01, 0.5])\n        sphere(r = 0.5 + i*0.04, $fn=12);\n}',
+  '// Sierpinski Tetrahedron\n$fn = 16;\nmodule sierp(size, depth) {\n    if (depth == 0) {\n        polyhedron(\n            points=[[0,0,0],[size,0,0],[size/2,size*0.866,0],[size/2,size*0.289,size*0.816]],\n            faces=[[0,2,1],[0,1,3],[1,2,3],[0,3,2]]\n        );\n    } else {\n        s2 = size/2;\n        sierp(s2, depth-1);\n        translate([s2,0,0]) sierp(s2, depth-1);\n        translate([s2/2,s2*0.866,0]) sierp(s2, depth-1);\n        translate([s2/2,s2*0.289,s2*0.816]) sierp(s2, depth-1);\n    }\n}\ncolor("MediumPurple") sierp(30, 3);',
+  '// Honeycomb Plate\n$fn = 6;\ncell = 5;\nwall = 1;\nh = 4;\n\ndifference() {\n    color("Gold")\n      cylinder(h=h, r=30, $fn=64);\n    for (y = [-4:4])\n      for (x = [-4:4]) {\n          ox = (y % 2 == 0) ? 0 : cell * 0.866;\n          translate([x * cell * 1.732 + ox, y * cell * 1.5, -1])\n            cylinder(h=h+2, r=cell - wall, $fn=6);\n      }\n}',
+  '// Abstract Sculpture\n$fn = 32;\nhull() {\n    color("Coral") sphere(r=5);\n    color("SteelBlue") translate([15, 5, 20]) sphere(r=3);\n}\nhull() {\n    color("SteelBlue") translate([15, 5, 20]) sphere(r=3);\n    color("Gold") translate([-5, 15, 35]) sphere(r=4);\n}\nhull() {\n    color("Gold") translate([-5, 15, 35]) sphere(r=4);\n    color("Teal") translate([10, -10, 45]) sphere(r=2);\n}\ncolor("DarkSlateGray") cube([30, 30, 2], center=true);',
+];
+
 const MOCK_SVG_SEEDS = [
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff6b35"/><stop offset="100%" stop-color="#f7c948"/></linearGradient></defs><circle cx="100" cy="100" r="70" fill="url(#g1)"/><polygon points="100,45 120,85 165,85 130,110 145,155 100,128 55,155 70,110 35,85 80,85" fill="#fff" opacity="0.9"/></svg>',
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#1a1a2e"/><g transform="translate(100,100)"><g><rect x="-50" y="-50" width="100" height="100" rx="8" fill="none" stroke="#e94560" stroke-width="3"/><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="12s" repeatCount="indefinite"/></g><g><rect x="-40" y="-40" width="80" height="80" rx="6" fill="none" stroke="#0f3460" stroke-width="3"/><animateTransform attributeName="transform" type="rotate" from="0" to="-360" dur="8s" repeatCount="indefinite"/></g><g><rect x="-30" y="-30" width="60" height="60" rx="4" fill="none" stroke="#16213e" stroke-width="3"/><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite"/></g><circle cx="0" cy="0" r="12" fill="#e94560"><animate attributeName="r" values="12;16;12" dur="2s" repeatCount="indefinite"/></circle></g></svg>',
@@ -81,12 +103,14 @@ const MOCK_SVG_POOL = [
 const MOCK_SEEDS: Record<string, string[]> = {
   strudel: MOCK_STRUDEL_SEEDS,
   shader: MOCK_SHADER_SEEDS,
+  openscad: MOCK_OPENSCAD_SEEDS,
   svg: MOCK_SVG_SEEDS,
 };
 
 const MOCK_POOLS: Record<string, string[]> = {
   strudel: MOCK_STRUDEL_POOL,
   shader: MOCK_SHADER_POOL,
+  openscad: MOCK_OPENSCAD_POOL,
   svg: MOCK_SVG_POOL,
 };
 

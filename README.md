@@ -10,13 +10,14 @@ Select programs you like, optionally add guidance text, and press **Evolve** —
 |---|---|---|
 | **Strudel** | Live-coded music | [strudel.cc](https://strudel.cc) web component |
 | **WebGL Shader** | Animated visuals | WebGL / GLSL fragment shaders |
+| **OpenSCAD** | Parametric 3D models | [OpenSCAD](https://openscad.org) language |
 | **SVG** | Vector graphics & logos | Inline SVG with SMIL/CSS animation |
 
 More modalities (p5.js, Tone.js, etc.) can be added without touching core logic — see [docs/modality-plugin-guide.md](docs/modality-plugin-guide.md).
 
 ## How It Works
 
-1. **Select a modality** (Strudel, Shader, or SVG) on the splash screen
+1. **Select a modality** (Strudel, Shader, OpenSCAD, or SVG) on the splash screen
 2. A session is created and the backend seeds **generation 0** via LLM (or mock)
 3. Programs appear as interactive cards in the grid
 4. **Select** one or more cards you find interesting
@@ -63,8 +64,9 @@ SymbolicBreeder/
 │   │       ├── llm.py          # LLM orchestration + mock fallback
 │   │       └── providers/      # Multi-provider LLM support (Anthropic, OpenAI, Gemini, Qwen)
 │   ├── context/
-│   │   ├── strudel/            # Strudel tutorials + strategies
-│   │   ├── shader/             # GLSL tutorials + strategies
+│   │   ├── strudel/            # Strudel tutorials + examples
+│   │   ├── shader/             # GLSL tutorials + examples
+│   │   ├── openscad/           # OpenSCAD tutorials + examples
 │   │   └── svg/                # SVG tutorials + strategies
 │   ├── alembic/                # Database migration scripts
 │   └── pyproject.toml
@@ -80,6 +82,7 @@ SymbolicBreeder/
     │   ├── modalities/
     │   │   ├── strudel/         # Strudel plugin
     │   │   ├── shader/          # WebGL shader plugin
+    │   │   ├── openscad/        # OpenSCAD 3D model plugin
     │   │   └── svg/             # SVG vector graphics plugin
     │   ├── components/          # React UI components
     │   ├── hooks/               # useEvolution, useShaderRenderer
@@ -90,7 +93,7 @@ SymbolicBreeder/
 
 ## Inspiration
 
-Symbolic Breeder is inspired by [PicBreeder](https://picbreeder.org), the landmark experiment in collaborative open-ended evolution by Kenneth Stanley and colleagues. Where PicBreeder evolves *Compositional Pattern-Producing Networks* (CPPNs) with hand-crafted mutation operators, Symbolic Breeder evolves **programs** using large language models as the variation engine — enabling mutation, crossover, and reinterpretation of code in expressive programming paradigms like Strudel (music), GLSL shaders (visuals), and SVG (vector graphics).
+Symbolic Breeder is inspired by [PicBreeder](https://picbreeder.org), the landmark experiment in collaborative open-ended evolution by Kenneth Stanley and colleagues. Where PicBreeder evolves *Compositional Pattern-Producing Networks* (CPPNs) with hand-crafted mutation operators, Symbolic Breeder evolves **programs** using large language models as the variation engine — enabling mutation, crossover, and reinterpretation of code in expressive programming paradigms like Strudel (music), GLSL shaders (visuals), OpenSCAD (3D models), and SVG (vector graphics).
 
 As Kenneth Stanley argues, open-ended processes driven by novelty rather than a fixed objective are essential for genuine discovery. There is no "target" shader or "goal" melody here — you explore freely, and the most interesting discoveries are the ones nobody planned for.
 

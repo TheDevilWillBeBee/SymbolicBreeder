@@ -16,6 +16,18 @@ const STRUDEL_KEYWORDS = new Set([
 
 const STRUDEL_BUILTINS = new Set(['sine', 'cosine', 'rand', 'range']);
 
+const OPENSCAD_KEYWORDS = new Set([
+  'module', 'function', 'if', 'else', 'for', 'let', 'each', 'true', 'false', 'undef',
+]);
+
+const OPENSCAD_BUILTINS = new Set([
+  'cube', 'sphere', 'cylinder', 'polyhedron', 'circle', 'square', 'polygon', 'text',
+  'union', 'difference', 'intersection', 'translate', 'rotate', 'scale', 'mirror', 'resize',
+  'color', 'hull', 'minkowski', 'linear_extrude', 'rotate_extrude', 'children',
+  'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'abs', 'ceil', 'floor', 'round',
+  'sqrt', 'pow', 'exp', 'log', 'ln', 'min', 'max', 'norm', 'cross', 'len', 'concat', 'str',
+]);
+
 const SVG_KEYWORDS = new Set([
   'svg', 'g', 'defs', 'symbol', 'use', 'rect', 'circle', 'ellipse', 'line',
   'polyline', 'polygon', 'path', 'text', 'tspan', 'textPath', 'style',
@@ -41,8 +53,8 @@ function escapeHtml(value: string): string {
 }
 
 export function highlightCode(code: string, modality: string): string {
-  const keywordSet = modality === 'shader' ? SHADER_KEYWORDS : modality === 'svg' ? SVG_KEYWORDS : STRUDEL_KEYWORDS;
-  const builtinSet = modality === 'shader' ? SHADER_BUILTINS : modality === 'svg' ? SVG_BUILTINS : STRUDEL_BUILTINS;
+  const keywordSet = modality === 'shader' ? SHADER_KEYWORDS : modality === 'openscad' ? OPENSCAD_KEYWORDS : modality === 'svg' ? SVG_KEYWORDS : STRUDEL_KEYWORDS;
+  const builtinSet = modality === 'shader' ? SHADER_BUILTINS : modality === 'openscad' ? OPENSCAD_BUILTINS : modality === 'svg' ? SVG_BUILTINS : STRUDEL_BUILTINS;
 
   let result = '';
   let lastIndex = 0;

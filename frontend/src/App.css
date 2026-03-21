@@ -598,6 +598,13 @@ body.modality-non-strudel .cm-panels {
 
 /* Preview area */
 
+.program-card-preview-wrapper {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+  overflow: hidden;
+}
+
 .program-card-preview {
   width: 100%;
   cursor: pointer;
@@ -605,9 +612,10 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.program-card-preview.shader-preview {
+.program-card-preview.shader-preview,
+.program-card-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .strudel-preview {
@@ -753,6 +761,40 @@ body.modality-non-strudel .cm-panels {
   width: 14px;
   height: 14px;
   cursor: pointer;
+}
+
+.manifold-toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 2px 7px 2px 5px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.manifold-toggle:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.manifold-toggle input[type='checkbox'] {
+  accent-color: #4d9de0;
+  width: 11px;
+  height: 11px;
+  cursor: pointer;
+  margin: 0;
 }
 
 .customized-badge {
@@ -1193,9 +1235,16 @@ body.modality-non-strudel .cm-panels {
   flex-shrink: 0;
 }
 
-.preview-container {
+.preview-container-wrapper {
+  position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+
+.preview-container {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -1727,9 +1776,10 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.gallery-card-preview.shader-preview {
+.gallery-card-preview.shader-preview,
+.gallery-card-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .gallery-card-preview.strudel-preview {
@@ -1745,9 +1795,10 @@ body.modality-non-strudel .cm-panels {
   overflow: hidden;
 }
 
-.gallery-card-preview-wrapper .shader-preview {
+.gallery-card-preview-wrapper .shader-preview,
+.gallery-card-preview-wrapper .openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .shader-play-overlay {
@@ -1886,15 +1937,22 @@ body.modality-non-strudel .cm-panels {
   margin: 0 auto 2rem;
 }
 
+.detail-preview-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
 .detail-preview {
   width: 100%;
   position: relative;
   overflow: hidden;
 }
 
-.detail-preview.shader-preview {
+.detail-preview.shader-preview,
+.detail-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .detail-preview.strudel-preview {
@@ -2099,19 +2157,21 @@ body.modality-non-strudel .cm-panels {
   object-fit: cover;
 }
 
-.lineage-card-preview-wrapper .shader-preview {
+.lineage-card-preview-wrapper .shader-preview,
+.lineage-card-preview-wrapper .openscad-preview {
   width: 100%;
   height: 100%;
-  background: #000;
+  background: #12121e;
 }
 
 .lineage-card-preview-wrapper .shader-play-overlay span {
   font-size: 0.6rem;
 }
 
-.lineage-card-preview.shader-preview {
+.lineage-card-preview.shader-preview,
+.lineage-card-preview.openscad-preview {
   aspect-ratio: 1;
-  background: #000;
+  background: #12121e;
 }
 
 .lineage-card-preview.strudel-preview {
@@ -2152,6 +2212,13 @@ body.modality-non-strudel .cm-panels {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.5rem;
+}
+
+.lineage-toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
 }
 
 .lineage-toggle {
@@ -2383,4 +2450,38 @@ body.modality-non-strudel .cm-panels {
 .about-cta-secondary:hover {
   background: var(--bg-secondary);
   border-color: var(--accent);
+}
+
+/* ── OpenSCAD 3D preview states ── */
+
+.openscad-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  background: #12121e;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  gap: 0.6rem;
+  border-radius: 4px;
+}
+
+.openscad-spinner {
+  font-size: 2rem;
+  color: #4d9de0;
+  animation: openscad-spin 3s linear infinite;
+}
+
+.openscad-loading-text {
+  color: #64748b;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+@keyframes openscad-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
