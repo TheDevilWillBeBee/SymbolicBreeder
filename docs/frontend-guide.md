@@ -40,11 +40,18 @@ frontend/src/
 │   ├── GenerationNav.tsx    # Browse generation history
 │   ├── CustomizeModal.tsx   # Code editor + live preview pane
 │   ├── LoadingOverlay.tsx   # Full-screen loading state
-│   └── CodeModal.tsx        # View-only code display
+│   ├── CodeModal.tsx        # View-only code display
+│   ├── Modal.tsx            # Shared modal shell (overlay + ESC key handler)
+│   └── detail/              # Lineage tree sub-components
+│       ├── LineageCard.tsx  # Single program node in the lineage tree
+│       ├── LayeredTreeView.tsx # DAG layout with generation rows and edges
+│       ├── TransitionCard.tsx  # Evolution metadata between generations
+│       └── LineageCodeModal.tsx # Code viewer for lineage nodes
 │
 ├── hooks/
 │   ├── useEvolution.ts      # createSession() + evolve() + mock fallback
-│   └── useShaderRenderer.ts # WebGL lifecycle for a shader canvas
+│   ├── useStrudelPlayer.ts  # hidden strudel-editor lifecycle for audio playback
+│   └── useVisualPlayback.ts # render + pause/resume/reset for visual modality cards
 │
 └── store/
     └── sessionStore.ts      # Zustand store — all client state

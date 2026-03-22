@@ -494,6 +494,7 @@ function renderSnapshotCanvas(
 export const shaderPlugin: ModalityPlugin = {
   key: 'shader',
   label: 'Shader',
+  icon: '◆',
   language: 'glsl',
   description: 'Animated GLSL visuals — evolve mesmerizing fragment shaders',
 

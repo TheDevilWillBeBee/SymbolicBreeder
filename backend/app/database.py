@@ -23,6 +23,8 @@ def _resolve_database_url() -> str:
 
 
 def _normalize_sqlalchemy_url(url: str) -> str:
+    # SQLAlchemy 2+ requires the psycopg3 dialect prefix; Vercel and most
+    # connection string generators still emit the older "postgres://" scheme.
     if url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql+psycopg://", 1)
     if url.startswith("postgresql://"):
@@ -37,7 +39,13 @@ if DATABASE_URL.startswith("sqlite"):
 
 engine = create_engine(
     DATABASE_URL,
+    # pool_pre_ping sends a lightweight "SELECT 1" before handing out a
+    # connection, which recycles stale connections after network interruptions
+    # or database restarts (common in serverless/Vercel environments).
     pool_pre_ping=True,
+    # pool_recycle forces connections to be replaced after 5 minutes to avoid
+    # hitting PostgreSQL's idle connection timeout (default: 10 minutes on
+    # most managed services). Keeps the pool healthy over long idle periods.
     pool_recycle=300,
 )
 
@@ -47,7 +55,7 @@ Base = declarative_base()
 
 
 def get_db():
-    """Dependency that yields a DB session and closes it after use."""
+    """FastAPI dependency: yields a DB session and closes it after the request."""
     db = SessionLocal()
     try:
         yield db

@@ -1,4 +1,6 @@
 import type { ModalityPlugin, RenderHandle, RenderOptions } from '../../types';
+import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
 /**
  * OpenSCAD modality plugin.
@@ -11,8 +13,8 @@ import type { ModalityPlugin, RenderHandle, RenderOptions } from '../../types';
 // ── Lazy-loaded module references ──
 
 let THREE: typeof import('three') | null = null;
-let OrbitControlsCtor: any = null;
-let STLLoaderCtor: any = null;
+let OrbitControlsCtor: (typeof OrbitControls) | null = null;
+let STLLoaderCtor: (typeof STLLoader) | null = null;
 
 let threeLoadPromise: Promise<void> | null = null;
 
@@ -79,7 +81,7 @@ function buildScene(
 ): RenderHandle {
   const T = THREE!;
 
-  const loader = new STLLoaderCtor();
+  const loader = new STLLoaderCtor!();
   const geometry: import('three').BufferGeometry = loader.parse(stlText);
   // OpenSCAD STL is Z-up; Three.js is Y-up — align axes before centering.
   geometry.rotateX(-Math.PI / 2);
@@ -143,7 +145,7 @@ function buildScene(
   cam.lookAt(0, 0, 0);
 
   // Orbit controls
-  const controls = new OrbitControlsCtor(cam, canvas);
+  const controls = new OrbitControlsCtor!(cam, canvas);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.autoRotate = true;
@@ -266,9 +268,10 @@ function renderOpenSCAD(code: string, container: HTMLElement, options?: RenderOp
       if (cancelled) return;
       container.innerHTML = '';
       innerHandle = buildScene(container, stl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (cancelled) return;
-      showError(container, String(err?.message ?? err));
+      const msg = err instanceof Error ? err.message : String(err);
+      showError(container, msg);
     }
   })();
 
@@ -295,7 +298,7 @@ function renderSnapshotCanvas(
   if (!cached || !THREE) return null;
 
   const T = THREE;
-  const loader = new STLLoaderCtor();
+  const loader = new STLLoaderCtor!();
   const geometry: import('three').BufferGeometry = loader.parse(cached);
   geometry.rotateX(-Math.PI / 2);
   geometry.computeBoundingBox();
@@ -351,6 +354,7 @@ function renderSnapshotCanvas(
 export const openscadPlugin: ModalityPlugin = {
   key: 'openscad',
   label: 'OpenSCAD',
+  icon: '⬡',
   language: 'c',
   description: 'Parametric 3D models — evolve sculptures, mechanisms, and mathematical forms',
 

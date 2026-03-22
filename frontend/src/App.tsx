@@ -7,6 +7,7 @@ import { GenerationNav } from './components/GenerationNav';
 import { CodeModal } from './components/CodeModal';
 import { CustomizeModal } from './components/CustomizeModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
+import { StreamingOverlay } from './components/StreamingOverlay';
 import { LogToasts } from './components/LogToasts';
 import { ShareModal } from './components/ShareModal';
 import { GalleryPage } from './components/GalleryPage';
@@ -45,6 +46,8 @@ export default function App() {
   const session = useSessionStore((s) => s.session);
   const isEvolving = useSessionStore((s) => s.isEvolving);
   const isLoading = useSessionStore((s) => s.isLoading);
+  const streamOutput = useSessionStore((s) => s.llmConfig.streamOutput);
+  const streamingText = useSessionStore((s) => s.streamingText);
   const customizedPrograms = useSessionStore((s) => s.customizedPrograms);
   const setPlayingProgramId = useSessionStore((s) => s.setPlayingProgramId);
 
@@ -133,9 +136,9 @@ export default function App() {
             </p>
             <p className="start-description">
               Inspired by <em>PicBreeder</em>, Symbolic Breeder evolves programs
-              &mdash; music and visuals &mdash; using large language models as
-              the variation engine. Select what you find interesting, and
-              discover what no one planned for.
+              &mdash; music, visuals, 3D models, and vector graphics &mdash; using
+              large language models as the variation engine. Select what you find
+              interesting, and discover what no one planned for.
             </p>
           </div>
 
@@ -182,18 +185,24 @@ export default function App() {
         )}
 
         {(isLoading || isEvolving) && (
-          <LoadingOverlay
-            message={
-              isLoading
-                ? `Seeding generation 0...`
-                : `Evolving generation ${currentGeneration + 2}...`
-            }
-            hint={
-              modality === 'shader'
-                ? 'The LLM is crafting shaders for you'
-                : 'The LLM is composing music for you'
-            }
-          />
+          streamOutput && streamingText ? (
+            <StreamingOverlay populationSize={6} />
+          ) : (
+            <LoadingOverlay
+              message={
+                isLoading
+                  ? `Seeding generation 0...`
+                  : `Evolving generation ${currentGeneration + 2}...`
+              }
+              hint={
+                modality === 'strudel' ? 'The LLM is composing music for you' :
+                modality === 'shader' ? 'The LLM is crafting shaders for you' :
+                modality === 'openscad' ? 'The LLM is sculpting 3D models for you' :
+                modality === 'svg' ? 'The LLM is drawing vector graphics for you' :
+                'The LLM is generating programs for you'
+              }
+            />
+          )
         )}
 
         <main>
@@ -309,18 +318,20 @@ export default function App() {
       <LogToasts />
 
       <footer className="app-footer">
-        <span>
+        <div className="footer-links">
+          <button className="footer-link" onClick={goToAbout}>About</button>
+          <span className="footer-sep">&middot;</span>
+          <a href="https://github.com/TheDevilWillBeBee/SymbolicBreeder" target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a>
+        </div>
+        <div className="footer-credit">
           Created by{' '}
           <a href="https://pajouheshgar.github.io" target="_blank" rel="noopener noreferrer">
             Ehsan Pajouheshgar
-          </a>
-        </span>
-        <span className="footer-sep">&middot;</span>
-        <button className="footer-link" onClick={goToAbout}>About</button>
-        <span className="footer-sep">&middot;</span>
-        <a href="https://github.com/TheDevilWillBeBee/SymbolicBreeder" target="_blank" rel="noopener noreferrer">
-          GitHub
-        </a>
+          </a>{' '}
+          and Ali Golmakani
+        </div>
       </footer>
     </div>
   );

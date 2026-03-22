@@ -9,23 +9,30 @@ export interface LLMConfig {
   apiKey: string;
   baseUrl?: string;
   contextProfile: ContextProfile;
+  streamOutput: boolean;
 }
 
 interface SessionState {
-  // Core state
+  // ── Domain state (describes the breeding session itself) ──
   session: Session | null;
   modality: string | null;
   generations: Program[][];
   currentGeneration: number;
+  generationMeta: GenerationMeta[];
+  lastEvolveSource: 'llm' | 'mock';
+
+  // ── UI state (transient interaction state, cleared on reset) ──
   selectedProgramIds: Set<string>;
   playingProgramId: string | null;
   guidance: string;
   isEvolving: boolean;
   isLoading: boolean;
   customizedPrograms: Record<string, string>;
-  generationMeta: GenerationMeta[];
+  streamingText: string;
+  streamingPhase: string;
+
+  // ── Settings (user preferences, preserved across resets — see reset()) ──
   llmConfig: LLMConfig;
-  lastEvolveSource: 'llm' | 'mock';
 
   // Actions
   setSession: (session: Session) => void;
@@ -42,6 +49,9 @@ interface SessionState {
   addGenerationMeta: (meta: GenerationMeta) => void;
   setLLMConfig: (config: Partial<LLMConfig>) => void;
   setLastEvolveSource: (source: 'llm' | 'mock') => void;
+  setStreamingText: (text: string) => void;
+  appendStreamingText: (delta: string) => void;
+  setStreamingPhase: (phase: string) => void;
   reset: () => void;
 }
 
@@ -50,6 +60,7 @@ const initialLLMConfig: LLMConfig = {
   model: 'claude-sonnet-4-20250514',
   apiKey: '',
   contextProfile: 'intermediate',
+  streamOutput: true,
 };
 
 const initialState = {
@@ -63,6 +74,8 @@ const initialState = {
   isEvolving: false,
   isLoading: false,
   customizedPrograms: {} as Record<string, string>,
+  streamingText: '',
+  streamingPhase: '',
   generationMeta: [] as GenerationMeta[],
   llmConfig: { ...initialLLMConfig },
   lastEvolveSource: 'llm' as const,
@@ -121,6 +134,11 @@ export const useSessionStore = create<SessionState>((set) => ({
     })),
 
   setLastEvolveSource: (source) => set({ lastEvolveSource: source }),
+
+  setStreamingText: (text) => set({ streamingText: text }),
+  appendStreamingText: (delta) =>
+    set((state) => ({ streamingText: state.streamingText + delta })),
+  setStreamingPhase: (phase) => set({ streamingPhase: phase }),
 
   reset: () =>
     set((state) => ({

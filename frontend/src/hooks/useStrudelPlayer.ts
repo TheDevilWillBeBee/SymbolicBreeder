@@ -1,9 +1,12 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { ensureEditor, playCode, stopPlayback } from '../modalities/strudel';
+import { ensureEditor, playCode, stopPlayback, editorReady } from '../modalities/strudel';
 
 /**
  * Hook that manages the hidden strudel-editor web component for playback.
  * Provides play(code) and stop() controls.
+ *
+ * editorReady is polled from the strudel module (which owns the singleton
+ * editor lifecycle), avoiding a second independent DOM poll.
  */
 export function useStrudelPlayer(enabled = true) {
   const [isReady, setIsReady] = useState(false);
@@ -22,19 +25,14 @@ export function useStrudelPlayer(enabled = true) {
 
     ensureEditor();
 
-    // Poll until the editor instance is ready
+    // Poll until the strudel module signals the editor is ready.
+    // editorReady is set by the internal poll in strudel/index.ts so we
+    // don't duplicate the DOM check here.
     pollRef.current = setInterval(() => {
-      // editorReady is checked internally by playCode
-      // We just need to know for UI purposes
-      try {
-        // Try a quick check
-        const el = document.querySelector('strudel-editor');
-        if (el && (el as unknown as { editor?: unknown }).editor) {
-          setIsReady(true);
-          if (pollRef.current) clearInterval(pollRef.current);
-        }
-      } catch {
-        /* ignore */
+      if (editorReady) {
+        setIsReady(true);
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
       }
     }, 250);
 

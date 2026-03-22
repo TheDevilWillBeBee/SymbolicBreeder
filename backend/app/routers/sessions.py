@@ -1,10 +1,13 @@
+import json
+
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as DBSession
 
 from ..database import get_db
 from ..models import db as models
 from ..models.schemas import CreateSessionRequest, SessionResponse, ProgramResponse
-from ..services.evolution import create_seed_generation
+from ..services.evolution import create_seed_generation, create_seed_generation_stream
 
 router = APIRouter()
 
@@ -43,6 +46,54 @@ async def create_session(
         programs=[ProgramResponse.model_validate(p) for p in programs],
         source=source,
         message=message,
+    )
+
+
+@router.post("/sessions/stream")
+async def create_session_stream(
+    request: CreateSessionRequest,
+    db: DBSession = Depends(get_db),
+    x_api_key: str | None = Header(default=None),
+):
+    session = models.Session(
+        name=request.name or "Untitled Session",
+        modality=request.modality,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
+    # Send the session info as the first SSE event so frontend can capture it
+    async def _generate():
+        session_info = {
+            "id": session.id,
+            "name": session.name,
+            "modality": session.modality,
+            "created_at": session.created_at.isoformat() if session.created_at else None,
+        }
+        yield f"event: session\ndata: {json.dumps(session_info)}\n\n"
+
+        async for event_str in create_seed_generation_stream(
+            session.id,
+            modality=request.modality,
+            db=db,
+            guidance=request.prompt,
+            provider_key=request.provider,
+            model=request.model,
+            api_key=x_api_key,
+            base_url=request.base_url,
+            context_profile=request.context_profile,
+        ):
+            yield event_str
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

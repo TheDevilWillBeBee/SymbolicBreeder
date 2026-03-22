@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Program } from '../types';
 import { useSessionStore } from '../store/sessionStore';
 import { highlightCode } from '../utils/syntaxHighlight';
+import { Modal } from './Modal';
 
 interface Props {
   program: Program | null;
@@ -19,23 +20,21 @@ export function CodeModal({ program, onClose }: Props) {
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Program Code</h3>
-          <button onClick={onClose} title="Close">✕</button>
-        </div>
-        <pre className="modal-code code-highlight-static">
-          <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
-        </pre>
-        <div className="modal-meta">
-          <span>Generation {program.generation + 1}</span>
-          {program.parentIds.length > 0 && (
-            <span> · {program.parentIds.length} parent(s)</span>
-          )}
-          <span> · {program.modality}</span>
-        </div>
+    <Modal onClose={onClose}>
+      <div className="modal-header">
+        <h3>Program Code</h3>
+        <button onClick={onClose} title="Close">✕</button>
       </div>
-    </div>
+      <pre className="modal-code code-highlight-static">
+        <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+      </pre>
+      <div className="modal-meta">
+        <span>Generation {program.generation + 1}</span>
+        {program.parentIds.length > 0 && (
+          <span> · {program.parentIds.length} parent(s)</span>
+        )}
+        <span> · {program.modality}</span>
+      </div>
+    </Modal>
   );
 }

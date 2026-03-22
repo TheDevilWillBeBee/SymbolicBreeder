@@ -151,6 +151,7 @@ import type { ModalityPlugin } from '../../types';
 export const myModalityPlugin: ModalityPlugin = {
   key: 'mymodality',
   label: 'My Modality',
+  icon: '✦',                  // shown in the ModalitySelector tile
   language: 'javascript',     // Monaco syntax highlighting language
   description: 'Short description shown on the modality selector tile.',
 
@@ -188,6 +189,7 @@ export const myModalityPlugin: ModalityPlugin = {
 interface ModalityPlugin {
   key: string;
   label: string;
+  icon: string;       // character shown in the modality tile
   language: string;
   description: string;
 
