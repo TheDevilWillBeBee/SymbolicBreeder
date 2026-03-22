@@ -12,20 +12,24 @@ export interface LLMConfig {
 }
 
 interface SessionState {
-  // Core state
+  // ── Domain state (describes the breeding session itself) ──
   session: Session | null;
   modality: string | null;
   generations: Program[][];
   currentGeneration: number;
+  generationMeta: GenerationMeta[];
+  lastEvolveSource: 'llm' | 'mock';
+
+  // ── UI state (transient interaction state, cleared on reset) ──
   selectedProgramIds: Set<string>;
   playingProgramId: string | null;
   guidance: string;
   isEvolving: boolean;
   isLoading: boolean;
   customizedPrograms: Record<string, string>;
-  generationMeta: GenerationMeta[];
+
+  // ── Settings (user preferences, preserved across resets — see reset()) ──
   llmConfig: LLMConfig;
-  lastEvolveSource: 'llm' | 'mock';
 
   // Actions
   setSession: (session: Session) => void;

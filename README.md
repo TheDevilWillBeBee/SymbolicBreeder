@@ -62,7 +62,9 @@ SymbolicBreeder/
 │   │       ├── context.py      # Per-modality context loader
 │   │       ├── evolution.py    # Orchestrates seed/evolve logic
 │   │       ├── llm.py          # LLM orchestration + mock fallback
+│   │       ├── mock_data.py    # Mock program examples (used when no API key is set)
 │   │       └── providers/      # Multi-provider LLM support (Anthropic, OpenAI, Gemini, Qwen)
+│   ├── config.py               # Shared API key utilities
 │   ├── context/
 │   │   ├── strudel/            # Strudel tutorials + examples
 │   │   ├── shader/             # GLSL tutorials + examples
@@ -85,8 +87,10 @@ SymbolicBreeder/
     │   │   ├── openscad/        # OpenSCAD 3D model plugin
     │   │   └── svg/             # SVG vector graphics plugin
     │   ├── components/          # React UI components
-    │   ├── hooks/               # useEvolution, useShaderRenderer
+    │   │   └── detail/          # Lineage tree sub-components (LineageCard, LayeredTreeView, …)
+    │   ├── hooks/               # useVisualPlayback, useStrudelPlayer, useEvolution
     │   ├── store/               # Zustand stores (session, nav, gallery, log)
+    │   ├── utils/               # buildLayeredDAG, syntaxHighlight
     │   └── api/                 # Fetch wrapper
     └── package.json
 ```
@@ -113,7 +117,7 @@ See the [GitHub Issues](https://github.com/TheDevilWillBeBee/SymbolicBreeder/iss
 
 ## Credits
 
-Created by [Ehsan Pajouheshgar](https://pajouheshgar.github.io). The idea emerged from conversations with Ali Golmakani.
+Created by [Ehsan Pajouheshgar](https://pajouheshgar.github.io) and  Ali Golmakani.
 
 Built with the help of coding agents, primarily [Claude Code](https://claude.ai) and [ChatGPT Codex](https://openai.com/index/introducing-codex/).
 

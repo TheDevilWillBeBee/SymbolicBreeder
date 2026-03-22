@@ -4,6 +4,7 @@ import { useSessionStore } from '../store/sessionStore';
 import { useGalleryStore } from '../store/galleryStore';
 import { useLogStore } from '../store/logStore';
 import { api } from '../api/client';
+import { Modal } from './Modal';
 
 interface Props {
   program: Program;
@@ -132,9 +133,8 @@ export function ShareModal({ program, onClose }: Props) {
   }, [shareUrl]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content share-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <Modal onClose={onClose} contentClassName="share-modal">
+      <div className="modal-header">
           <h3>Share to Gallery</h3>
           <button onClick={onClose} title="Close">&times;</button>
         </div>
@@ -188,7 +188,6 @@ export function ShareModal({ program, onClose }: Props) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

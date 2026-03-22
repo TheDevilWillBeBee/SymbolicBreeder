@@ -10,6 +10,8 @@ class QwenProvider(LLMProvider):
         self.model = model
 
     async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
+        # Qwen uses an OpenAI-compatible API (Dashscope). Lazy import for the
+        # same reason as other providers: avoids startup failure if not installed.
         from openai import AsyncOpenAI
 
         client = AsyncOpenAI(api_key=api_key, base_url=self.BASE_URL, timeout=180.0)

@@ -32,30 +32,34 @@ def create_app(api_prefix: str = "/api") -> FastAPI:
         allow_headers=["*"],
     )
 
-    prefixes: list[str] = []
-    for prefix in (api_prefix, "/api", ""):
-        if prefix not in prefixes:
-            prefixes.append(prefix)
+    # Dual-prefix registration: the same routers are mounted at both the
+    # configured api_prefix (e.g. "/api" locally) and at "/" (used by Vercel
+    # serverless functions, which strip the "/api" prefix before forwarding).
+    # Only the api_prefix routes are included in the OpenAPI schema to avoid
+    # duplicate entries in /docs.
+    _routers = [evolve.router, sessions.router, providers.router, gallery.router]
+    prefixes: list[str] = list(dict.fromkeys([api_prefix, "/api", ""]))
 
     for prefix in prefixes:
-        include_in_schema = prefix == api_prefix
-        app.include_router(evolve.router, prefix=prefix, include_in_schema=include_in_schema)
-        app.include_router(sessions.router, prefix=prefix, include_in_schema=include_in_schema)
-        app.include_router(providers.router, prefix=prefix, include_in_schema=include_in_schema)
-        app.include_router(gallery.router, prefix=prefix, include_in_schema=include_in_schema)
+        for router in _routers:
+            app.include_router(
+                router,
+                prefix=prefix,
+                include_in_schema=(prefix == api_prefix),
+            )
 
+    # Health check registered at all active prefixes
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    schema_health_path = f"{api_prefix}/health" if api_prefix else "/health"
-    for path in ["/health", "/api/health"]:
-        if path in {f"{p}/health" if p else "/health" for p in prefixes}:
-            app.add_api_route(
-                path,
-                health,
-                methods=["GET"],
-                include_in_schema=(path == schema_health_path),
-            )
+    for prefix in prefixes:
+        path = f"{prefix}/health" if prefix else "/health"
+        app.add_api_route(
+            path,
+            health,
+            methods=["GET"],
+            include_in_schema=(prefix == api_prefix),
+        )
 
     return app
 

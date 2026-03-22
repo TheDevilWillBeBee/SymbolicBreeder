@@ -133,9 +133,9 @@ export default function App() {
             </p>
             <p className="start-description">
               Inspired by <em>PicBreeder</em>, Symbolic Breeder evolves programs
-              &mdash; music and visuals &mdash; using large language models as
-              the variation engine. Select what you find interesting, and
-              discover what no one planned for.
+              &mdash; music, visuals, 3D models, and vector graphics &mdash; using
+              large language models as the variation engine. Select what you find
+              interesting, and discover what no one planned for.
             </p>
           </div>
 
@@ -309,18 +309,20 @@ export default function App() {
       <LogToasts />
 
       <footer className="app-footer">
-        <span>
+        <div className="footer-links">
+          <button className="footer-link" onClick={goToAbout}>About</button>
+          <span className="footer-sep">&middot;</span>
+          <a href="https://github.com/TheDevilWillBeBee/SymbolicBreeder" target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a>
+        </div>
+        <div className="footer-credit">
           Created by{' '}
           <a href="https://pajouheshgar.github.io" target="_blank" rel="noopener noreferrer">
             Ehsan Pajouheshgar
-          </a>
-        </span>
-        <span className="footer-sep">&middot;</span>
-        <button className="footer-link" onClick={goToAbout}>About</button>
-        <span className="footer-sep">&middot;</span>
-        <a href="https://github.com/TheDevilWillBeBee/SymbolicBreeder" target="_blank" rel="noopener noreferrer">
-          GitHub
-        </a>
+          </a>{' '}
+          and Ali Golmakani
+        </div>
       </footer>
     </div>
   );

@@ -1,4 +1,5 @@
-const ctx: Worker = self as any;
+// In a dedicated worker, self is DedicatedWorkerGlobalScope which implements the Worker interface.
+const ctx = self as unknown as Worker;
 
 ctx.onmessage = async (e: MessageEvent<{ code: string; useManifold?: boolean }>) => {
   const errors: string[] = [];

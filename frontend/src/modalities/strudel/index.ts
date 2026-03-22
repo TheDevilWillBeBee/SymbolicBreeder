@@ -93,6 +93,7 @@ function destroyEditor(): void {
 export const strudelPlugin: ModalityPlugin = {
   key: 'strudel',
   label: 'Strudel',
+  icon: '♪',
   language: 'javascript',
   description: 'Live-coded music patterns — evolve beats, melodies, and soundscapes',
 

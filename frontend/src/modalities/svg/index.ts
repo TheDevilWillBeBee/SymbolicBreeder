@@ -79,6 +79,7 @@ function renderSnapshotCanvas(
 export const svgPlugin: ModalityPlugin = {
   key: 'svg',
   label: 'SVG',
+  icon: '◇',
   language: 'xml',
   description: 'Vector graphics & logos — evolve SVG designs and symbols',
 

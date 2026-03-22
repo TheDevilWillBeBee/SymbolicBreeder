@@ -88,10 +88,12 @@ export interface RenderOptions {
 // ── Modality plugin interface ──
 
 export interface ModalityPlugin {
-  /** Unique key: "strudel" | "shader" */
+  /** Unique key: "strudel" | "shader" | "openscad" | "svg" */
   key: string;
   /** Display name */
   label: string;
+  /** Icon shown in the ModalitySelector tile */
+  icon: string;
   /** Syntax highlighting language for Monaco */
   language: string;
   /** Short description for ModalitySelector */

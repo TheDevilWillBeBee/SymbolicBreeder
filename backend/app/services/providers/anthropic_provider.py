@@ -8,6 +8,8 @@ class AnthropicProvider(LLMProvider):
         self.model = model
 
     async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
+        # Lazy import: keeps the app from crashing at startup if the `anthropic`
+        # package isn't installed (e.g. when only OpenAI or Gemini keys are set).
         import anthropic
 
         client = anthropic.AsyncAnthropic(api_key=api_key, timeout=180.0)

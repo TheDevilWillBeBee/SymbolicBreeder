@@ -1,9 +1,9 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { Program, RenderHandle } from '../types';
+import { useCallback, useState } from 'react';
+import { Program } from '../types';
 import { useSessionStore } from '../store/sessionStore';
-import { getPlugin } from '../modalityRegistry';
 import { StrudelHighlight } from './StrudelHighlight';
 import { ManifoldToggle } from './ManifoldToggle';
+import { useVisualPlayback } from '../hooks/useVisualPlayback';
 
 interface Props {
   program: Program;
@@ -35,45 +35,17 @@ export function ProgramCard({
   const isOpenSCAD = modality === 'openscad';
   const hasVisualRender = !isStrudel;
 
-  // Use customized code if available
   const displayCode = customizedPrograms[program.id] ?? program.code;
   const isCustomized = program.id in customizedPrograms;
 
-  const previewRef = useRef<HTMLDivElement>(null);
-  const handleRef = useRef<RenderHandle | null>(null);
-
-  const [visualPaused, setVisualPaused] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [useManifold, setUseManifold] = useState(true);
+  const [copied, setCopied] = useState(false);
 
-  // For visual modalities (shader, openscad, svg), render into container
-  useEffect(() => {
-    if (!hasVisualRender || !previewRef.current) return;
-    handleRef.current?.cleanup();
-    const plugin = getPlugin(modality!);
-    handleRef.current = plugin.render(displayCode, previewRef.current, { useManifold });
-    setVisualPaused(false);
-    return () => {
-      handleRef.current?.cleanup();
-      handleRef.current = null;
-    };
-  }, [hasVisualRender, displayCode, modality, useManifold]);
-
-  const handleTogglePause = useCallback(() => {
-    if (!handleRef.current) return;
-    if (visualPaused) {
-      handleRef.current.resume?.();
-      setVisualPaused(false);
-    } else {
-      handleRef.current.pause?.();
-      setVisualPaused(true);
-    }
-  }, [visualPaused]);
-
-  const handleReset = useCallback(() => {
-    handleRef.current?.reset?.();
-    setVisualPaused(false);
-  }, []);
+  const { containerRef, isPaused, togglePause, reset } = useVisualPlayback(
+    modality ?? program.modality,
+    displayCode,
+    { useManifold },
+  );
 
   const handleCopy = useCallback(() => {
     let code = displayCode;
@@ -99,7 +71,7 @@ export function ProgramCard({
         'program-card' +
         (isSelected ? ' selected' : '') +
         (isPlaying ? ' playing' : '') +
-        (hasVisualRender && visualPaused ? ' paused' : '')
+        (hasVisualRender && isPaused ? ' paused' : '')
       }
     >
       {/* Preview area */}
@@ -107,7 +79,7 @@ export function ProgramCard({
         <div className="program-card-preview-wrapper" onClick={() => toggleProgramSelection(program.id)}>
           <div
             className={'program-card-preview ' + modality + '-preview'}
-            ref={previewRef}
+            ref={containerRef}
           />
           {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
@@ -126,11 +98,11 @@ export function ProgramCard({
         <div className="program-card-left">
           {hasVisualRender ? (
             <button
-              className={'play-btn' + (visualPaused ? '' : ' active')}
-              onClick={handleTogglePause}
-              title={visualPaused ? 'Resume' : 'Pause'}
+              className={'play-btn' + (isPaused ? '' : ' active')}
+              onClick={togglePause}
+              title={isPaused ? 'Resume' : 'Pause'}
             >
-              {visualPaused ? '▶' : '⏸'}
+              {isPaused ? '▶' : '⏸'}
             </button>
           ) : (
             <button
@@ -144,7 +116,7 @@ export function ProgramCard({
           {hasVisualRender && (
             <button
               className="reset-btn"
-              onClick={handleReset}
+              onClick={reset}
               title="Reset to initial state"
             >
               ↺

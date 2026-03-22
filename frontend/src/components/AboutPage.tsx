@@ -10,9 +10,10 @@ export function AboutPage() {
         <h2>About Symbolic Breeder</h2>
 
         <p>
-          Symbolic Breeder is an open-ended evolutionary tool for discovering music and visual
-          patterns. You guide the evolution of programs through selection — pick what you find
-          interesting, and a large language model produces the next generation of variations.
+          Symbolic Breeder is an open-ended evolutionary tool for discovering music, visual
+          patterns, 3D models, and vector graphics. You guide the evolution of programs through
+          selection — pick what you find interesting, and a large language model produces the
+          next generation of variations.
         </p>
 
         <h3>The Idea</h3>
@@ -27,22 +28,30 @@ export function AboutPage() {
         <p>
           Our insight: instead of evolving neural networks with a hand-crafted mutation algorithm,
           we evolve <strong>programs</strong> using large language models as the variation engine.
-          This opens the door to two expressive programming paradigms:
+          This opens the door to expressive programming paradigms that produce live output:
         </p>
         <ul>
           <li>
-            <strong>Strudel</strong> — a live-coding language for creating music, where a few lines
+            <strong>Strudel ♪</strong> — a live-coding language for creating music, where a few lines
             of code can produce rich rhythmic and melodic patterns
           </li>
           <li>
-            <strong>WebGL Shaders</strong> — fragment programs that generate dynamic visual
+            <strong>WebGL Shader ◆</strong> — fragment programs that generate dynamic visual
             patterns, from fractals and noise fields to complex animated scenes
+          </li>
+          <li>
+            <strong>OpenSCAD ⬡</strong> — parametric 3D modelling language for sculptures,
+            mechanisms, and mathematical forms rendered directly in the browser
+          </li>
+          <li>
+            <strong>SVG ◇</strong> — scalable vector graphics with SMIL and CSS animation,
+            from simple icons to intricate generative designs
           </li>
         </ul>
 
         <h3>How It Works</h3>
         <ol>
-          <li>Choose a modality (music or visuals) and optionally describe a theme</li>
+          <li>Choose a modality (Strudel, Shader, OpenSCAD, or SVG) and optionally describe a theme</li>
           <li>The LLM generates an initial population of programs</li>
           <li>Browse the live-rendered results — listen to music, watch shaders animate</li>
           <li>Select the programs you find most interesting</li>
@@ -71,6 +80,13 @@ export function AboutPage() {
           planned for.
         </p>
 
+        <h3>LLM Providers</h3>
+        <p>
+          Symbolic Breeder supports multiple LLM providers — Anthropic Claude, OpenAI GPT, Google
+          Gemini, and Qwen. You can select your preferred model in the UI and supply your own API
+          key, or use a server-configured key if one is available on the deployment you are using.
+        </p>
+
         <h3>The Gallery</h3>
         <p>
           When you discover something worth sharing, you can publish it to the{' '}
@@ -85,8 +101,8 @@ export function AboutPage() {
           Created by{' '}
           <a href="https://pajouheshgar.github.io" target="_blank" rel="noopener noreferrer">
             Ehsan Pajouheshgar
-          </a>.
-          The idea emerged from conversations with Ali Golmakani.
+          </a>{' '}
+          and Ali Golmakani.
         </p>
         <p>
           Built with the help of coding agents, primarily{' '}

@@ -2304,15 +2304,25 @@ body.modality-non-strudel .cm-panels {
 
 .app-footer {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   padding: 1.5rem 0 1rem;
   margin-top: 2rem;
   border-top: 1px solid var(--border);
   font-size: 0.75rem;
   color: var(--text-secondary);
-  flex-wrap: wrap;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-credit {
+  color: var(--text-secondary);
 }
 
 .app-footer a,

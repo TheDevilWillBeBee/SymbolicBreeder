@@ -9,6 +9,7 @@ class OpenAIProvider(LLMProvider):
         self.base_url = base_url
 
     async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
+        # Lazy import: allows the app to start even if `openai` isn't installed.
         from openai import AsyncOpenAI
 
         client = AsyncOpenAI(api_key=api_key, base_url=self.base_url, timeout=180.0)

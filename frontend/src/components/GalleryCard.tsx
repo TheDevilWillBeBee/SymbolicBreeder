@@ -1,9 +1,9 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { SharedProgram, RenderHandle, LineageProgram } from '../types';
-import { getPlugin } from '../modalityRegistry';
+import { useCallback, useState } from 'react';
+import { SharedProgram, LineageProgram } from '../types';
 import { StrudelHighlight } from './StrudelHighlight';
 import { useNavStore } from '../store/navStore';
 import { ManifoldToggle } from './ManifoldToggle';
+import { useVisualPlayback } from '../hooks/useVisualPlayback';
 
 function summarizeLineageModels(lineage: LineageProgram[]): string {
   const models = new Set(lineage.map((p) => p.llmModel).filter(Boolean));
@@ -31,41 +31,16 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
   const isStrudel = program.modality === 'strudel';
   const isOpenSCAD = program.modality === 'openscad';
   const hasVisualRender = !isStrudel;
-  const previewRef = useRef<HTMLDivElement>(null);
-  const handleRef = useRef<RenderHandle | null>(null);
-  const [visualPaused, setVisualPaused] = useState(false);
+
   const [useManifold, setUseManifold] = useState(true);
 
-  useEffect(() => {
-    if (!hasVisualRender || !previewRef.current) return;
-    handleRef.current?.cleanup();
-    const plugin = getPlugin(program.modality);
-    handleRef.current = plugin.render(program.code, previewRef.current, { useManifold });
-    setVisualPaused(false);
-    return () => {
-      handleRef.current?.cleanup();
-      handleRef.current = null;
-    };
-  }, [hasVisualRender, program.code, program.modality, useManifold]);
-
-  const handleTogglePause = useCallback(() => {
-    if (!handleRef.current) return;
-    if (visualPaused) {
-      handleRef.current.resume?.();
-      setVisualPaused(false);
-    } else {
-      handleRef.current.pause?.();
-      setVisualPaused(true);
-    }
-  }, [visualPaused]);
-
-  const handleReset = useCallback(() => {
-    handleRef.current?.reset?.();
-    setVisualPaused(false);
-  }, []);
+  const { containerRef, isPaused, togglePause, reset } = useVisualPlayback(
+    program.modality,
+    program.code,
+    { useManifold },
+  );
 
   const goToDetail = useNavStore((s) => s.goToDetail);
-
   const handleCardClick = useCallback(() => {
     goToDetail(program.id);
   }, [goToDetail, program.id]);
@@ -74,7 +49,7 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
     <div className={'gallery-card' + (isPlaying ? ' playing' : '')}>
       {hasVisualRender ? (
         <div className="gallery-card-preview-wrapper" onClick={handleCardClick}>
-          <div className={'gallery-card-preview ' + program.modality + '-preview'} ref={previewRef} />
+          <div className={'gallery-card-preview ' + program.modality + '-preview'} ref={containerRef} />
           {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
       ) : (
@@ -90,15 +65,15 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
           {hasVisualRender ? (
             <>
               <button
-                className={'play-btn' + (visualPaused ? '' : ' active')}
-                onClick={(e) => { e.stopPropagation(); handleTogglePause(); }}
-                title={visualPaused ? 'Resume' : 'Pause'}
+                className={'play-btn' + (isPaused ? '' : ' active')}
+                onClick={(e) => { e.stopPropagation(); togglePause(); }}
+                title={isPaused ? 'Resume' : 'Pause'}
               >
-                {visualPaused ? '\u25B6' : '\u23F8'}
+                {isPaused ? '\u25B6' : '\u23F8'}
               </button>
               <button
                 className="reset-btn"
-                onClick={(e) => { e.stopPropagation(); handleReset(); }}
+                onClick={(e) => { e.stopPropagation(); reset(); }}
                 title="Reset to initial state"
               >
                 ↺
