@@ -152,6 +152,20 @@ export function ModelSelector() {
           ))}
         </div>
       </div>
+
+      {(llmConfig.apiKey || serverKeyAvailable) && (
+        <div className="model-selector-row stream-toggle-row">
+          <label className="stream-toggle-label">
+            <input
+              type="checkbox"
+              checked={llmConfig.streamOutput}
+              onChange={(e) => setLLMConfig({ streamOutput: e.target.checked })}
+            />
+            <span>Stream LLM output</span>
+          </label>
+          <span className="stream-toggle-hint">Watch code being generated in real-time</span>
+        </div>
+      )}
     </div>
   );
 }

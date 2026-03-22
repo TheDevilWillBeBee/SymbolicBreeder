@@ -7,6 +7,7 @@ import { GenerationNav } from './components/GenerationNav';
 import { CodeModal } from './components/CodeModal';
 import { CustomizeModal } from './components/CustomizeModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
+import { StreamingOverlay } from './components/StreamingOverlay';
 import { LogToasts } from './components/LogToasts';
 import { ShareModal } from './components/ShareModal';
 import { GalleryPage } from './components/GalleryPage';
@@ -45,6 +46,8 @@ export default function App() {
   const session = useSessionStore((s) => s.session);
   const isEvolving = useSessionStore((s) => s.isEvolving);
   const isLoading = useSessionStore((s) => s.isLoading);
+  const streamOutput = useSessionStore((s) => s.llmConfig.streamOutput);
+  const streamingText = useSessionStore((s) => s.streamingText);
   const customizedPrograms = useSessionStore((s) => s.customizedPrograms);
   const setPlayingProgramId = useSessionStore((s) => s.setPlayingProgramId);
 
@@ -182,18 +185,24 @@ export default function App() {
         )}
 
         {(isLoading || isEvolving) && (
-          <LoadingOverlay
-            message={
-              isLoading
-                ? `Seeding generation 0...`
-                : `Evolving generation ${currentGeneration + 2}...`
-            }
-            hint={
-              modality === 'shader'
-                ? 'The LLM is crafting shaders for you'
-                : 'The LLM is composing music for you'
-            }
-          />
+          streamOutput && streamingText ? (
+            <StreamingOverlay populationSize={6} />
+          ) : (
+            <LoadingOverlay
+              message={
+                isLoading
+                  ? `Seeding generation 0...`
+                  : `Evolving generation ${currentGeneration + 2}...`
+              }
+              hint={
+                modality === 'strudel' ? 'The LLM is composing music for you' :
+                modality === 'shader' ? 'The LLM is crafting shaders for you' :
+                modality === 'openscad' ? 'The LLM is sculpting 3D models for you' :
+                modality === 'svg' ? 'The LLM is drawing vector graphics for you' :
+                'The LLM is generating programs for you'
+              }
+            />
+          )
         )}
 
         <main>

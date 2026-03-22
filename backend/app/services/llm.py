@@ -1,7 +1,9 @@
 """LLM integration for generating programs across modalities."""
 
+import json
 import logging
 import re
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Optional
 
@@ -161,4 +163,82 @@ def _parse_code_blocks(
     if not blocks:
         return _mock_generate(modality, [], expected)
     return blocks[:expected]
+
+
+def _sse_event(event: str, data: dict | str) -> str:
+    """Format a single SSE event."""
+    payload = json.dumps(data) if isinstance(data, dict) else data
+    return f"event: {event}\ndata: {payload}\n\n"
+
+
+async def generate_programs_stream(
+    modality: str,
+    parent_codes: list[str],
+    population_size: int = 6,
+    guidance: Optional[str] = None,
+    provider_key: str = "anthropic",
+    model: str = "claude-sonnet-4-20250514",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    context_profile: str = "intermediate",
+) -> AsyncIterator[str]:
+    """Stream LLM generation as SSE events: token, done, error, or mock."""
+    if not api_key:
+        api_key = get_server_api_key()
+
+    if not api_key:
+        codes = _mock_generate(modality, parent_codes, population_size)
+        yield _sse_event("mock", {"codes": codes, "source": "mock", "message": "No API key available — used mock examples"})
+        return
+
+    try:
+        yield _sse_event("status", {"phase": "connecting"})
+        provider = get_provider(provider_key, model, base_url)
+        config = get_prompt_config(modality)
+        system_prompt = _build_system_prompt(modality, context_profile)
+        fence = _MODALITY_FENCES.get(modality, "")
+
+        if parent_codes:
+            parent_section = "\n\n".join(
+                f"Parent {i + 1}:\n```{fence}\n{code}\n```"
+                for i, code in enumerate(parent_codes)
+            )
+            prompt = (
+                f"Here are the parent programs the user selected:\n\n"
+                f"{parent_section}\n\n"
+                + config.get("evolve_prompt", "").format(n=population_size)
+            )
+        else:
+            prompt = config.get("seed_prompt", "").format(n=population_size)
+
+        if guidance:
+            prompt += f'\n\nThe user requested: "{guidance}"'
+
+        variety = config.get("variety_suffix", "")
+        if variety:
+            prompt += "\n\n" + variety.format(n=population_size)
+
+        yield _sse_event("status", {"phase": "sending"})
+        llm_request = LLMRequest(system=system_prompt, user=prompt)
+        accumulated = ""
+        first_token = True
+
+        async for delta in provider.stream_complete(llm_request, api_key):
+            if first_token:
+                yield _sse_event("status", {"phase": "generating"})
+                first_token = False
+            accumulated += delta
+            yield _sse_event("token", {"text": delta})
+
+        codes = _parse_code_blocks(accumulated, fence, population_size, modality)
+        yield _sse_event("done", {"codes": codes, "source": "llm"})
+
+    except Exception as exc:
+        logger.warning("LLM stream failed (%s), falling back to mock: %s", type(exc).__name__, exc)
+        codes = _mock_generate(modality, parent_codes, population_size)
+        yield _sse_event("error", {
+            "codes": codes,
+            "source": "mock",
+            "message": f"LLM error: {exc} — used mock examples instead",
+        })
 

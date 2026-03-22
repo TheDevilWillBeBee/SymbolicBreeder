@@ -1,5 +1,7 @@
 """Anthropic Claude provider."""
 
+from collections.abc import AsyncIterator
+
 from .base import LLMProvider, LLMRequest, LLMResponse
 
 
@@ -7,13 +9,8 @@ class AnthropicProvider(LLMProvider):
     def __init__(self, model: str, **kwargs):
         self.model = model
 
-    async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
-        # Lazy import: keeps the app from crashing at startup if the `anthropic`
-        # package isn't installed (e.g. when only OpenAI or Gemini keys are set).
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=api_key, timeout=180.0)
-        response = await client.messages.create(
+    def _build_kwargs(self, request: LLMRequest):
+        return dict(
             model=self.model,
             max_tokens=request.max_tokens,
             system=[
@@ -26,7 +23,21 @@ class AnthropicProvider(LLMProvider):
             messages=[{"role": "user", "content": request.user}],
             extra_headers={"anthropic-beta": "extended-cache-ttl-2025-04-11"},
         )
+
+    async def complete(self, request: LLMRequest, api_key: str) -> LLMResponse:
+        import anthropic
+
+        client = anthropic.AsyncAnthropic(api_key=api_key, timeout=180.0)
+        response = await client.messages.create(**self._build_kwargs(request))
         return LLMResponse(text=response.content[0].text)
+
+    async def stream_complete(self, request: LLMRequest, api_key: str) -> AsyncIterator[str]:
+        import anthropic
+
+        client = anthropic.AsyncAnthropic(api_key=api_key, timeout=180.0)
+        async with client.messages.stream(**self._build_kwargs(request)) as stream:
+            async for text in stream.text_stream:
+                yield text
 
     @classmethod
     def supported_models(cls) -> list[str]:

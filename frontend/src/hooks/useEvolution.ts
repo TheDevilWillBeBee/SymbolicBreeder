@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useSessionStore } from '../store/sessionStore';
 import { useLogStore } from '../store/logStore';
-import { api, setApiLLMConfig } from '../api/client';
+import { api, setApiLLMConfig, streamPost } from '../api/client';
 import { Program } from '../types';
 
 // ── Mock pools (per modality) ──
@@ -161,14 +161,17 @@ export function useEvolution() {
       store.setIsLoading(true);
 
       try {
-        const { provider, model, baseUrl, contextProfile } = llmConfig;
-        const res = await api.post<{
-          id: string;
-          name: string;
-          modality: string;
-          created_at: string;
-          source: string;
-          message: string | null;
+        const { provider, model, baseUrl, contextProfile, streamOutput } = llmConfig;
+        const requestBody = {
+          modality,
+          prompt: initialPrompt || undefined,
+          provider,
+          model,
+          ...(baseUrl ? { base_url: baseUrl } : {}),
+          context_profile: contextProfile || 'intermediate',
+        };
+
+        type SeedResult = {
           programs: Array<{
             id: string;
             code: string;
@@ -178,46 +181,115 @@ export function useEvolution() {
             session_id: string;
             created_at: string;
           }>;
-        }>('/api/sessions', {
-          modality,
-          prompt: initialPrompt || undefined,
-          provider,
-          model,
-          ...(baseUrl ? { base_url: baseUrl } : {}),
-          context_profile: contextProfile || 'intermediate',
-        });
+          generation: number;
+          source: string;
+          message: string | null;
+        };
 
-        store.setSession({
-          id: res.id,
-          name: res.name,
-          modality: res.modality,
-          createdAt: res.created_at,
-        });
-        store.addGeneration(
-          res.programs.map((p) => ({
-            id: p.id,
-            code: p.code,
-            modality: p.modality,
-            generation: p.generation,
-            parentIds: p.parent_ids,
-            sessionId: p.session_id,
-            createdAt: p.created_at,
-          })),
-        );
+        if (streamOutput) {
+          // Streaming path
+          store.setStreamingText('');
+          const result = await new Promise<SeedResult>((resolve, reject) => {
+            streamPost<SeedResult>('/api/sessions/stream', requestBody, {
+              onSession: (sessionData) => {
+                store.setSession({
+                  id: sessionData.id,
+                  name: sessionData.name,
+                  modality: sessionData.modality,
+                  createdAt: sessionData.created_at,
+                });
+              },
+              onToken: (text) => {
+                useSessionStore.getState().appendStreamingText(text);
+              },
+              onDone: (data) => resolve(data),
+              onError: (msg) => {
+                useLogStore.getState().addLog('warning', msg);
+              },
+              onStatus: (phase) => {
+                useSessionStore.getState().setStreamingPhase(phase);
+              },
+            }).catch(reject);
+          });
 
-        const addLog = useLogStore.getState().addLog;
-        const isMock = res.source === 'mock';
-        store.addGenerationMeta({
-          guidance: initialPrompt || '',
-          llmModel: isMock ? 'Mock' : `${provider}/${model}`,
-          contextProfile: contextProfile || 'intermediate',
-        });
-        if (isMock) {
-          store.setLastEvolveSource('mock');
-          addLog('warning', res.message ?? 'Backend used mock examples');
+          store.addGeneration(
+            result.programs.map((p) => ({
+              id: p.id,
+              code: p.code,
+              modality: p.modality,
+              generation: p.generation,
+              parentIds: p.parent_ids ?? [],
+              sessionId: p.session_id ?? store.session?.id ?? '',
+              createdAt: p.created_at ?? new Date().toISOString(),
+            })),
+          );
+
+          const addLog = useLogStore.getState().addLog;
+          const isMock = result.source === 'mock';
+          store.addGenerationMeta({
+            guidance: initialPrompt || '',
+            llmModel: isMock ? 'Mock' : `${provider}/${model}`,
+            contextProfile: contextProfile || 'intermediate',
+          });
+          if (isMock) {
+            store.setLastEvolveSource('mock');
+            addLog('warning', result.message ?? 'Backend used mock examples');
+          } else {
+            store.setLastEvolveSource('llm');
+            addLog('success', `Generation seeded via ${provider}/${model}`);
+          }
         } else {
-          store.setLastEvolveSource('llm');
-          addLog('success', `Generation seeded via ${provider}/${model}`);
+          // Non-streaming path
+          const res = await api.post<{
+            id: string;
+            name: string;
+            modality: string;
+            created_at: string;
+            source: string;
+            message: string | null;
+            programs: Array<{
+              id: string;
+              code: string;
+              modality: string;
+              generation: number;
+              parent_ids: string[];
+              session_id: string;
+              created_at: string;
+            }>;
+          }>('/api/sessions', requestBody);
+
+          store.setSession({
+            id: res.id,
+            name: res.name,
+            modality: res.modality,
+            createdAt: res.created_at,
+          });
+          store.addGeneration(
+            res.programs.map((p) => ({
+              id: p.id,
+              code: p.code,
+              modality: p.modality,
+              generation: p.generation,
+              parentIds: p.parent_ids,
+              sessionId: p.session_id,
+              createdAt: p.created_at,
+            })),
+          );
+
+          const addLog = useLogStore.getState().addLog;
+          const isMock = res.source === 'mock';
+          store.addGenerationMeta({
+            guidance: initialPrompt || '',
+            llmModel: isMock ? 'Mock' : `${provider}/${model}`,
+            contextProfile: contextProfile || 'intermediate',
+          });
+          if (isMock) {
+            store.setLastEvolveSource('mock');
+            addLog('warning', res.message ?? 'Backend used mock examples');
+          } else {
+            store.setLastEvolveSource('llm');
+            addLog('success', `Generation seeded via ${provider}/${model}`);
+          }
         }
       } catch (err) {
         // Mock mode — no backend available
@@ -242,6 +314,8 @@ export function useEvolution() {
         addLog('error', `Backend unavailable — using mock examples. ${err instanceof Error ? err.message : ''}`);
       } finally {
         store.setIsLoading(false);
+        store.setStreamingText('');
+        store.setStreamingPhase('');
       }
     },
     [],
@@ -264,8 +338,20 @@ export function useEvolution() {
       }));
 
       try {
-        const { provider, model, baseUrl, contextProfile } = store.llmConfig;
-        const res = await api.post<{
+        const { provider, model, baseUrl, contextProfile, streamOutput } = store.llmConfig;
+        const requestBody = {
+          modality,
+          parents: parentPayload,
+          guidance,
+          population_size: 6,
+          session_id: store.session?.id,
+          provider,
+          model,
+          ...(baseUrl ? { base_url: baseUrl } : {}),
+          context_profile: contextProfile || 'intermediate',
+        };
+
+        type EvolveResult = {
           programs: Array<{
             id: string;
             code: string;
@@ -278,17 +364,31 @@ export function useEvolution() {
           generation: number;
           source: string;
           message: string | null;
-        }>('/api/evolve', {
-          modality,
-          parents: parentPayload,
-          guidance,
-          population_size: 6,
-          session_id: store.session?.id,
-          provider,
-          model,
-          ...(baseUrl ? { base_url: baseUrl } : {}),
-          context_profile: contextProfile || 'intermediate',
-        });
+        };
+
+        let res: EvolveResult;
+
+        if (streamOutput) {
+          // Streaming path via SSE
+          store.setStreamingText('');
+          res = await new Promise<EvolveResult>((resolve, reject) => {
+            streamPost<EvolveResult>('/api/evolve/stream', requestBody, {
+              onToken: (text) => {
+                useSessionStore.getState().appendStreamingText(text);
+              },
+              onDone: (data) => resolve(data),
+              onError: (msg) => {
+                useLogStore.getState().addLog('warning', msg);
+              },
+              onStatus: (phase) => {
+                useSessionStore.getState().setStreamingPhase(phase);
+              },
+            }).catch(reject);
+          });
+        } else {
+          // Regular non-streaming path
+          res = await api.post<EvolveResult>('/api/evolve', requestBody);
+        }
 
         // If no session existed locally, capture the backend-created one
         if (!store.session && res.programs.length > 0) {
@@ -356,6 +456,8 @@ export function useEvolution() {
       } finally {
         store.setGuidance('');
         store.setIsEvolving(false);
+        store.setStreamingText('');
+        store.setStreamingPhase('');
       }
     },
     [],
