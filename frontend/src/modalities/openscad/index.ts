@@ -81,6 +81,8 @@ function buildScene(
 
   const loader = new STLLoaderCtor();
   const geometry: import('three').BufferGeometry = loader.parse(stlText);
+  // OpenSCAD STL is Z-up; Three.js is Y-up — align axes before centering.
+  geometry.rotateX(-Math.PI / 2);
   geometry.computeBoundingBox();
   geometry.computeVertexNormals();
 
@@ -295,6 +297,7 @@ function renderSnapshotCanvas(
   const T = THREE;
   const loader = new STLLoaderCtor();
   const geometry: import('three').BufferGeometry = loader.parse(cached);
+  geometry.rotateX(-Math.PI / 2);
   geometry.computeBoundingBox();
   geometry.computeVertexNormals();
 
