@@ -1,5 +1,7 @@
 import { SharedProgram } from '../types';
 
+const formatSvgMock = (svg: string): string => svg.replace(/></g, '>\n<');
+
 export const MOCK_SHARED_PROGRAMS: SharedProgram[] = [
   // ── Shader programs ──
 
@@ -1124,3 +1126,31 @@ $: n(irand(10).seg(0.5).add("[0 3]/4").add("0, 2, 4")).scale("G3:minor").sound("
     ],
   },
 ];
+
+for (const program of MOCK_SHARED_PROGRAMS) {
+  if (program.modality !== 'svg') {
+    continue;
+  }
+
+  program.code = formatSvgMock(program.code);
+
+  if (!program.lineage) {
+    continue;
+  }
+
+  for (const lineageNode of program.lineage) {
+    if (lineageNode.modality !== 'svg') {
+      continue;
+    }
+
+    lineageNode.code = formatSvgMock(lineageNode.code);
+
+    if (lineageNode.originalCode) {
+      lineageNode.originalCode = formatSvgMock(lineageNode.originalCode);
+    }
+
+    if (lineageNode.customizedCode) {
+      lineageNode.customizedCode = formatSvgMock(lineageNode.customizedCode);
+    }
+  }
+}

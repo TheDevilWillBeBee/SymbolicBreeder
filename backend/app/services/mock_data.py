@@ -6,6 +6,10 @@ samples from the pool, avoiding re-selecting parent programs.
 
 import random
 
+
+def _format_svg_mock(svg: str) -> str:
+    return svg.replace("><", ">\n<")
+
 _MOCK_POOLS: dict[str, list[str]] = {
     "strudel": [
         'setcpm(120/4)\nvar scale = "D:minor"\n$: s("bd*4, [~ sd]*2, hh*8").bank("RolandTR909")._scope()\n$: note("<d2 a2 bb2 g2>").s("sawtooth").lpf(600).gain(0.6).scale(scale)._pianoroll()',
@@ -88,6 +92,8 @@ _MOCK_POOLS: dict[str, list[str]] = {
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="#e17055" opacity="0.3"/></pattern></defs><rect width="200" height="200" fill="#dfe6e9"/><rect width="200" height="200" fill="url(#dots)"/><g transform="translate(100,100)"><path d="M0,-50 Q50,0 0,50 Q-50,0 0,-50Z" fill="#d63031"/><path d="M0,-30 Q30,0 0,30 Q-30,0 0,-30Z" fill="#dfe6e9"/></g></svg>',
     ],
 }
+
+_MOCK_POOLS["svg"] = [_format_svg_mock(svg) for svg in _MOCK_POOLS["svg"]]
 
 
 def _mock_generate(
