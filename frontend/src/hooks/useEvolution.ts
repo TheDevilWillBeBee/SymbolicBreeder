@@ -3,6 +3,7 @@ import { useSessionStore } from '../store/sessionStore';
 import { useLogStore } from '../store/logStore';
 import { api, setApiLLMConfig, streamPost } from '../api/client';
 import { Program } from '../types';
+import { formatLLMLabel } from '../utils/llmLabel';
 
 // ── Mock pools (per modality) ──
 
@@ -162,6 +163,7 @@ export function useEvolution() {
 
       try {
         const { provider, model, baseUrl, contextProfile, streamOutput } = llmConfig;
+        const llmLabel = formatLLMLabel(provider, model, baseUrl);
         const requestBody = {
           modality,
           prompt: initialPrompt || undefined,
@@ -228,7 +230,7 @@ export function useEvolution() {
           const isMock = result.source === 'mock';
           store.addGenerationMeta({
             guidance: initialPrompt || '',
-            llmModel: isMock ? 'Mock' : `${provider}/${model}`,
+            llmModel: isMock ? 'Mock' : llmLabel,
             contextProfile: contextProfile || 'intermediate',
           });
           if (isMock) {
@@ -236,7 +238,7 @@ export function useEvolution() {
             addLog('warning', result.message ?? 'Backend used mock examples');
           } else {
             store.setLastEvolveSource('llm');
-            addLog('success', `Generation seeded via ${provider}/${model}`);
+            addLog('success', `Generation seeded via ${llmLabel}`);
           }
         } else {
           // Non-streaming path
@@ -280,7 +282,7 @@ export function useEvolution() {
           const isMock = res.source === 'mock';
           store.addGenerationMeta({
             guidance: initialPrompt || '',
-            llmModel: isMock ? 'Mock' : `${provider}/${model}`,
+            llmModel: isMock ? 'Mock' : llmLabel,
             contextProfile: contextProfile || 'intermediate',
           });
           if (isMock) {
@@ -288,7 +290,7 @@ export function useEvolution() {
             addLog('warning', res.message ?? 'Backend used mock examples');
           } else {
             store.setLastEvolveSource('llm');
-            addLog('success', `Generation seeded via ${provider}/${model}`);
+            addLog('success', `Generation seeded via ${llmLabel}`);
           }
         }
       } catch (err) {
@@ -339,6 +341,7 @@ export function useEvolution() {
 
       try {
         const { provider, model, baseUrl, contextProfile, streamOutput } = store.llmConfig;
+        const llmLabel = formatLLMLabel(provider, model, baseUrl);
         const requestBody = {
           modality,
           parents: parentPayload,
@@ -419,7 +422,7 @@ export function useEvolution() {
         const isMockEvolve = res.source === 'mock';
         store.addGenerationMeta({
           guidance: guidance || '',
-          llmModel: isMockEvolve ? 'Mock' : `${provider}/${model}`,
+          llmModel: isMockEvolve ? 'Mock' : llmLabel,
           contextProfile: contextProfile || 'intermediate',
         });
         if (isMockEvolve) {
@@ -427,7 +430,7 @@ export function useEvolution() {
           addLog('warning', res.message ?? 'Backend used mock examples');
         } else {
           store.setLastEvolveSource('llm');
-          addLog('success', `Generation ${res.generation} evolved via ${provider}/${model}`);
+          addLog('success', `Generation ${res.generation} evolved via ${llmLabel}`);
         }
       } catch (err) {
         // Mock evolution

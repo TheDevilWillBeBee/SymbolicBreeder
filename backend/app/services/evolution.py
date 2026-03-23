@@ -17,11 +17,25 @@ def _id() -> str:
 
 
 def _ensure_session(session_id: Optional[str], modality: str, db: DBSession) -> str:
-    """Return session_id, creating a new Session row if one wasn't provided."""
-    if not session_id:
+    """Return a valid session_id, creating the Session row if needed.
+
+    This handles both cases:
+    - no session_id supplied
+    - session_id supplied but row no longer exists (e.g. DB reset while UI kept state)
+    """
+    if session_id:
+        existing = (
+            db.query(models.Session.id)
+            .filter(models.Session.id == session_id)
+            .first()
+        )
+        if existing:
+            return session_id
+    else:
         session_id = _id()
-        db.add(models.Session(id=session_id, name="Untitled Session", modality=modality))
-        db.flush()
+
+    db.add(models.Session(id=session_id, name="Untitled Session", modality=modality))
+    db.flush()
     return session_id
 
 

@@ -5,6 +5,7 @@ import { useGalleryStore } from '../store/galleryStore';
 import { useLogStore } from '../store/logStore';
 import { api } from '../api/client';
 import { Modal } from './Modal';
+import { formatLLMLabel } from '../utils/llmLabel';
 
 interface Props {
   program: Program;
@@ -77,6 +78,11 @@ export function ShareModal({ program, onClose }: Props) {
   const addSharedProgram = useGalleryStore((s) => s.addSharedProgram);
 
   const displayCode = customizedPrograms[program.id] ?? program.code;
+  const currentLLMLabel = formatLLMLabel(
+    llmConfig.provider,
+    llmConfig.model,
+    llmConfig.baseUrl,
+  );
 
   const handleShare = useCallback(async () => {
     if (!sharerName.trim()) return;
@@ -92,7 +98,7 @@ export function ShareModal({ program, onClose }: Props) {
     }
 
     const sharedId = crypto.randomUUID();
-    const llmLabel = summarizeLineageField(lineage, 'llmModel') || (lastEvolveSource === 'mock' ? 'Mock' : `${llmConfig.provider}/${llmConfig.model}`);
+    const llmLabel = summarizeLineageField(lineage, 'llmModel') || (lastEvolveSource === 'mock' ? 'Mock' : currentLLMLabel);
     const sharedProgram: SharedProgram = {
       id: sharedId,
       programId: program.id,
@@ -123,7 +129,7 @@ export function ShareModal({ program, onClose }: Props) {
     setShareUrl(url);
     setIsSharing(false);
     addLog('success', 'Program shared to the gallery!');
-  }, [sharerName, program, generations, generationMeta, displayCode, llmConfig, addLog, addSharedProgram]);
+  }, [sharerName, program, generations, generationMeta, displayCode, lastEvolveSource, currentLLMLabel, addLog, addSharedProgram]);
 
   const handleCopyUrl = useCallback(() => {
     if (!shareUrl) return;
@@ -159,7 +165,7 @@ export function ShareModal({ program, onClose }: Props) {
               <div className="share-preview-info">
                 <span className="share-modality">{program.modality}</span>
                 <span className="share-gen">Generation {program.generation + 1}</span>
-                <span className="share-model">{lastEvolveSource === 'mock' ? 'Mock' : `${llmConfig.provider}/${llmConfig.model}`}</span>
+                <span className="share-model">{lastEvolveSource === 'mock' ? 'Mock' : currentLLMLabel}</span>
                 <span className="share-profile">{llmConfig.contextProfile}</span>
               </div>
               <button
