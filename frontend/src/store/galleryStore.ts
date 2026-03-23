@@ -16,6 +16,8 @@ function mapSharedProgram(raw: Record<string, unknown>): SharedProgram {
     lineage: ((raw.lineage as unknown[]) ?? []).map((item) => { const lp = item as Record<string, unknown>; return ({
       id: lp.id as string,
       code: lp.code as string,
+      originalCode: (lp.originalCode ?? lp.original_code ?? undefined) as string | undefined,
+      customizedCode: (lp.customizedCode ?? lp.customized_code ?? undefined) as string | undefined,
       modality: lp.modality as string,
       generation: lp.generation as number,
       parentIds: (lp.parentIds ?? lp.parent_ids ?? []) as string[],

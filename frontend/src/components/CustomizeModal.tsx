@@ -3,6 +3,7 @@ import { Program, RenderHandle } from '../types';
 import { getPlugin } from '../modalityRegistry';
 import { useSessionStore } from '../store/sessionStore';
 import { highlightCode } from '../utils/syntaxHighlight';
+import { buildLineNumberText } from '../utils/codeLineNumbers';
 import { ManifoldToggle } from './ManifoldToggle';
 
 interface Props {
@@ -25,6 +26,7 @@ export function CustomizeModal({ program, onClose }: Props) {
   const previewHandleRef = useRef<RenderHandle | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
+  const gutterRef = useRef<HTMLPreElement>(null);
 
   const plugin = modality ? getPlugin(modality) : null;
   const codeModality = modality ?? program.modality;
@@ -32,6 +34,7 @@ export function CustomizeModal({ program, onClose }: Props) {
     () => highlightCode(code.endsWith('\n') ? code : `${code}\n`, codeModality),
     [code, codeModality],
   );
+  const lineNumbers = useMemo(() => buildLineNumberText(code), [code]);
 
   // Auto-focus the textarea
   useEffect(() => {
@@ -71,6 +74,9 @@ export function CustomizeModal({ program, onClose }: Props) {
     if (!textareaRef.current || !highlightRef.current) return;
     highlightRef.current.scrollTop = textareaRef.current.scrollTop;
     highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    if (gutterRef.current) {
+      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
   }, []);
 
   // Handle Escape key
@@ -122,22 +128,27 @@ export function CustomizeModal({ program, onClose }: Props) {
         <div className="customize-body">
           <div className="customize-editor">
             <div className="code-editor-stack">
-              <pre
-                ref={highlightRef}
-                className="code-highlight"
-                aria-hidden
-              >
-                <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+              <pre ref={gutterRef} className="code-editor-line-numbers" aria-hidden>
+                {lineNumbers}
               </pre>
-              <textarea
-                ref={textareaRef}
-                className="code-textarea code-textarea-overlay"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                onScroll={handleEditorScroll}
-                wrap="off"
-                spellCheck={false}
-              />
+              <div className="code-editor-content">
+                <pre
+                  ref={highlightRef}
+                  className="code-highlight"
+                  aria-hidden
+                >
+                  <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+                </pre>
+                <textarea
+                  ref={textareaRef}
+                  className="code-textarea code-textarea-overlay"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onScroll={handleEditorScroll}
+                  wrap="off"
+                  spellCheck={false}
+                />
+              </div>
             </div>
           </div>
           <div className="customize-preview">

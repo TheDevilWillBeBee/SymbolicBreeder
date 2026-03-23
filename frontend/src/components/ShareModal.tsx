@@ -16,6 +16,7 @@ function buildLineage(
   program: Program,
   generations: Program[][],
   generationMeta: GenerationMeta[],
+  customizedPrograms: Record<string, string>,
 ): LineageProgram[] {
   const allPrograms = new Map<string, Program>();
   for (const gen of generations) {
@@ -33,9 +34,14 @@ function buildLineage(
     const p = allPrograms.get(id);
     if (!p) return;
     const meta = generationMeta[p.generation];
+    const customizedCode = customizedPrograms[p.id];
+    const hasCustomizedCode =
+      typeof customizedCode === 'string' && customizedCode !== p.code;
+    const effectiveCode = hasCustomizedCode ? customizedCode : p.code;
     lineage.push({
       id: p.id,
-      code: p.code,
+      code: effectiveCode,
+      ...(hasCustomizedCode ? { originalCode: p.code, customizedCode } : {}),
       modality: p.modality,
       generation: p.generation,
       parentIds: p.parentIds,
@@ -90,7 +96,12 @@ export function ShareModal({ program, onClose }: Props) {
     localStorage.setItem('symbolicBreeder_sharerName', sharerName.trim());
     setIsSharing(true);
 
-    const lineage = buildLineage(program, generations, generationMeta);
+    const lineage = buildLineage(
+      program,
+      generations,
+      generationMeta,
+      customizedPrograms,
+    );
     // Update the final program's code with customized version if any
     const finalInLineage = lineage.find((p) => p.id === program.id);
     if (finalInLineage) {
@@ -129,7 +140,7 @@ export function ShareModal({ program, onClose }: Props) {
     setShareUrl(url);
     setIsSharing(false);
     addLog('success', 'Program shared to the gallery!');
-  }, [sharerName, program, generations, generationMeta, displayCode, lastEvolveSource, currentLLMLabel, addLog, addSharedProgram]);
+  }, [sharerName, program, generations, generationMeta, customizedPrograms, displayCode, lastEvolveSource, currentLLMLabel, addLog, addSharedProgram]);
 
   const handleCopyUrl = useCallback(() => {
     if (!shareUrl) return;

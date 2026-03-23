@@ -59,6 +59,8 @@ export interface GenerationMeta {
 export interface LineageProgram {
   id: string;
   code: string;
+  originalCode?: string;
+  customizedCode?: string;
   modality: string;
   generation: number;
   parentIds: string[];

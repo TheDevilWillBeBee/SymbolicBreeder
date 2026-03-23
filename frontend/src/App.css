@@ -635,8 +635,37 @@ body.modality-non-strudel .cm-panels {
   color: var(--text-secondary);
   background: var(--code-bg);
   white-space: pre;
-  overflow: hidden;
+  overflow: auto;
   pointer-events: none;
+}
+
+.code-with-lines {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  width: 100%;
+  height: 100%;
+}
+
+.code-line-numbers {
+  margin: 0;
+  padding: 0.6rem 0.45rem;
+  background: color-mix(in srgb, var(--code-bg) 88%, var(--bg-tertiary) 12%);
+  border-right: 1px solid var(--border);
+  color: var(--text-secondary);
+  opacity: 0.75;
+  min-width: 2.5rem;
+  text-align: right;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.64rem;
+  line-height: 1.4;
+  white-space: pre;
+  user-select: none;
+  overflow: hidden;
+}
+
+.strudel-code-with-lines .code-line-numbers {
+  font-size: 0.65rem;
+  line-height: 1.4;
 }
 
 .strudel-playing-indicator {
@@ -982,13 +1011,32 @@ body.modality-non-strudel .cm-panels {
   background: var(--code-bg);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  overflow: auto;
+  overflow: hidden;
 }
 
 .modal-code.code-highlight-static code {
   display: block;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
+  word-break: normal;
+}
+
+.modal-code-content {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  white-space: pre;
+  word-break: normal;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.modal-code.code-highlight-static .code-line-numbers {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  min-width: 3rem;
+  font-size: 0.85rem;
+  line-height: 1.65;
 }
 
 .modal-meta {
@@ -1133,6 +1181,29 @@ body.modality-non-strudel .cm-panels {
   flex: 1;
   min-height: 0;
   background: var(--code-bg);
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+}
+
+.code-editor-line-numbers {
+  margin: 0;
+  padding: 1rem 0.45rem;
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--code-bg) 88%, var(--bg-tertiary) 12%);
+  color: var(--text-secondary);
+  opacity: 0.75;
+  text-align: right;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: pre;
+  user-select: none;
+  overflow: hidden;
+}
+
+.code-editor-content {
+  position: relative;
+  min-width: 0;
 }
 
 .code-highlight {
@@ -2134,6 +2205,11 @@ body.modality-non-strudel .cm-panels {
   transition: border-color 0.2s;
 }
 
+.lineage-card.customized {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border) 30%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
 .lineage-card:hover {
   border-color: var(--accent);
 }
@@ -2185,6 +2261,13 @@ body.modality-non-strudel .cm-panels {
   padding: 0.4rem;
 }
 
+.lineage-card-preview .code-line-numbers {
+  padding: 0.4rem 0.3rem;
+  min-width: 2rem;
+  font-size: 0.5rem;
+  line-height: 1.4;
+}
+
 .lineage-card-preview .shader-play-overlay span {
   font-size: 0.6rem;
 }
@@ -2204,6 +2287,30 @@ body.modality-non-strudel .cm-panels {
 
 .lineage-card-labels {
   padding: 0 0.4rem 0.35rem;
+}
+
+.lineage-card-source-toggle {
+  padding: 0 0.4rem 0.3rem;
+}
+
+.lineage-card-source-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+}
+
+.lineage-card-source-toggle input {
+  width: 11px;
+  height: 11px;
+  accent-color: var(--accent);
+}
+
+.lineage-card-source-state {
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+  opacity: 0.9;
 }
 
 /* Lineage header with toggle */
@@ -2251,6 +2358,17 @@ body.modality-non-strudel .cm-panels {
   color: var(--text-secondary);
   font-weight: 500;
   opacity: 0.7;
+}
+
+.lineage-code-source-select {
+  margin-left: auto;
+  margin-right: 0.45rem;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
 }
 
 .play-btn-sm {
@@ -2601,15 +2719,29 @@ body.modality-non-strudel .cm-panels {
 }
 
 .streaming-code {
+  background: #111425;
+}
+
+.streaming-code-content {
   margin: 0;
   padding: 0.75rem;
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
   font-size: 0.8rem;
   line-height: 1.5;
   color: #d0d0e0;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
+  word-break: normal;
   overflow-x: auto;
+}
+
+.streaming-code .code-line-numbers {
+  background: #0e1020;
+  border-right-color: #2a2a4a;
+  color: #8080a0;
+  opacity: 0.95;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 .streaming-block.collapsed {

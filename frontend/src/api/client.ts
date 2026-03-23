@@ -101,13 +101,28 @@ export async function streamPost<T>(
         } catch { /* ignore */ }
       } else if (event === 'mock' && data) {
         try {
-          callbacks.onDone(JSON.parse(data) as T);
+          // In this app, `mock` is an intermediate event from the LLM layer.
+          // The final persisted payload arrives as `result` with `programs`.
+          const parsed = JSON.parse(data);
+          callbacks.onError?.(parsed.message ?? 'Using mock examples');
         } catch { /* ignore */ }
       } else if (event === 'error' && data) {
         try {
           const parsed = JSON.parse(data);
           callbacks.onError?.(parsed.message ?? 'Unknown error');
-          callbacks.onDone(parsed as T);
+          // Some streaming endpoints may send final payload under `error`.
+          if (Array.isArray(parsed.programs)) {
+            callbacks.onDone(parsed as T);
+          }
+        } catch { /* ignore */ }
+      } else if (event === 'done' && data) {
+        try {
+          // Some providers emit `done` before the final `result` event.
+          // Only resolve if this event already contains the final shape.
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed.programs)) {
+            callbacks.onDone(parsed as T);
+          }
         } catch { /* ignore */ }
       } else if (event === 'session' && data) {
         try {

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Program } from '../types';
 import { useSessionStore } from '../store/sessionStore';
 import { highlightCode } from '../utils/syntaxHighlight';
+import { buildLineNumberText } from '../utils/codeLineNumbers';
 import { Modal } from './Modal';
 
 interface Props {
@@ -18,6 +19,7 @@ export function CodeModal({ program, onClose }: Props) {
     () => highlightCode(displayCode.endsWith('\n') ? displayCode : `${displayCode}\n`, program.modality),
     [displayCode, program.modality],
   );
+  const lineNumbers = useMemo(() => buildLineNumberText(displayCode), [displayCode]);
 
   return (
     <Modal onClose={onClose}>
@@ -25,9 +27,12 @@ export function CodeModal({ program, onClose }: Props) {
         <h3>Program Code</h3>
         <button onClick={onClose} title="Close">✕</button>
       </div>
-      <pre className="modal-code code-highlight-static">
-        <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
-      </pre>
+      <div className="modal-code code-highlight-static code-with-lines">
+        <pre className="code-line-numbers" aria-hidden>{lineNumbers}</pre>
+        <pre className="modal-code-content">
+          <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+        </pre>
+      </div>
       <div className="modal-meta">
         <span>Generation {program.generation + 1}</span>
         {program.parentIds.length > 0 && (

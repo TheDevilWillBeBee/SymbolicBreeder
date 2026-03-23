@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useSessionStore } from '../store/sessionStore';
 import { highlightCode } from '../utils/syntaxHighlight';
+import { buildLineNumberText } from '../utils/codeLineNumbers';
 
 /**
  * Parse streaming LLM text into separate code blocks.
@@ -156,12 +157,15 @@ export function StreamingOverlay({ populationSize }: Props) {
                 )}
               </div>
               {showCode && (
-                <pre
-                  className="streaming-code"
-                  dangerouslySetInnerHTML={{
-                    __html: highlightCode(block.code, modality),
-                  }}
-                />
+                <div className="streaming-code code-with-lines">
+                  <pre className="code-line-numbers" aria-hidden>{buildLineNumberText(block.code)}</pre>
+                  <pre
+                    className="streaming-code-content"
+                    dangerouslySetInnerHTML={{
+                      __html: highlightCode(block.code, modality),
+                    }}
+                  />
+                </div>
               )}
             </div>
           );

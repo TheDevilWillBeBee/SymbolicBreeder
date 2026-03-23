@@ -131,6 +131,23 @@ export const MOCK_SHARED_PROGRAMS: SharedProgram[] = [
     vec3 col = (spiral * 0.5 + 0.5) * vec3(0.3, 0.5, 1.0) * bloom;
     fragColor = vec4(col, 1.0);
 }`,
+      originalCode: `void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float d = length(uv);
+    float a = atan(uv.y, uv.x);
+    float spiral = sin(a * 5.0 + d * 12.0 - iTime * 2.0);
+    vec3 col = (spiral * 0.5 + 0.5) * vec3(0.25, 0.45, 0.95);
+    fragColor = vec4(col, 1.0);
+  }`,
+      customizedCode: `void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float d = length(uv);
+    float a = atan(uv.y, uv.x);
+    float spiral = sin(a * 5.0 + d * 15.0 - iTime * 2.5);
+    float bloom = 0.04 / (d + 0.04);
+    vec3 col = (spiral * 0.5 + 0.5) * vec3(0.3, 0.5, 1.0) * bloom;
+    fragColor = vec4(col, 1.0);
+  }`,
         modality: 'shader',
         generation: 2,
         parentIds: ['prog-s1-g1a', 'prog-s1-g1b'],
@@ -512,6 +529,16 @@ var scale = "C:minor"
 $: note("c3 [eb3 g3] bb2 [f3 ab3]").s("triangle").room(0.8).delay(0.5).delayfeedback(0.6)._pianoroll()
 $: s("bd ~ sd ~").room(0.3)._scope()
 $: s("hh*4").gain(perlin.range(0.2, 0.6)).pan(rand)._scope()`,
+        originalCode: `setcpm(70/4)
+      var scale = "C:minor"
+      $: note("c3 eb3 g3 bb2").s("triangle").room(0.7)._pianoroll()
+      $: s("bd ~ sd ~").room(0.25)._scope()
+      $: s("hh*4").gain(0.4)._scope()`,
+        customizedCode: `setcpm(70/4)
+      var scale = "C:minor"
+      $: note("c3 [eb3 g3] bb2 [f3 ab3]").s("triangle").room(0.8).delay(0.5).delayfeedback(0.6)._pianoroll()
+      $: s("bd ~ sd ~").room(0.3)._scope()
+      $: s("hh*4").gain(perlin.range(0.2, 0.6)).pan(rand)._scope()`,
         modality: 'strudel',
         generation: 1,
         parentIds: ['prog-t2-g0a', 'prog-t2-g0b'],
@@ -664,6 +691,29 @@ for (i = [0:8]) {
       {
         id: 'prog-o1-final',
         code: `$fn = 48;
+color("DarkSlateGray") cylinder(h=2, r=25, center=true);
+
+for (i = [0:11]) {
+    a = i * 137.508;
+    r = 3 + i * 1.5;
+    h = 8 + (i % 5) * 6;
+    translate([r * cos(a), r * sin(a), 1])
+      color([0.5 + i*0.04, 0.7, 1 - i*0.03])
+        cylinder(h=h, r1=2.5 - i*0.1, r2=0.3, $fn=6);
+}
+
+color("Gold") translate([0, 0, 1])
+  sphere(r=4);`,
+        originalCode: `$fn = 48;
+for (i = [0:11]) {
+    a = i * 137.508;
+    r = 3 + i * 1.5;
+    h = 8 + (i % 5) * 6;
+    translate([r * cos(a), r * sin(a), 0])
+      color([0.5 + i*0.04, 0.7, 1 - i*0.03])
+        cylinder(h=h, r1=2.5 - i*0.1, r2=0.3, $fn=6);
+}`,
+        customizedCode: `$fn = 48;
 color("DarkSlateGray") cylinder(h=2, r=25, center=true);
 
 for (i = [0:11]) {

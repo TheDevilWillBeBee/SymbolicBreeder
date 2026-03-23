@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { buildLineNumberText } from '../utils/codeLineNumbers';
 
 /**
  * Lightweight syntax highlighter for Strudel/JS code previews.
@@ -93,6 +94,7 @@ interface Props {
 }
 
 export function StrudelHighlight({ code }: Props) {
+  const lineNumbers = useMemo(() => buildLineNumberText(code), [code]);
   const elements = useMemo(() => {
     const tokens = tokenize(code);
     return tokens.map((t, i) => {
@@ -107,5 +109,10 @@ export function StrudelHighlight({ code }: Props) {
     });
   }, [code]);
 
-  return <pre className="strudel-code-preview">{elements}</pre>;
+  return (
+    <div className="code-with-lines strudel-code-with-lines">
+      <pre className="code-line-numbers" aria-hidden>{lineNumbers}</pre>
+      <pre className="strudel-code-preview">{elements}</pre>
+    </div>
+  );
 }

@@ -3,14 +3,19 @@ import { LineageProgram, RenderHandle } from '../../types';
 import { getPlugin } from '../../modalityRegistry';
 import { StrudelHighlight } from '../StrudelHighlight';
 import { ManifoldToggle } from '../ManifoldToggle';
+import {
+  getLineageCode,
+  hasCustomizedLineageCode,
+  LineageCodeSource,
+} from '../../utils/lineageCode';
 
 interface Props {
   program: LineageProgram;
   isShader: boolean;
   isVisual: boolean;
-  onShowCode: (p: LineageProgram) => void;
+  onShowCode: (p: LineageProgram, source: LineageCodeSource) => void;
   onPlayStrudel?: (code: string) => void;
-  isPlayingStrudel?: boolean;
+  playingCode?: string | null;
   onStopStrudel?: () => void;
   isPlayingVisual?: boolean;
   onPlayVisual?: (id: string) => void;
@@ -31,7 +36,7 @@ export function LineageCard({
   isVisual,
   onShowCode,
   onPlayStrudel,
-  isPlayingStrudel,
+  playingCode,
   onStopStrudel,
   isPlayingVisual,
   onPlayVisual,
@@ -42,6 +47,12 @@ export function LineageCard({
   const handleRef = useRef<RenderHandle | null>(null);
   const [paused, setPaused] = useState(false);
   const [useManifold, setUseManifold] = useState(true);
+  const hasCustomized = hasCustomizedLineageCode(program);
+  const [showCustomized, setShowCustomized] = useState(true);
+  const activeSource: LineageCodeSource =
+    hasCustomized && showCustomized ? 'customized' : 'original';
+  const previewCode = getLineageCode(program, activeSource);
+  const isPlayingStrudel = playingCode === previewCode;
 
   const isStrudel = program.modality === 'strudel';
   const isOpenSCAD = program.modality === 'openscad';
@@ -59,7 +70,7 @@ export function LineageCard({
 
     // Try synchronous snapshot first (works if already compiled/cached)
     if (plugin.renderSnapshot) {
-      const srcCanvas = plugin.renderSnapshot(program.code, 160, 160);
+      const srcCanvas = plugin.renderSnapshot(previewCode, 160, 160);
       if (srcCanvas) {
         canvas.width = srcCanvas.width;
         canvas.height = srcCanvas.height;
@@ -71,9 +82,9 @@ export function LineageCard({
 
     // If plugin supports async pre-compilation, compile then snapshot
     if (plugin.ensureCompiled) {
-      plugin.ensureCompiled(program.code).then(() => {
+      plugin.ensureCompiled(previewCode).then(() => {
         if (!cancelled && plugin.renderSnapshot) {
-          const srcCanvas = plugin.renderSnapshot(program.code, 160, 160);
+          const srcCanvas = plugin.renderSnapshot(previewCode, 160, 160);
           if (srcCanvas && canvas) {
             canvas.width = srcCanvas.width;
             canvas.height = srcCanvas.height;
@@ -93,7 +104,7 @@ export function LineageCard({
     container.style.left = '-9999px';
     document.body.appendChild(container);
 
-    const handle = plugin.render(program.code, container);
+    const handle = plugin.render(previewCode, container);
     const timer = setTimeout(() => {
       const srcCanvas = container.querySelector('canvas');
       if (srcCanvas && canvas) {
@@ -111,25 +122,25 @@ export function LineageCard({
       handle.cleanup();
       if (container.parentNode) document.body.removeChild(container);
     };
-  }, [hasVisualRender, program.code, program.modality, isPlayingVisual]);
+  }, [hasVisualRender, previewCode, program.modality, isPlayingVisual]);
 
   // SVG inline preview
   useEffect(() => {
     if (program.modality !== 'svg' || !svgPreviewRef.current) return;
     const plugin = getPlugin('svg');
-    const handle = plugin.render(program.code, svgPreviewRef.current);
+    const handle = plugin.render(previewCode, svgPreviewRef.current);
     return () => { handle.cleanup(); };
-  }, [program.modality, program.code]);
+  }, [program.modality, previewCode]);
 
   // Live render when playing
   useEffect(() => {
     if (!hasVisualRender || !isPlayingVisual || !liveRef.current) return;
     handleRef.current?.cleanup();
     const plugin = getPlugin(program.modality);
-    handleRef.current = plugin.render(program.code, liveRef.current, { useManifold });
+    handleRef.current = plugin.render(previewCode, liveRef.current, { useManifold });
     setPaused(false);
     return () => { handleRef.current?.cleanup(); handleRef.current = null; };
-  }, [hasVisualRender, isPlayingVisual, program.code, program.modality, useManifold]);
+  }, [hasVisualRender, isPlayingVisual, previewCode, program.modality, useManifold]);
 
   const handleToggle = () => {
     if (!handleRef.current) return;
@@ -140,7 +151,7 @@ export function LineageCard({
   const handleReset = () => { handleRef.current?.reset?.(); setPaused(false); };
 
   return (
-    <div className="lineage-card">
+    <div className={'lineage-card' + (hasCustomized ? ' customized' : '')}>
       {hasVisualRender ? (
         <div className="lineage-card-preview-wrapper">
           {isPlayingVisual ? (
@@ -156,7 +167,7 @@ export function LineageCard({
         </div>
       ) : (
         <div className="lineage-card-preview strudel-preview">
-          <StrudelHighlight code={program.code} />
+          <StrudelHighlight code={previewCode} />
           {isPlayingStrudel && <div className="strudel-playing-indicator">&#9834;</div>}
         </div>
       )}
@@ -189,19 +200,38 @@ export function LineageCard({
           ) : !isVisual ? (
             <button
               className={'play-btn play-btn-sm' + (isPlayingStrudel ? ' active' : '')}
-              onClick={() => isPlayingStrudel ? onStopStrudel?.() : onPlayStrudel?.(program.code)}
+              onClick={() => isPlayingStrudel ? onStopStrudel?.() : onPlayStrudel?.(previewCode)}
               title={isPlayingStrudel ? 'Stop playback' : 'Play this music program'}
             >
               {isPlayingStrudel ? '\u23F8' : '\u25B6'}
             </button>
           ) : null}
         </div>
-        <button className="code-btn code-btn-sm" onClick={() => onShowCode(program)} title="View source code">
+        <button className="code-btn code-btn-sm" onClick={() => onShowCode(program, activeSource)} title="View source code">
           {'</>'}
         </button>
       </div>
       <div className="lineage-card-labels">
-        <span className="lineage-card-gen">Gen {program.generation}</span>
+        <span className="lineage-card-gen">
+          Gen {program.generation}{hasCustomized ? ' (Customized)' : ''}
+        </span>
+      </div>
+      {hasCustomized && (
+        <div className="lineage-card-source-toggle">
+          <label>
+            <input
+              type="checkbox"
+              checked={showCustomized}
+              onChange={(e) => setShowCustomized(e.target.checked)}
+            />
+            <span>Use customized</span>
+          </label>
+        </div>
+      )}
+      <div className="lineage-card-labels">
+        {hasCustomized && !showCustomized && (
+          <span className="lineage-card-source-state">Showing original</span>
+        )}
       </div>
     </div>
   );

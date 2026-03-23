@@ -11,6 +11,7 @@ import { buildLayeredDAG } from '../utils/buildLayeredDAG';
 import { LayeredTreeView } from './detail/LayeredTreeView';
 import { LineageCodeModal } from './detail/LineageCodeModal';
 import type { LineageProgram } from '../types';
+import type { LineageCodeSource } from '../utils/lineageCode';
 
 export function ProgramDetailPage() {
   const detailId = useNavStore((s) => s.detailProgramId);
@@ -21,6 +22,7 @@ export function ProgramDetailPage() {
   const isLoading = useGalleryStore((s) => s.isLoading);
 
   const [codeModalProgram, setCodeModalProgram] = useState<LineageProgram | null>(null);
+  const [codeModalSource, setCodeModalSource] = useState<LineageCodeSource>('customized');
   const [playingCode, setPlayingCode] = useState<string | null>(null);
   const [playingVisualId, setPlayingVisualId] = useState<string | null>(null);
   const [showEdgeLabels, setShowEdgeLabels] = useState(true);
@@ -241,7 +243,10 @@ export function ProgramDetailPage() {
               isShader={isShader}
               isVisual={isVisual}
               showDetails={showEdgeLabels}
-              onShowCode={setCodeModalProgram}
+              onShowCode={(p, source) => {
+                setCodeModalProgram(p);
+                setCodeModalSource(source);
+              }}
               onPlayStrudel={handlePlayStrudel}
               playingCode={playingCode}
               onStopStrudel={handleStop}
@@ -255,6 +260,7 @@ export function ProgramDetailPage() {
 
       <LineageCodeModal
         program={codeModalProgram}
+        initialSource={codeModalSource}
         onClose={() => setCodeModalProgram(null)}
       />
     </div>

@@ -2,13 +2,14 @@ import { LineageProgram } from '../../types';
 import { LayeredDAG } from '../../utils/buildLayeredDAG';
 import { LineageCard } from './LineageCard';
 import { TransitionCard } from './TransitionCard';
+import { LineageCodeSource } from '../../utils/lineageCode';
 
 interface Props {
   dag: LayeredDAG;
   isShader: boolean;
   isVisual: boolean;
   showDetails: boolean;
-  onShowCode: (p: LineageProgram) => void;
+  onShowCode: (p: LineageProgram, source: LineageCodeSource) => void;
   onPlayStrudel?: (code: string) => void;
   playingCode?: string | null;
   onStopStrudel?: () => void;
@@ -45,7 +46,7 @@ export function LayeredTreeView({
                 isVisual={isVisual}
                 onShowCode={onShowCode}
                 onPlayStrudel={onPlayStrudel}
-                isPlayingStrudel={playingCode === p.code}
+                playingCode={playingCode}
                 onStopStrudel={onStopStrudel}
                 isPlayingVisual={playingVisualId === p.id}
                 onPlayVisual={onPlayVisual}

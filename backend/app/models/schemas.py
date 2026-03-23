@@ -43,6 +43,8 @@ class EvolveResponse(BaseModel):
 class LineageProgramSchema(BaseModel):
     id: str
     code: str
+    original_code: Optional[str] = Field(default=None, alias="originalCode")
+    customized_code: Optional[str] = Field(default=None, alias="customizedCode")
     modality: str
     generation: int
     parentIds: list[str] = Field(default_factory=list, alias="parentIds")
