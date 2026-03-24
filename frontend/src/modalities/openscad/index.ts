@@ -17,6 +17,9 @@ let OrbitControlsCtor: (typeof OrbitControls) | null = null;
 let STLLoaderCtor: (typeof STLLoader) | null = null;
 
 let threeLoadPromise: Promise<void> | null = null;
+let compilerWorker: Worker | null = null;
+let compileRequestId = 0;
+const pendingCompiles = new Map<number, { resolve: (stl: string) => void; reject: (error: Error) => void }>();
 
 async function ensureThree(): Promise<void> {
   if (THREE) return;
@@ -43,20 +46,31 @@ const stlCache = new Map<string, string>();
 
 function compileInWorker(code: string, useManifold: boolean): Promise<string> {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(
-      new URL('./compiler.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    worker.onmessage = (e: MessageEvent<{ ok: boolean; stl?: string; error?: string }>) => {
-      worker.terminate();
-      if (e.data.ok) resolve(e.data.stl!);
-      else reject(new Error(e.data.error || 'Compilation failed'));
-    };
-    worker.onerror = (e) => {
-      worker.terminate();
-      reject(new Error(e.message || 'Worker error'));
-    };
-    worker.postMessage({ code, useManifold });
+    if (!compilerWorker) {
+      compilerWorker = new Worker(new URL('./compiler.worker.ts', import.meta.url), { type: 'module' });
+      compilerWorker.onmessage = (e: MessageEvent<{ id?: number; ok: boolean; stl?: string; error?: string }>) => {
+        const id = e.data.id;
+        if (typeof id !== 'number') return;
+        const pending = pendingCompiles.get(id);
+        if (!pending) return;
+        pendingCompiles.delete(id);
+        if (e.data.ok) pending.resolve(e.data.stl ?? '');
+        else pending.reject(new Error(e.data.error || 'Compilation failed'));
+      };
+      compilerWorker.onerror = (e) => {
+        const err = new Error(e.message || 'Worker error');
+        for (const pending of pendingCompiles.values()) {
+          pending.reject(err);
+        }
+        pendingCompiles.clear();
+        compilerWorker?.terminate();
+        compilerWorker = null;
+      };
+    }
+
+    const id = ++compileRequestId;
+    pendingCompiles.set(id, { resolve, reject });
+    compilerWorker.postMessage({ id, code, useManifold });
   });
 }
 
@@ -73,12 +87,12 @@ async function compileToSTL(code: string, useManifold = true): Promise<string> {
   return stl;
 }
 
+/** Single preview color — STL export has no per-vertex color; mesh uses one material. */
+const OPENSCAD_MESH_COLOR = 0x9ca9ff;
+
 // ── Three.js scene builder ──
 
-function buildScene(
-  container: HTMLElement,
-  stlText: string,
-): RenderHandle {
+function buildScene(container: HTMLElement, stlText: string): RenderHandle {
   const T = THREE!;
 
   const loader = new STLLoaderCtor!();
@@ -103,18 +117,12 @@ function buildScene(
 
   // Mesh
   const material = new T.MeshStandardMaterial({
-    color: 0x4d9de0,
+    color: OPENSCAD_MESH_COLOR,
     metalness: 0.25,
     roughness: 0.55,
   });
   const mesh = new T.Mesh(geometry, material);
   scene.add(mesh);
-
-  // Grid helper for ground reference
-  const gridSize = maxDim * 2;
-  const grid = new T.GridHelper(gridSize, 16, 0x303050, 0x202038);
-  grid.position.y = -size.y / 2;
-  scene.add(grid);
 
   // Lighting
   scene.add(new T.AmbientLight(0x404060, 2));
@@ -133,10 +141,15 @@ function buildScene(
   canvas.style.cssText = 'width:100%;height:100%;display:block;border-radius:4px;';
   container.appendChild(canvas);
 
-  const renderer = new T.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const renderer = new T.WebGLRenderer({
+    canvas,
+    antialias: false,
+    powerPreference: 'high-performance',
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
+  renderer.outputColorSpace = T.SRGBColorSpace;
 
   // Camera
   const cam = new T.PerspectiveCamera(40, 1, maxDim * 0.01, maxDim * 50);
@@ -146,14 +159,13 @@ function buildScene(
 
   // Orbit controls
   const controls = new OrbitControlsCtor!(cam, canvas);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.autoRotate = true;
-  controls.autoRotateSpeed = 1.2;
+  controls.enableDamping = false;
+  controls.autoRotate = false;
+  controls.autoRotateSpeed = 0;
   controls.minDistance = maxDim * 0.3;
   controls.maxDistance = maxDim * 10;
 
-  // Render loop
+  // Render on demand for better card throughput.
   let raf = 0;
   let userPaused = false;
   let isVisible = true;
@@ -168,14 +180,19 @@ function buildScene(
     }
   };
 
-  const animate = () => {
-    raf = requestAnimationFrame(animate);
+  const renderFrame = () => {
+    raf = 0;
     resize();
     controls.update();
     renderer.render(scene, cam);
   };
 
-  animate();
+  const requestRender = () => {
+    if (raf !== 0) return;
+    raf = requestAnimationFrame(renderFrame);
+  };
+  controls.addEventListener('change', requestRender);
+  requestRender();
 
   // Pause when off-screen
   const observer = new IntersectionObserver(
@@ -184,10 +201,11 @@ function buildScene(
         if (entry.target !== canvas) continue;
         if (entry.isIntersecting && !isVisible) {
           isVisible = true;
-          if (!userPaused) animate();
+          if (!userPaused) requestRender();
         } else if (!entry.isIntersecting && isVisible) {
           isVisible = false;
           cancelAnimationFrame(raf);
+          raf = 0;
         }
       }
     },
@@ -199,6 +217,7 @@ function buildScene(
     cleanup() {
       observer.disconnect();
       cancelAnimationFrame(raf);
+      controls.removeEventListener('change', requestRender);
       controls.dispose();
       renderer.dispose();
       geometry.dispose();
@@ -208,23 +227,22 @@ function buildScene(
     pause() {
       if (userPaused) return;
       userPaused = true;
-      controls.autoRotate = false;
       cancelAnimationFrame(raf);
+      raf = 0;
     },
     resume() {
       if (!userPaused) return;
       userPaused = false;
-      controls.autoRotate = true;
-      if (isVisible) animate();
+      if (isVisible) requestRender();
     },
     reset() {
       cam.position.set(dist * 0.8, dist * 0.6, dist * 0.8);
       cam.lookAt(0, 0, 0);
       controls.reset();
-      controls.autoRotate = true;
       userPaused = false;
       cancelAnimationFrame(raf);
-      if (isVisible) animate();
+      raf = 0;
+      if (isVisible) requestRender();
     },
   };
 }
@@ -294,7 +312,7 @@ function renderSnapshotCanvas(
   width: number,
   height: number,
 ): HTMLCanvasElement | null {
-  const cached = stlCache.get(code);
+  const cached = stlCache.get(stlCacheKey(code, true));
   if (!cached || !THREE) return null;
 
   const T = THREE;
@@ -316,7 +334,11 @@ function renderSnapshotCanvas(
   const scene = new T.Scene();
   scene.background = new T.Color(0x12121e);
 
-  const material = new T.MeshStandardMaterial({ color: 0x4d9de0, metalness: 0.25, roughness: 0.55 });
+  const material = new T.MeshStandardMaterial({
+    color: OPENSCAD_MESH_COLOR,
+    metalness: 0.25,
+    roughness: 0.55,
+  });
   scene.add(new T.Mesh(geometry, material));
 
   scene.add(new T.AmbientLight(0x404060, 2));
@@ -327,8 +349,16 @@ function renderSnapshotCanvas(
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
-  const renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  const renderer = new T.WebGLRenderer({
+    canvas,
+    antialias: false,
+    alpha: false,
+    preserveDrawingBuffer: true,
+    powerPreference: 'high-performance',
+  });
+  renderer.setPixelRatio(1);
   renderer.setSize(width, height);
+  renderer.outputColorSpace = T.SRGBColorSpace;
 
   const cam = new T.PerspectiveCamera(40, width / height, maxDim * 0.01, maxDim * 50);
   const dist = maxDim * 2.2;
@@ -367,6 +397,12 @@ export const openscadPlugin: ModalityPlugin = {
   },
 
   renderSnapshot(code: string, width: number, height: number): HTMLCanvasElement | null {
+    return renderSnapshotCanvas(code, width, height);
+  },
+
+  async renderSnapshotAsync(code: string, width: number, height: number): Promise<HTMLCanvasElement | null> {
+    await ensureThree();
+    await compileToSTL(code, true);
     return renderSnapshotCanvas(code, width, height);
   },
 

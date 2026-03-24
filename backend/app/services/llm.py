@@ -43,6 +43,7 @@ async def generate_programs(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
+    context_version: Optional[str] = None,
 ) -> GenerationResult:
     """Generate new programs for the given modality. Uses LLM if API key is available, else mock."""
     if not api_key:
@@ -68,6 +69,7 @@ async def generate_programs(
                 api_key,
                 base_url,
                 context_profile,
+                context_version,
             )
             return GenerationResult(codes=codes, source="llm")
         except Exception as exc:
@@ -87,11 +89,12 @@ async def generate_programs(
     )
 
 
-def _build_system_prompt(modality: str, context_profile: str) -> str:
+def _build_system_prompt(modality: str, context_profile: str, context_version: Optional[str]) -> str:
     """Build the full system prompt by combining role from prompt bundle with profile context."""
-    config = get_prompt_config(modality)
+    context_key = f"{modality}@{context_version}" if context_version else modality
+    config = get_prompt_config(context_key)
     role = config.get("role", "")
-    system_context = get_system_context(modality, profile=context_profile)
+    system_context = get_system_context(context_key, profile=context_profile)
     if system_context:
         return role + "\n\n" + system_context
     return role
@@ -107,10 +110,12 @@ async def _llm_generate(
     api_key: str,
     base_url: Optional[str],
     context_profile: str,
+    context_version: Optional[str],
 ) -> list[str]:
     provider = get_provider(provider_key, model, base_url)
-    config = get_prompt_config(modality)
-    system_prompt = _build_system_prompt(modality, context_profile)
+    context_key = f"{modality}@{context_version}" if context_version else modality
+    config = get_prompt_config(context_key)
+    system_prompt = _build_system_prompt(modality, context_profile, context_version)
     fence = _MODALITY_FENCES.get(modality, "")
 
     if parent_codes:
@@ -152,6 +157,11 @@ async def _llm_generate(
     return _parse_code_blocks(response.text, fence, population_size, modality)
 
 
+def _flatten_prompt(system: str, user: str) -> str:
+    """Single string for debugging / copy (matches what the provider receives)."""
+    return f"=== SYSTEM ===\n{system}\n\n=== USER ===\n{user}"
+
+
 def _parse_code_blocks(
     text: str, fence: str, expected: int, modality: str
 ) -> list[str]:
@@ -181,6 +191,7 @@ async def generate_programs_stream(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
+    context_version: Optional[str] = None,
 ) -> AsyncIterator[str]:
     """Stream LLM generation as SSE events: token, done, error, or mock."""
     if not api_key:
@@ -191,11 +202,13 @@ async def generate_programs_stream(
         yield _sse_event("mock", {"codes": codes, "source": "mock", "message": "No API key available — used mock examples"})
         return
 
+    prompt_flat: str | None = None
     try:
         yield _sse_event("status", {"phase": "connecting"})
         provider = get_provider(provider_key, model, base_url)
-        config = get_prompt_config(modality)
-        system_prompt = _build_system_prompt(modality, context_profile)
+        context_key = f"{modality}@{context_version}" if context_version else modality
+        config = get_prompt_config(context_key)
+        system_prompt = _build_system_prompt(modality, context_profile, context_version)
         fence = _MODALITY_FENCES.get(modality, "")
 
         if parent_codes:
@@ -218,6 +231,8 @@ async def generate_programs_stream(
         if variety:
             prompt += "\n\n" + variety.format(n=population_size)
 
+        prompt_flat = _flatten_prompt(system_prompt, prompt)
+
         yield _sse_event("status", {"phase": "sending"})
         llm_request = LLMRequest(system=system_prompt, user=prompt)
         accumulated = ""
@@ -231,14 +246,16 @@ async def generate_programs_stream(
             yield _sse_event("token", {"text": delta})
 
         codes = _parse_code_blocks(accumulated, fence, population_size, modality)
-        yield _sse_event("done", {"codes": codes, "source": "llm"})
+        yield _sse_event("done", {"codes": codes, "source": "llm", "prompt_flat": prompt_flat})
 
     except Exception as exc:
         logger.warning("LLM stream failed (%s), falling back to mock: %s", type(exc).__name__, exc)
         codes = _mock_generate(modality, parent_codes, population_size)
-        yield _sse_event("error", {
+        err: dict = {
             "codes": codes,
             "source": "mock",
             "message": f"LLM error: {exc} — used mock examples instead",
-        })
-
+        }
+        if prompt_flat is not None:
+            err["prompt_flat"] = prompt_flat
+        yield _sse_event("error", err)

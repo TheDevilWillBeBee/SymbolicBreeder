@@ -1,0 +1,3 @@
+﻿version: 4
+modality: strudel
+extends_manifest: ../../../context/strudel/manifest.yaml

@@ -31,6 +31,7 @@ class EvolveRequest(BaseModel):
     model: str = "claude-sonnet-4-20250514"
     base_url: Optional[str] = None
     context_profile: str = "intermediate"
+    context_version: Optional[str] = None
 
 
 class EvolveResponse(BaseModel):
@@ -92,6 +93,8 @@ class CreateSessionRequest(BaseModel):
     model: str = "claude-sonnet-4-20250514"
     base_url: Optional[str] = None
     context_profile: str = "intermediate"
+    context_version: Optional[str] = None
+    population_size: int = Field(default=6, ge=1, le=20)
 
 
 class SessionResponse(BaseModel):

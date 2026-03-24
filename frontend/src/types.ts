@@ -127,6 +127,12 @@ export interface ModalityPlugin {
   renderSnapshot?(code: string, width: number, height: number): HTMLCanvasElement | null;
 
   /**
+   * Async snapshot (SVG decode, or guaranteed post-compile OpenSCAD mesh).
+   * Prefer in grids; avoids WebGL/SVG races when many thumbnails mount at once.
+   */
+  renderSnapshotAsync?(code: string, width: number, height: number): Promise<HTMLCanvasElement | null>;
+
+  /**
    * Pre-compile/prepare the code so that renderSnapshot can produce a result.
    * Returns a promise that resolves when compilation is done.
    */

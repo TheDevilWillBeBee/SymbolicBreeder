@@ -5,7 +5,7 @@
   "functions": {
     "api/[...path].py": {
       "maxDuration": 60,
-      "includeFiles": "backend/context/**"
+      "includeFiles": "backend/{context,context_lib}/**"
     }
   },
   "routes": [

@@ -1,0 +1,3 @@
+﻿version: 4
+modality: openscad
+extends_manifest: ../../../context/openscad/manifest.yaml

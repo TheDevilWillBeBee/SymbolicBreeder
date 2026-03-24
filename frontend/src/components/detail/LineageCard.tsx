@@ -68,6 +68,17 @@ export function LineageCard({
     const plugin = getPlugin(program.modality);
     let cancelled = false;
 
+    if (plugin.renderSnapshotAsync) {
+      plugin.renderSnapshotAsync(previewCode, 160, 160).then((srcCanvas) => {
+        if (cancelled || !srcCanvas || !canvas) return;
+        canvas.width = srcCanvas.width;
+        canvas.height = srcCanvas.height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(srcCanvas, 0, 0);
+      });
+      return () => { cancelled = true; };
+    }
+
     // Try synchronous snapshot first (works if already compiled/cached)
     if (plugin.renderSnapshot) {
       const srcCanvas = plugin.renderSnapshot(previewCode, 160, 160);

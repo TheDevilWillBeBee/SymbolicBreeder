@@ -1,0 +1,3 @@
+﻿version: 2
+modality: svg
+extends_manifest: ../../../context/svg/manifest.yaml

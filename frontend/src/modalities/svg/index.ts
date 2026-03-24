@@ -43,37 +43,42 @@ function renderSVG(code: string, container: HTMLElement): RenderHandle {
   };
 }
 
-function renderSnapshotCanvas(
+/** Matches sandbox static thumb / modal background. */
+const SNAPSHOT_BG = '#12121e';
+
+async function renderSnapshotCanvasAsync(
   code: string,
   width: number,
   height: number,
-): HTMLCanvasElement | null {
-  // Render SVG to canvas via Image + blob URL
+): Promise<HTMLCanvasElement | null> {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  // Fill with a dark background so the snapshot isn't transparent
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = SNAPSHOT_BG;
   ctx.fillRect(0, 0, width, height);
 
   const sanitized = sanitizeSVG(code);
+  if (!sanitized.includes('<svg')) return canvas;
+
   const blob = new Blob([sanitized], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const img = new Image();
-  img.src = url;
-
-  // Try synchronous draw (works if image is cached or very fast)
   try {
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('svg snapshot load'));
+      img.src = url;
+    });
     ctx.drawImage(img, 0, 0, width, height);
+    return canvas;
   } catch {
-    // Image not loaded yet — snapshot will be blank background
+    return canvas;
+  } finally {
+    URL.revokeObjectURL(url);
   }
-  URL.revokeObjectURL(url);
-
-  return canvas;
 }
 
 export const svgPlugin: ModalityPlugin = {
@@ -91,8 +96,12 @@ export const svgPlugin: ModalityPlugin = {
     return renderSVG(code, container);
   },
 
-  renderSnapshot(code: string, width: number, height: number): HTMLCanvasElement | null {
-    return renderSnapshotCanvas(code, width, height);
+  renderSnapshot(_code: string, _width: number, _height: number): HTMLCanvasElement | null {
+    return null;
+  },
+
+  renderSnapshotAsync(code: string, width: number, height: number): Promise<HTMLCanvasElement | null> {
+    return renderSnapshotCanvasAsync(code, width, height);
   },
 
   validate(code: string): string | null {

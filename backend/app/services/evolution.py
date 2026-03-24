@@ -90,15 +90,18 @@ async def create_seed_generation(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
+    context_version: Optional[str] = None,
+    population_size: int = 6,
 ) -> tuple[list[models.Program], str, str | None]:
     """Create generation-0 programs for a brand-new session.
 
     Returns (programs, source, message).
     """
     result = await generate_programs(
-        modality, [], population_size=6, guidance=guidance,
+        modality, [], population_size=population_size, guidance=guidance,
         provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
         context_profile=context_profile,
+        context_version=context_version,
     )
     programs = _persist_programs(
         result.codes, modality, generation=0, parent_ids=[], session_id=session_id, db=db
@@ -116,12 +119,15 @@ async def create_seed_generation_stream(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
+    context_version: Optional[str] = None,
+    population_size: int = 6,
 ) -> AsyncIterator[str]:
     """Stream generation-0 programs as SSE events."""
     async for event_str in _llm_stream(
-        modality, [], 6, guidance,
+        modality, [], population_size, guidance,
         provider_key=provider_key, model=model, api_key=api_key,
         base_url=base_url, context_profile=context_profile,
+        context_version=context_version,
     ):
         yield event_str
 
@@ -133,6 +139,7 @@ async def create_seed_generation_stream(
                 codes = payload.get("codes", [])
                 source = payload.get("source", "mock")
                 message = payload.get("message")
+                prompt_flat = payload.get("prompt_flat")
 
                 programs = _persist_programs(
                     codes, modality, generation=0, parent_ids=[], session_id=session_id, db=db
@@ -155,6 +162,8 @@ async def create_seed_generation_stream(
                     "source": source,
                     "message": message,
                 }
+                if prompt_flat is not None:
+                    result["prompt_flat"] = prompt_flat
                 yield _sse_event("result", result)
 
 
@@ -170,6 +179,7 @@ async def evolve_programs(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
+    context_version: Optional[str] = None,
 ) -> EvolveResponse:
     """Evolve the next generation from selected parents."""
     session_id = _ensure_session(session_id, modality, db)
@@ -182,6 +192,7 @@ async def evolve_programs(
         modality, parent_codes, population_size, guidance,
         provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
         context_profile=context_profile,
+        context_version=context_version,
     )
     programs = _persist_programs(
         result.codes, modality, generation, parent_ids, session_id, db
@@ -211,6 +222,7 @@ async def evolve_programs_stream(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
+    context_version: Optional[str] = None,
 ) -> AsyncIterator[str]:
     """Stream evolution as SSE, persisting programs when generation completes."""
     session_id = _ensure_session(session_id, modality, db)
@@ -222,6 +234,7 @@ async def evolve_programs_stream(
         modality, parent_codes, population_size, guidance,
         provider_key=provider_key, model=model, api_key=api_key,
         base_url=base_url, context_profile=context_profile,
+        context_version=context_version,
     ):
         # Forward token events directly to client
         yield event_str
@@ -236,6 +249,7 @@ async def evolve_programs_stream(
                 codes = payload.get("codes", [])
                 source = payload.get("source", "mock")
                 message = payload.get("message")
+                prompt_flat = payload.get("prompt_flat")
 
                 programs = _persist_programs(
                     codes, modality, generation, parent_ids, session_id, db
@@ -259,4 +273,6 @@ async def evolve_programs_stream(
                     "source": source,
                     "message": message,
                 }
+                if prompt_flat is not None:
+                    result["prompt_flat"] = prompt_flat
                 yield _sse_event("result", result)

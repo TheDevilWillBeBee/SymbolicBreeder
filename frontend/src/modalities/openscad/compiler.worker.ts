@@ -1,8 +1,9 @@
 // In a dedicated worker, self is DedicatedWorkerGlobalScope which implements the Worker interface.
 const ctx = self as unknown as Worker;
 
-ctx.onmessage = async (e: MessageEvent<{ code: string; useManifold?: boolean }>) => {
+ctx.onmessage = async (e: MessageEvent<{ id?: number; code: string; useManifold?: boolean }>) => {
   const errors: string[] = [];
+  const requestId = e.data.id;
   try {
     const { createOpenSCAD } = await import('openscad-wasm');
     const wrapper = await createOpenSCAD({
@@ -17,12 +18,12 @@ ctx.onmessage = async (e: MessageEvent<{ code: string; useManifold?: boolean }>)
     const stl = instance.FS.readFile('/output.stl', { encoding: 'utf8' });
     if (!stl || !stl.includes('facet')) {
       const msg = errors.filter(l => /error/i.test(l)).join('\n');
-      ctx.postMessage({ ok: false, error: msg || 'OpenSCAD produced empty geometry' });
+      ctx.postMessage({ id: requestId, ok: false, error: msg || 'OpenSCAD produced empty geometry' });
     } else {
-      ctx.postMessage({ ok: true, stl });
+      ctx.postMessage({ id: requestId, ok: true, stl });
     }
   } catch (err: any) {
     const msg = errors.filter(l => /error/i.test(l)).join('\n');
-    ctx.postMessage({ ok: false, error: msg || String(err?.message ?? err) });
+    ctx.postMessage({ id: requestId, ok: false, error: msg || String(err?.message ?? err) });
   }
 };

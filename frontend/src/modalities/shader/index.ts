@@ -426,7 +426,11 @@ function renderSnapshotCanvas(
   canvas.width = width;
   canvas.height = height;
 
-  const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true });
+  const gl = canvas.getContext('webgl2', {
+    preserveDrawingBuffer: true,
+    alpha: false,
+    antialias: false,
+  });
   if (!gl) return null;
 
   const vs = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
@@ -454,6 +458,8 @@ function renderSnapshotCanvas(
 
   // Render one frame at t=0.5s for a representative snapshot
   gl.viewport(0, 0, width, height);
+  gl.clearColor(0.071, 0.071, 0.118, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
   const uRes = gl.getUniformLocation(program, 'iResolution');
   const uTime = gl.getUniformLocation(program, 'iTime');
   gl.uniform2f(uRes, width, height);
@@ -508,6 +514,10 @@ export const shaderPlugin: ModalityPlugin = {
 
   renderSnapshot(code: string, width: number, height: number): HTMLCanvasElement | null {
     return renderSnapshotCanvas(code, width, height);
+  },
+
+  renderSnapshotAsync(code: string, width: number, height: number): Promise<HTMLCanvasElement | null> {
+    return Promise.resolve(renderSnapshotCanvas(code, width, height));
   },
 
   validate(code: string): string | null {

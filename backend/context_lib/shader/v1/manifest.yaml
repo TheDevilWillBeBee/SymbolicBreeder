@@ -1,0 +1,3 @@
+﻿version: 1
+modality: shader
+extends_manifest: ../../../context/shader/manifest.yaml

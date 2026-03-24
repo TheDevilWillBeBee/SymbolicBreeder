@@ -27,6 +27,7 @@ async def evolve(
         api_key=x_api_key,
         base_url=request.base_url,
         context_profile=request.context_profile,
+        context_version=request.context_version,
     )
 
 
@@ -49,6 +50,7 @@ async def evolve_stream(
             api_key=x_api_key,
             base_url=request.base_url,
             context_profile=request.context_profile,
+            context_version=request.context_version,
         ),
         media_type="text/event-stream",
         headers={
