@@ -137,6 +137,7 @@ const SANDBOX_CACHE_PREFIX_LEGACY: readonly string[] = [
   'sandbox-suite-v4',
   'sandbox-suite-v3',
 ];
+const CUSTOM_PROVIDER_KEY = '__custom_openai__';
 
 function suiteCacheSuffix(args: {
   modality: Modality;
@@ -201,10 +202,14 @@ function buildStreamBody(
 }
 
 export function SandboxApp() {
+  const llmConfig = useSessionStore((s) => s.llmConfig);
+  const startsCustomOpenAI = llmConfig.provider === 'openai' && !!llmConfig.baseUrl?.trim();
+
   const [modality, setModality] = useState<Modality>('shader');
-  const [provider, setProvider] = useState('anthropic');
-  const [model, setModel] = useState('claude-sonnet-4-20250514');
+  const [provider, setProvider] = useState(startsCustomOpenAI ? CUSTOM_PROVIDER_KEY : llmConfig.provider || 'anthropic');
+  const [model, setModel] = useState(llmConfig.model || 'claude-sonnet-4-20250514');
   const [apiKey, setApiKey] = useState('');
+  const [customBaseUrl, setCustomBaseUrl] = useState(llmConfig.baseUrl ?? '');
   const [contextProfile, setContextProfile] = useState<ContextProfile>('intermediate');
 
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
@@ -219,17 +224,23 @@ export function SandboxApp() {
   const [progressTotal, setProgressTotal] = useState(0);
   const [progressPhase, setProgressPhase] = useState('');
   const [zoomProgram, setZoomProgram] = useState<SharedProgram | null>(null);
-
-  const llmConfig = useSessionStore((s) => s.llmConfig);
+  const useCustomEndpoint = provider === CUSTOM_PROVIDER_KEY;
+  const providerForRequest = useCustomEndpoint ? 'openai' : provider;
+  const normalizedCustomBaseUrl = customBaseUrl.trim();
+  const providerForCache = useCustomEndpoint
+    ? `openai-compatible:${normalizedCustomBaseUrl.toLowerCase() || '(empty)'}`
+    : providerForRequest;
 
   useEffect(() => {
     api.get<{ providers: ProviderInfo[] }>('/api/providers')
       .then((res) => {
         setProviders(res.providers);
-        if (res.providers.length > 0) {
-          setProvider(res.providers[0].key);
-          setModel(res.providers[0].models[0] ?? '');
-        }
+        if (res.providers.length === 0) return;
+        setProvider((prev) => {
+          if (prev === CUSTOM_PROVIDER_KEY) return prev;
+          if (res.providers.some((p) => p.key === prev)) return prev;
+          return res.providers[0].key;
+        });
       })
       .catch(() => {});
 
@@ -263,12 +274,13 @@ export function SandboxApp() {
     });
   }, [availableVersions.join('|')]);
 
-  const models = useMemo(() => providers.find((p) => p.key === provider)?.models ?? [], [providers, provider]);
+  const models = useMemo(() => providers.find((p) => p.key === providerForRequest)?.models ?? [], [providers, providerForRequest]);
   useEffect(() => {
+    if (useCustomEndpoint) return;
     if (models.length > 0 && !models.includes(model)) {
       setModel(models[0]);
     }
-  }, [models, model]);
+  }, [models, model, useCustomEndpoint]);
 
   /** Hydrate gallery from localStorage when filters match a prior run (no regenerate). */
   useEffect(() => {
@@ -277,9 +289,9 @@ export function SandboxApp() {
       let changed = false;
       const next = { ...prev };
       for (const contextVersion of selectedVersions) {
-        const key = cacheKey({ modality, provider, model, contextProfile, contextVersion, page: activePage });
+        const key = cacheKey({ modality, provider: providerForCache, model, contextProfile, contextVersion, page: activePage });
         if (next[key]?.length) continue;
-        const raw = getCachedSuiteRaw({ modality, provider, model, contextProfile, contextVersion, page: activePage });
+        const raw = getCachedSuiteRaw({ modality, provider: providerForCache, model, contextProfile, contextVersion, page: activePage });
         if (!raw) continue;
         try {
           next[key] = JSON.parse(raw) as VersionResultGroup[];
@@ -290,18 +302,25 @@ export function SandboxApp() {
       }
       return changed ? next : prev;
     });
-  }, [modality, provider, model, contextProfile, activePage, selectedVersions.join('|')]);
+  }, [modality, providerForCache, model, contextProfile, activePage, selectedVersions.join('|')]);
 
   const runSuite = async () => {
     if (selectedVersions.length === 0) return;
-    setApiLLMConfig({
+    if (useCustomEndpoint && !normalizedCustomBaseUrl) {
+      setProgressPhase('Enter a Base URL for OpenAI-compatible provider.');
+      return;
+    }
+
+    const suiteLLMConfig: LLMConfig = {
       ...llmConfig,
-      provider,
+      provider: providerForRequest,
       model,
       apiKey: (apiKey || llmConfig.apiKey).trim() || llmConfig.apiKey,
+      baseUrl: useCustomEndpoint ? normalizedCustomBaseUrl : undefined,
       contextProfile,
       streamOutput: true,
-    });
+    };
+    setApiLLMConfig(suiteLLMConfig);
     setIsRunning(true);
     setProgressDone(0);
     setProgressTotal(selectedVersions.length * SAMPLES_PER_PAGE);
@@ -313,8 +332,8 @@ export function SandboxApp() {
 
     try {
       for (const contextVersion of selectedVersions) {
-        const key = cacheKey({ modality, provider, model, contextProfile, contextVersion, page: activePage });
-        const cached = getCachedSuiteRaw({ modality, provider, model, contextProfile, contextVersion, page: activePage });
+        const key = cacheKey({ modality, provider: providerForCache, model, contextProfile, contextVersion, page: activePage });
+        const cached = getCachedSuiteRaw({ modality, provider: providerForCache, model, contextProfile, contextVersion, page: activePage });
         if (cached && !recomputeByVersion[contextVersion]) {
           const parsed = JSON.parse(cached) as VersionResultGroup[];
           setResults((r) => ({ ...r, [key]: parsed }));
@@ -351,11 +370,11 @@ export function SandboxApp() {
           for (let i = 0; i < ROWS_PER_PAGE; i++) {
             const payload = await runOne('/api/sessions/stream', buildStreamBody({
               modality,
-              provider,
+              provider: providerForRequest,
               model,
               context_profile: contextProfile,
               population_size: CHILDREN_PER_ROW,
-            }, contextVersion, llmConfig), `seed-batch-${i + 1}`);
+            }, contextVersion, suiteLLMConfig), `seed-batch-${i + 1}`);
             const n = payload.programs?.length ?? CHILDREN_PER_ROW;
             bumpSamples(n);
             groups.push({
@@ -373,11 +392,11 @@ export function SandboxApp() {
             const payload = await runOne('/api/sessions/stream', buildStreamBody({
               modality,
               prompt: guidance,
-              provider,
+              provider: providerForRequest,
               model,
               context_profile: contextProfile,
               population_size: CHILDREN_PER_ROW,
-            }, contextVersion, llmConfig), `guidance-${i + 1}`);
+            }, contextVersion, suiteLLMConfig), `guidance-${i + 1}`);
             const n = payload.programs?.length ?? CHILDREN_PER_ROW;
             bumpSamples(n);
             groups.push({
@@ -398,10 +417,10 @@ export function SandboxApp() {
               parents: [{ id: `fixed-${modality}-${i + 1}`, code: parent }],
               guidance: '',
               population_size: CHILDREN_PER_ROW,
-              provider,
+              provider: providerForRequest,
               model,
               context_profile: contextProfile,
-            }, contextVersion, llmConfig), `parent-${i + 1}`);
+            }, contextVersion, suiteLLMConfig), `parent-${i + 1}`);
             const n = payload.programs?.length ?? CHILDREN_PER_ROW;
             bumpSamples(n);
             groups.push({
@@ -425,10 +444,10 @@ export function SandboxApp() {
               ],
               guidance: '',
               population_size: CHILDREN_PER_ROW,
-              provider,
+              provider: providerForRequest,
               model,
               context_profile: contextProfile,
-            }, contextVersion, llmConfig), `pair-${i + 1}`);
+            }, contextVersion, suiteLLMConfig), `pair-${i + 1}`);
             const n = payload.programs?.length ?? CHILDREN_PER_ROW;
             bumpSamples(n);
             groups.push({
@@ -522,15 +541,37 @@ export function SandboxApp() {
               <span>Provider</span>
               <select value={provider} onChange={(e) => setProvider(e.target.value)}>
                 {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                <option value={CUSTOM_PROVIDER_KEY}>OpenAI-compatible (custom URL)</option>
               </select>
             </label>
 
             <label className="sandbox-control">
               <span>Model</span>
-              <select value={model} onChange={(e) => setModel(e.target.value)}>
-                {models.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
+              {useCustomEndpoint ? (
+                <input
+                  type="text"
+                  placeholder="model-name"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                />
+              ) : (
+                <select value={model} onChange={(e) => setModel(e.target.value)}>
+                  {models.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              )}
             </label>
+
+            {useCustomEndpoint && (
+              <label className="sandbox-control">
+                <span>Base URL</span>
+                <input
+                  type="url"
+                  placeholder="https://api.groq.com/openai/v1"
+                  value={customBaseUrl}
+                  onChange={(e) => setCustomBaseUrl(e.target.value)}
+                />
+              </label>
+            )}
 
             <label className="sandbox-control">
               <span>Context Complexity</span>
@@ -608,7 +649,7 @@ export function SandboxApp() {
           <h2>Generated Suites</h2>
           <div className="sandbox-compare-columns">
             {selectedVersions.map((version) => {
-              const key = cacheKey({ modality, provider, model, contextProfile, contextVersion: version, page: activePage });
+              const key = cacheKey({ modality, provider: providerForCache, model, contextProfile, contextVersion: version, page: activePage });
               const groups = results[key] ?? [];
               return (
                 <div key={key} className="sandbox-compare-column">
