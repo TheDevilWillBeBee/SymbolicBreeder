@@ -30,6 +30,8 @@ interface SessionState {
   customizedPrograms: Record<string, string>;
   streamingText: string;
   streamingPhase: string;
+  lastRequestParams: { parentCodes: string[]; populationSize: number } | null;
+  lastPromptText: string | null;
 
   // ── Settings (user preferences, preserved across resets — see reset()) ──
   llmConfig: LLMConfig;
@@ -52,6 +54,8 @@ interface SessionState {
   setStreamingText: (text: string) => void;
   appendStreamingText: (delta: string) => void;
   setStreamingPhase: (phase: string) => void;
+  setLastRequestParams: (params: { parentCodes: string[]; populationSize: number }) => void;
+  setLastPromptText: (text: string | null) => void;
   reset: () => void;
 }
 
@@ -76,6 +80,8 @@ const initialState = {
   customizedPrograms: {} as Record<string, string>,
   streamingText: '',
   streamingPhase: '',
+  lastRequestParams: null,
+  lastPromptText: null,
   generationMeta: [] as GenerationMeta[],
   llmConfig: { ...initialLLMConfig },
   lastEvolveSource: 'llm' as const,
@@ -139,6 +145,8 @@ export const useSessionStore = create<SessionState>((set) => ({
   appendStreamingText: (delta) =>
     set((state) => ({ streamingText: state.streamingText + delta })),
   setStreamingPhase: (phase) => set({ streamingPhase: phase }),
+  setLastRequestParams: (params) => set({ lastRequestParams: params }),
+  setLastPromptText: (text) => set({ lastPromptText: text }),
 
   reset: () =>
     set((state) => ({

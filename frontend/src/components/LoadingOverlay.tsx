@@ -1,3 +1,5 @@
+import { CopyPromptButton } from './StreamingOverlay';
+
 interface Props {
   message: string;
   hint?: string;
@@ -10,6 +12,7 @@ export function LoadingOverlay({ message, hint }: Props) {
         <div className="loading-spinner" />
         <p>{message}</p>
         {hint && <span className="loading-hint">{hint}</span>}
+        <CopyPromptButton populationSize={6} />
       </div>
     </div>
   );

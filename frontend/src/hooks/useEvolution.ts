@@ -149,6 +149,27 @@ function mockEvolve(
   return shuffled.slice(0, count);
 }
 
+async function prefetchPromptText(params: {
+  modality: string;
+  parents: Array<{ id: string; code: string }>;
+  guidance?: string;
+  populationSize: number;
+  contextProfile: string;
+}) {
+  try {
+    const result = await api.post<{ combined: string }>('/api/evolve/prompt', {
+      modality: params.modality,
+      parents: params.parents,
+      guidance: params.guidance || undefined,
+      population_size: params.populationSize,
+      context_profile: params.contextProfile || 'intermediate',
+    });
+    useSessionStore.getState().setLastPromptText(result.combined);
+  } catch {
+    // Best effort only; copy button can still attempt to fetch on-demand.
+  }
+}
+
 // ── Hook ──
 
 export function useEvolution() {
@@ -189,6 +210,16 @@ export function useEvolution() {
           source: string;
           message: string | null;
         };
+
+        store.setLastRequestParams({ parentCodes: [], populationSize: 6 });
+        store.setLastPromptText(null);
+        void prefetchPromptText({
+          modality,
+          parents: [],
+          guidance: initialPrompt,
+          populationSize: 6,
+          contextProfile: contextProfile || 'intermediate',
+        });
 
         if (streamOutput) {
           // Streaming path
@@ -370,6 +401,16 @@ export function useEvolution() {
           source: string;
           message: string | null;
         };
+
+        store.setLastRequestParams({ parentCodes: parentPayload.map((p) => p.code), populationSize: 6 });
+        store.setLastPromptText(null);
+        void prefetchPromptText({
+          modality,
+          parents: parentPayload,
+          guidance,
+          populationSize: 6,
+          contextProfile: contextProfile || 'intermediate',
+        });
 
         let res: EvolveResult;
 

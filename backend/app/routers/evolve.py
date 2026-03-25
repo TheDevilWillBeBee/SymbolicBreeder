@@ -3,8 +3,9 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as DBSession
 
 from ..database import get_db
-from ..models.schemas import EvolveRequest, EvolveResponse
+from ..models.schemas import EvolveRequest, EvolveResponse, PromptRequest, PromptResponse
 from ..services.evolution import evolve_programs, evolve_programs_stream
+from ..services.llm import get_prompt_texts
 
 router = APIRouter()
 
@@ -28,6 +29,19 @@ async def evolve(
         base_url=request.base_url,
         context_profile=request.context_profile,
     )
+
+
+@router.post("/evolve/prompt", response_model=PromptResponse)
+async def build_prompt(request: PromptRequest):
+    parent_codes = [p.code for p in request.parents]
+    result = get_prompt_texts(
+        modality=request.modality,
+        parent_codes=parent_codes,
+        population_size=request.population_size,
+        guidance=request.guidance,
+        context_profile=request.context_profile,
+    )
+    return PromptResponse(**result)
 
 
 @router.post("/evolve/stream")

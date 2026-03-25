@@ -2650,6 +2650,26 @@ body.modality-non-strudel .cm-panels {
   border-bottom: 1px solid #2a2a4a;
 }
 
+.streaming-copy-prompt-btn {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid #3a3a5a;
+  border-radius: 4px;
+  color: #8080a0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.streaming-header .streaming-copy-prompt-btn {
+  margin-left: auto;
+}
+
+.streaming-copy-prompt-btn:hover {
+  border-color: #6060a0;
+  color: #c0c0e0;
+}
+
 .streaming-spinner {
   width: 16px;
   height: 16px;

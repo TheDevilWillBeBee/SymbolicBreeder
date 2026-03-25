@@ -16,6 +16,7 @@ import { AboutPage } from './components/AboutPage';
 import { useStrudelPlayer } from './hooks/useStrudelPlayer';
 import { useEvolution } from './hooks/useEvolution';
 import { useSessionStore } from './store/sessionStore';
+import { formatLLMLabel } from './utils/llmLabel';
 import { useNavStore } from './store/navStore';
 import { useGalleryStore } from './store/galleryStore';
 import { Program } from './types';
@@ -233,7 +234,7 @@ export default function App() {
             title="Model settings"
           >
             {!llmConfig.apiKey && <span className="header-model-warning">&#9888;</span>}
-            <span className="header-model-label">{llmConfig.provider}/{llmConfig.model}</span>
+            <span className="header-model-label">{formatLLMLabel(llmConfig.provider, llmConfig.model, llmConfig.baseUrl).toLowerCase()}</span>
             <span className="header-model-arrow">{modelPanelOpen ? '\u25B4' : '\u25BE'}</span>
           </button>
           <button

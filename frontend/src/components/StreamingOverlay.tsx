@@ -2,6 +2,48 @@ import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useSessionStore } from '../store/sessionStore';
 import { highlightCode } from '../utils/syntaxHighlight';
 import { buildLineNumberText } from '../utils/codeLineNumbers';
+import { api } from '../api/client';
+
+export function CopyPromptButton({ populationSize }: { populationSize: number }) {
+  const modality = useSessionStore((s) => s.modality) ?? 'strudel';
+  const cachedPromptText = useSessionStore((s) => s.lastPromptText);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
+
+  const copyPrompt = useCallback(async () => {
+    const { llmConfig, guidance, lastRequestParams } = useSessionStore.getState();
+    const params = lastRequestParams ?? { parentCodes: [], populationSize };
+    setCopyState('idle');
+
+    try {
+      if (cachedPromptText) {
+        await navigator.clipboard.writeText(cachedPromptText);
+      } else {
+        const result = await api.post<{ combined: string }>('/api/evolve/prompt', {
+          modality,
+          parents: params.parentCodes.map((code, i) => ({ id: String(i), code })),
+          guidance: guidance || undefined,
+          population_size: params.populationSize,
+          context_profile: llmConfig.contextProfile || 'intermediate',
+        });
+        useSessionStore.getState().setLastPromptText(result.combined);
+        await navigator.clipboard.writeText(result.combined);
+      }
+      setCopyState('copied');
+    } catch {
+      setCopyState('error');
+    }
+  }, [modality, populationSize, cachedPromptText]);
+
+  return (
+    <button
+      className="streaming-copy-prompt-btn"
+      onClick={copyPrompt}
+      title="Copy full prompt to clipboard"
+    >
+      {copyState === 'copied' ? 'Copied!' : copyState === 'error' ? 'Error' : 'Copy prompt'}
+    </button>
+  );
+}
 
 /**
  * Parse streaming LLM text into separate code blocks.
@@ -117,6 +159,7 @@ export function StreamingOverlay({ populationSize }: Props) {
         <div className="streaming-header">
           <div className="streaming-spinner" />
           <span>{statusMessage}</span>
+          <CopyPromptButton populationSize={populationSize} />
         </div>
 
         {blocks.length === 0 && streamingText.length > 0 && (

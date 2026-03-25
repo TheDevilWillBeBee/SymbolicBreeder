@@ -40,6 +40,20 @@ class EvolveResponse(BaseModel):
     message: Optional[str] = None
 
 
+class PromptRequest(BaseModel):
+    modality: str = "strudel"
+    parents: list[ParentProgram] = []
+    guidance: Optional[str] = None
+    population_size: int = Field(default=6, ge=1, le=20)
+    context_profile: str = "intermediate"
+
+
+class PromptResponse(BaseModel):
+    system: str
+    user: str
+    combined: str
+
+
 class LineageProgramSchema(BaseModel):
     id: str
     code: str

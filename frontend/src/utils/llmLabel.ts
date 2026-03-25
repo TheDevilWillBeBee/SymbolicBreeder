@@ -5,7 +5,7 @@ export function formatLLMLabel(
 ): string {
   const normalizedProvider = provider.trim().toLowerCase();
   const normalizedModel = model.trim();
-  const hasCustomBaseUrl = Boolean(baseUrl?.trim());
+  const hasCustomBaseUrl = baseUrl !== undefined && baseUrl !== null;
   const providerTag =
     normalizedProvider === 'openai' && hasCustomBaseUrl
       ? 'CUSTOM'
