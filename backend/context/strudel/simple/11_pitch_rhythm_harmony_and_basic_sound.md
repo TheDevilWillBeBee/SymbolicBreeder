@@ -29,6 +29,9 @@ Use `chord(...).voicing()` when harmony should guide the piece.
 
 ## 2) Shared Harmonic Language
 
+For major/minor scales, always use full mode names: `:major` and `:minor`.
+Do not use shorthand like `:maj` or `:min`.
+
 Shared scale variable:
 
 ```strudel
@@ -97,6 +100,9 @@ Small detuned thickness:
 note("c3").add(note("0,.07"))
 ```
 
+The comma form `"0,.07"` is mini-notation inside a quoted pattern string.
+Do not write unquoted comma arguments like `note(0,.07)`.
+
 ## 4) Motif Writing: Repetition with Change
 
 Plain motif:
@@ -159,7 +165,98 @@ Top-line from the same chord world:
 n("0 1 2 3").set(chords).voicing()
 ```
 
-## 6) Common Progression Shapes
+## 6) Chord Symbols and What They Do in Progressions
+
+Use uppercase letters for major triads and add suffixes for quality or tension.
+Important rule for this context: use `C^7` for major seventh, not `Cmaj7`.
+
+Major triad (`C`) - stable home color.
+Common use: tonic arrival or cadence destination.
+
+```strudel
+chord("<F G C>")
+```
+
+Minor triad (`Cm`) - darker tonic or modal center.
+Common use: minor-key loop center or deceptive cadence landing.
+
+```strudel
+chord("<Cm Ab Bb G>")
+```
+
+Dominant seventh (`C7`) - contains strong pull to a chord a fifth below.
+Common use: cadence driver like V7 to I or secondary dominant motion.
+
+```strudel
+chord("<D7 G7 C>")
+```
+
+Major seventh (`C^7`) - tonic family with softer, jazzier color.
+Common use: final cadence color or smooth tonic in ii-V-I writing.
+
+```strudel
+chord("<Dm7 G7 C^7>")
+```
+
+Extended chords (`C9`, `Cm9`, `C11`, `C13`) - seventh chords with added upper tones.
+Common use: color-rich vamps, dominant setups, or softer long cadential landings.
+
+```strudel
+chord("<C9 F9>")
+```
+
+```strudel
+chord("<Cm9 Ab^7>")
+```
+
+```strudel
+chord("<C11 F13 C^7>")
+```
+
+Altered dominant tensions (`C7b9`, `C7b13`) - dominant chords with extra bite.
+Common use: stronger cadence gravity into a tonic, especially in minor.
+
+```strudel
+chord("<E7b9 Am>")
+```
+
+```strudel
+chord("<A7b13 Dm>")
+```
+
+Diminished triad (`Co`) - unstable symmetric color.
+Common use: passing chord between stable harmonies.
+
+```strudel
+chord("<C Co Dm>")
+```
+
+Diminished seventh (`Co7`) - compact tension stack with strong resolution pull.
+Common use: leading-tone cadence color into minor or major tonic.
+
+```strudel
+chord("<Co7 C>")
+```
+
+Augmented triad (`Caug`) - raised fifth creates forward motion.
+Common use: dominant-area color before resolving to a stable chord.
+
+```strudel
+chord("<Caug F>")
+```
+
+Suspended chords (`Csus`, `C7sus`) - replace the third to delay major/minor identity.
+Common use: hold tension, then resolve to `C` or `C7` for release.
+
+```strudel
+chord("<Gsus G>")
+```
+
+```strudel
+chord("<D7sus D7 G>")
+```
+
+## 7) Common Progression Shapes
 
 Minor loop with pop/direct energy:
 
@@ -167,16 +264,22 @@ Minor loop with pop/direct energy:
 chord("<Am F C G>")
 ```
 
-Jazz pull toward home:
+ii-V-I with soft tonic landing:
 
 ```strudel
-chord("<Dm7 G7 Cmaj7>")
+chord("<Dm7 G7 C^7>")
 ```
 
-Modal vamp:
+Minor ii-V-i cadence cell:
 
 ```strudel
-chord("<Dm7 G>")
+chord("<Bm7b5 E7b9 Am>")
+```
+
+Modal vamp with suspended color:
+
+```strudel
+chord("<Dm7 G7sus G7>")
 ```
 
 Dark descending roots:
@@ -185,26 +288,56 @@ Dark descending roots:
 chord("<Fm Db Eb C>")
 ```
 
-Suspended color before release:
+Dominant color with added tension:
 
 ```strudel
-chord("<Gsus G>")
+chord("<Am D7 G7 C^7>")
+```
+
+Passing diminished color:
+
+```strudel
+chord("<C Co Dm G7>")
+```
+
+Augmented lift before resolution:
+
+```strudel
+chord("<C Caug F G>")
 ```
 
 You do not need many chords if rhythm and timbre are alive.
 
-## 7) Cadence and Release Moves
+## 8) Cadence and Release Moves
 
 Dominant to tonic:
 
 ```strudel
-chord("<G7 Cmaj7>")
+chord("<G7 C^7>")
 ```
 
 Minor dominant pull:
 
 ```strudel
 chord("<E7 Am>")
+```
+
+Stronger minor cadence with altered tension:
+
+```strudel
+chord("<E7b9 Am>")
+```
+
+Suspension resolving into a dominant:
+
+```strudel
+chord("<D7sus D7 G>")
+```
+
+Leading-tone diminished release:
+
+```strudel
+chord("<Bo7 C>")
 ```
 
 Suspension resolving downward:
@@ -229,7 +362,7 @@ note("d2@4")
 chord("<Dm Bb Gm A>").voicing()
 ```
 
-## 8) Make Rhythm and Melody Complement Each Other
+## 9) Make Rhythm and Melody Complement Each Other
 
 On-grid melody:
 
@@ -255,7 +388,7 @@ Fast decorative pickup into a longer tone:
 n("[6 7] 0@2 2").scale("A4:minor")
 ```
 
-## 9) Basic Waveform and Instrument Choices
+## 10) Basic Waveform and Instrument Choices
 
 Pure, simple, round:
 
@@ -293,7 +426,7 @@ String pad texture:
 chord("<Cm Ab>").voicing().s("gm_synth_strings_1")
 ```
 
-## 10) Basic Envelope Design
+## 11) Basic Envelope Design
 
 Short pluck:
 
@@ -319,7 +452,7 @@ Compact ADSR shorthand:
 note("c3").s("triangle").adsr(".01:.1:.3:.08")
 ```
 
-## 11) Basic Filter and Space Choices
+## 12) Basic Filter and Space Choices
 
 Darker bass:
 
@@ -357,7 +490,7 @@ Vocal-ish formant color:
 note("c3 eb3 g3").s("sawtooth").vowel("<a e i o>")
 ```
 
-## 12) Noise and Air
+## 13) Noise and Air
 
 Noise hat:
 
@@ -377,7 +510,7 @@ Subtle dirt on a tone:
 note("c4").s("triangle").noise(.08)
 ```
 
-## 13) Dynamics Matter More Than Extra Notes
+## 14) Dynamics Matter More Than Extra Notes
 
 Hat accents:
 
@@ -397,7 +530,7 @@ Velocity as expressive contour:
 n("0 2 4 6").scale("C4:major").velocity(".4 .6 .9 .7")
 ```
 
-## 14) Simple Stereo and Layering
+## 15) Simple Stereo and Layering
 
 Center the bass:
 
@@ -417,7 +550,7 @@ Layer two timbres on one note stream:
 note("c3 eb3 g3").layer(x=>x.s("triangle"), x=>x.s("square").gain(.35))
 ```
 
-## 15) Simple Composition Heuristics
+## 16) Simple Composition Heuristics
 
 At this level, musical coherence usually comes from five moves:
 

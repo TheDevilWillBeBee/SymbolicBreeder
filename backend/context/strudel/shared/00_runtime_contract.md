@@ -14,6 +14,8 @@ Every finished program should follow this contract:
 - Use separate `$:` lines for clearly different roles when possible
 - End every top-level role with an inline visual
 - Keep pitched parts inside one harmonic world unless modulation is deliberate
+- For major/minor scale names, use full mode names only: `:major` or `:minor` (do not use `:maj` or `:min`)
+- Comma mini-notation like `"0,.07"` is valid only inside quoted pattern strings; do not write unquoted comma arguments like `note(0,.07)`
 - Use built-in Strudel sources freely
 - Do not use arbitrary external sample URLs or custom remote sample packs
 - If `samples()` is used at all, use it only with Shabda
@@ -60,6 +62,11 @@ Shared scale:
 var scale = "D:minor"
 ```
 
+Scale naming rule for major/minor:
+
+- valid: `E:minor`, `C:major`, `Bb:minor`
+- invalid: `E:min`, `C:maj`, `Bb:min`
+
 Shared progression:
 
 ```strudel
@@ -89,7 +96,7 @@ $: n("0 2 4 5").scale(scale).s("sawtooth")._pianoroll()
 ```
 
 ```strudel
-$: chord("<Dm7 G7 Cmaj7>").voicing().s("gm_epiano1")._pianoroll()
+$: chord("<Dm7 G7 C^7>").voicing().s("gm_epiano1")._pianoroll()
 ```
 
 Use `stack()` when several layers truly belong to one role.
