@@ -9,6 +9,10 @@ export interface TransitionNode {
   guidance?: string;
   llmModel?: string;
   contextProfile?: string;
+  /** If the seed was bred from a gallery item, the SharedProgram id */
+  galleryOriginId?: string;
+  /** Sharer name of the gallery item this was bred from */
+  galleryOriginName?: string;
   /** IDs of programs in the lower (parent) generation */
   parentIds: string[];
   /** IDs of programs in the upper (child) generation */
@@ -78,11 +82,13 @@ export function buildLayeredDAG(lineage: LineageProgram[]): LayeredDAG | null {
   // Generation 0 (seed) also shows metadata if present
   const bottomLayer = layers[layers.length - 1];
   const bottomRep = bottomLayer.programs[0];
-  if (bottomRep.llmModel || bottomRep.guidance || bottomRep.contextProfile) {
+  if (bottomRep.llmModel || bottomRep.guidance || bottomRep.contextProfile || bottomRep.galleryOriginId) {
     transitions.push({
       guidance: bottomRep.guidance,
       llmModel: bottomRep.llmModel,
       contextProfile: bottomRep.contextProfile,
+      galleryOriginId: bottomRep.galleryOriginId,
+      galleryOriginName: bottomRep.galleryOriginName,
       parentIds: [],
       childIds: bottomLayer.programs.map((p) => p.id),
     });

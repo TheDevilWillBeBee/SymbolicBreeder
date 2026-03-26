@@ -24,6 +24,8 @@ function mapSharedProgram(raw: Record<string, unknown>): SharedProgram {
       guidance: (lp.guidance ?? '') as string,
       llmModel: (lp.llmModel ?? lp.llm_model ?? '') as string,
       contextProfile: (lp.contextProfile ?? lp.context_profile ?? '') as string,
+      galleryOriginId: (lp.galleryOriginId ?? lp.gallery_origin_id ?? undefined) as string | undefined,
+      galleryOriginName: (lp.galleryOriginName ?? lp.gallery_origin_name ?? undefined) as string | undefined,
     }); }),
     llmModel: (raw.llmModel ?? raw.llm_model ?? '') as string,
     createdAt: (raw.createdAt ?? raw.created_at ?? '') as string,

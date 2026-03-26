@@ -112,6 +112,7 @@ export function StreamingOverlay({ populationSize }: Props) {
   const streamingPhase = useSessionStore((s) => s.streamingPhase);
   const modality = useSessionStore((s) => s.modality) ?? 'strudel';
   const scrollRef = useRef<HTMLDivElement>(null);
+  const activeCodeRef = useRef<HTMLDivElement>(null);
 
   // Track which blocks are manually expanded by user
   const [expandedBlocks, setExpandedBlocks] = useState<Set<number>>(new Set());
@@ -147,9 +148,15 @@ export function StreamingOverlay({ populationSize }: Props) {
     return `Generating ${MODALITY_LABELS[modality] ?? 'programs'}... (${completedCount} of ${populationSize} received)`;
   }, [streamingPhase, blocks.length, streamingText.length, modality, completedCount, populationSize]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll panel to bottom (keeps new blocks visible)
   useEffect(() => {
     const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [streamingText]);
+
+  // Auto-scroll the active (in-progress) code block to show latest lines
+  useEffect(() => {
+    const el = activeCodeRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [streamingText]);
 
@@ -200,7 +207,7 @@ export function StreamingOverlay({ populationSize }: Props) {
                 )}
               </div>
               {showCode && (
-                <div className="streaming-code code-with-lines">
+                <div className="streaming-code code-with-lines" ref={!block.complete ? activeCodeRef : undefined}>
                   <pre className="code-line-numbers" aria-hidden>{buildLineNumberText(block.code)}</pre>
                   <pre
                     className="streaming-code-content"

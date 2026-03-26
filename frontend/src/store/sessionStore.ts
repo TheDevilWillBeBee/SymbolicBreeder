@@ -20,6 +20,8 @@ interface SessionState {
   currentGeneration: number;
   generationMeta: GenerationMeta[];
   lastEvolveSource: 'llm' | 'mock';
+  galleryOriginId: string | null;
+  galleryOriginName: string | null;
 
   // ── UI state (transient interaction state, cleared on reset) ──
   selectedProgramIds: Set<string>;
@@ -51,6 +53,7 @@ interface SessionState {
   addGenerationMeta: (meta: GenerationMeta) => void;
   setLLMConfig: (config: Partial<LLMConfig>) => void;
   setLastEvolveSource: (source: 'llm' | 'mock') => void;
+  setGalleryOrigin: (id: string | null, name: string | null) => void;
   setStreamingText: (text: string) => void;
   appendStreamingText: (delta: string) => void;
   setStreamingPhase: (phase: string) => void;
@@ -85,6 +88,8 @@ const initialState = {
   generationMeta: [] as GenerationMeta[],
   llmConfig: { ...initialLLMConfig },
   lastEvolveSource: 'llm' as const,
+  galleryOriginId: null,
+  galleryOriginName: null,
 };
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -140,6 +145,7 @@ export const useSessionStore = create<SessionState>((set) => ({
     })),
 
   setLastEvolveSource: (source) => set({ lastEvolveSource: source }),
+  setGalleryOrigin: (id, name) => set({ galleryOriginId: id, galleryOriginName: name }),
 
   setStreamingText: (text) => set({ streamingText: text }),
   appendStreamingText: (delta) =>

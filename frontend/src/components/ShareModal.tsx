@@ -17,6 +17,8 @@ function buildLineage(
   generations: Program[][],
   generationMeta: GenerationMeta[],
   customizedPrograms: Record<string, string>,
+  galleryOriginId: string | null,
+  galleryOriginName: string | null,
 ): LineageProgram[] {
   const allPrograms = new Map<string, Program>();
   for (const gen of generations) {
@@ -48,6 +50,7 @@ function buildLineage(
       guidance: meta?.guidance ?? '',
       llmModel: meta?.llmModel ?? '',
       contextProfile: meta?.contextProfile ?? '',
+      ...(p.generation === 0 && galleryOriginId ? { galleryOriginId, galleryOriginName: galleryOriginName ?? undefined } : {}),
     });
     for (const pid of p.parentIds) {
       walk(pid);
@@ -80,6 +83,8 @@ export function ShareModal({ program, onClose }: Props) {
   const generationMeta = useSessionStore((s) => s.generationMeta);
   const llmConfig = useSessionStore((s) => s.llmConfig);
   const lastEvolveSource = useSessionStore((s) => s.lastEvolveSource);
+  const galleryOriginId = useSessionStore((s) => s.galleryOriginId);
+  const galleryOriginName = useSessionStore((s) => s.galleryOriginName);
   const addLog = useLogStore((s) => s.addLog);
   const addSharedProgram = useGalleryStore((s) => s.addSharedProgram);
 
@@ -101,6 +106,8 @@ export function ShareModal({ program, onClose }: Props) {
       generations,
       generationMeta,
       customizedPrograms,
+      galleryOriginId,
+      galleryOriginName,
     );
     // Update the final program's code with customized version if any
     const finalInLineage = lineage.find((p) => p.id === program.id);
@@ -140,7 +147,7 @@ export function ShareModal({ program, onClose }: Props) {
     setShareUrl(url);
     setIsSharing(false);
     addLog('success', 'Program shared to the gallery!');
-  }, [sharerName, program, generations, generationMeta, customizedPrograms, displayCode, lastEvolveSource, currentLLMLabel, addLog, addSharedProgram]);
+  }, [sharerName, program, generations, generationMeta, customizedPrograms, displayCode, lastEvolveSource, currentLLMLabel, galleryOriginId, galleryOriginName, addLog, addSharedProgram]);
 
   const handleCopyUrl = useCallback(() => {
     if (!shareUrl) return;

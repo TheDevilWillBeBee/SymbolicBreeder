@@ -42,12 +42,16 @@ export function GalleryPage() {
     const store = useSessionStore.getState();
     store.reset();
     store.setModality(program.modality);
+    store.setGalleryOrigin(program.id, program.sharerName);
     store.setSession({
       id: crypto.randomUUID(),
       name: `From ${program.sharerName}'s program`,
       modality: program.modality,
       createdAt: new Date().toISOString(),
     });
+    // Add empty meta for gen 0 so subsequent addGenerationMeta calls
+    // align with generation indices (gen 1 meta lands at index 1, etc.)
+    store.addGenerationMeta({ guidance: '', llmModel: '', contextProfile: '' });
     store.addGeneration([{
       id: crypto.randomUUID(),
       code: program.code,

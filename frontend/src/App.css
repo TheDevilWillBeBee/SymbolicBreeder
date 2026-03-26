@@ -2196,6 +2196,21 @@ body.modality-non-strudel .cm-panels {
   opacity: 0.85;
 }
 
+.transition-gallery-origin {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.transition-gallery-link {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.transition-gallery-link:hover {
+  opacity: 0.8;
+}
+
 .lineage-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -2740,6 +2755,8 @@ body.modality-non-strudel .cm-panels {
 
 .streaming-code {
   background: #111425;
+  max-height: 24rem;
+  overflow-y: auto;
 }
 
 .streaming-code-content {

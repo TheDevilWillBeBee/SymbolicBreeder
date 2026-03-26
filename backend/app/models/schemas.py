@@ -65,6 +65,8 @@ class LineageProgramSchema(BaseModel):
     guidance: Optional[str] = None
     llm_model: Optional[str] = Field(default=None, alias="llmModel")
     context_profile: Optional[str] = Field(default=None, alias="contextProfile")
+    gallery_origin_id: Optional[str] = Field(default=None, alias="galleryOriginId")
+    gallery_origin_name: Optional[str] = Field(default=None, alias="galleryOriginName")
 
     model_config = {"populate_by_name": True}
 

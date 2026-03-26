@@ -67,6 +67,10 @@ export interface LineageProgram {
   guidance?: string;
   llmModel?: string;
   contextProfile?: string;
+  /** If this seed was bred from a gallery item, the SharedProgram id */
+  galleryOriginId?: string;
+  /** Sharer name of the gallery item this was bred from */
+  galleryOriginName?: string;
 }
 
 export interface SharedProgram {
