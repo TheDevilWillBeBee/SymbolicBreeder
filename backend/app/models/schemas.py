@@ -112,6 +112,28 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class RegisterStartResponse(BaseModel):
+    challenge_id: str
+    email: EmailStr
+    expires_in_seconds: int
+    resend_after_seconds: int
+
+
+class RegisterVerifyRequest(BaseModel):
+    challenge_id: str
+    code: str = Field(min_length=4, max_length=8, pattern=r"^[0-9]+$")
+
+
+class RegisterResendRequest(BaseModel):
+    challenge_id: str
+
+
+class RegisterResendResponse(BaseModel):
+    challenge_id: str
+    expires_in_seconds: int
+    resend_after_seconds: int
+
+
 class LoginRequest(BaseModel):
     login: str  # accepts email or username
     password: str

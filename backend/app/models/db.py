@@ -39,6 +39,21 @@ class User(Base):
     updated_at = Column(DateTime, default=_now, onupdate=_now)
 
 
+class PendingSignup(Base):
+    __tablename__ = "pending_signups"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    email = Column(String, nullable=False, unique=True, index=True)
+    username = Column(String(40), nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    otp_hash = Column(String, nullable=False)
+    otp_expires_at = Column(DateTime, nullable=False, index=True)
+    resend_available_at = Column(DateTime, nullable=False)
+    verify_attempt_count = Column(Integer, nullable=False, server_default="0")
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
+
+
 class Session(Base):
     __tablename__ = "sessions"
 

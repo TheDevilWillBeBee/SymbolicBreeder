@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import { AuthUser, AuthResponse, LineageProgram } from '../types';
+import {
+  AuthUser,
+  AuthResponse,
+  LineageProgram,
+  SignupChallengeResponse,
+  SignupResendResponse,
+} from '../types';
 import { api } from '../api/client';
 
 const TOKEN_KEY = 'symbolicBreeder_authToken';
@@ -19,7 +25,9 @@ interface AuthState {
   pendingShare: PendingShare | null;
 
   login: (login: string, password: string) => Promise<AuthUser>;
-  register: (username: string, email: string, password: string) => Promise<AuthUser>;
+  startSignup: (username: string, email: string, password: string) => Promise<SignupChallengeResponse>;
+  verifySignupCode: (challengeId: string, code: string) => Promise<AuthUser>;
+  resendSignupCode: (challengeId: string) => Promise<SignupResendResponse>;
   logout: () => void;
   checkAuth: () => Promise<void>;
   setPendingShare: (data: PendingShare | null) => void;
@@ -38,11 +46,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return res.user;
   },
 
-  register: async (username: string, email: string, password: string) => {
-    const res = await api.post<AuthResponse>('/api/auth/register', { username, email, password });
+  startSignup: async (username: string, email: string, password: string) => {
+    const res = await api.post<SignupChallengeResponse>('/api/auth/register', { username, email, password });
+    return res;
+  },
+
+  verifySignupCode: async (challengeId: string, code: string) => {
+    const res = await api.post<AuthResponse>('/api/auth/register/verify', {
+      challenge_id: challengeId,
+      code,
+    });
     localStorage.setItem(TOKEN_KEY, res.access_token);
     set({ token: res.access_token, user: res.user });
     return res.user;
+  },
+
+  resendSignupCode: async (challengeId: string) => {
+    const res = await api.post<SignupResendResponse>('/api/auth/register/resend', {
+      challenge_id: challengeId,
+    });
+    return res;
   },
 
   logout: () => {

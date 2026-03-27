@@ -2916,6 +2916,41 @@ body.modality-non-strudel .cm-panels {
   border-radius: 6px;
 }
 
+.auth-verify-note {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.auth-verify-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.auth-secondary-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+.auth-secondary-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.auth-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .auth-submit-btn {
   background: var(--accent);
   color: #fff;

@@ -101,6 +101,19 @@ export interface AuthResponse {
   user: AuthUser;
 }
 
+export interface SignupChallengeResponse {
+  challenge_id: string;
+  email: string;
+  expires_in_seconds: number;
+  resend_after_seconds: number;
+}
+
+export interface SignupResendResponse {
+  challenge_id: string;
+  expires_in_seconds: number;
+  resend_after_seconds: number;
+}
+
 // ── Render options passed to plugin render methods ──
 
 export interface RenderOptions {

@@ -28,6 +28,19 @@ JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
 )
 
 
+# ---------------------------------------------------------------------------
+# Signup OTP / Email settings
+# ---------------------------------------------------------------------------
+OTP_CODE_LENGTH: int = 6
+OTP_EXPIRE_SECONDS: int = 300
+OTP_RESEND_COOLDOWN_SECONDS: int = 30
+OTP_MAX_VERIFY_ATTEMPTS: int = 5
+
+RESEND_API_BASE: str = os.getenv("RESEND_API_BASE", "https://api.resend.com")
+RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+
+
 def get_server_api_key() -> str | None:
     """Return the first available server-side API key, or None.
 

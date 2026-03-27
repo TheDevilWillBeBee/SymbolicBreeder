@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useLogStore } from '../store/logStore';
 import { Modal } from './Modal';
@@ -38,24 +38,36 @@ async function maybeStoreBrowserCredential(params: {
 
 export function AuthModal({ onClose }: Props) {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
+  const [signupStep, setSignupStep] = useState<'form' | 'verify'>('form');
   const [login, setLogin] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [signupChallengeId, setSignupChallengeId] = useState<string | null>(null);
+  const [resendSecondsLeft, setResendSecondsLeft] = useState(0);
+  const [codeExpiresSecondsLeft, setCodeExpiresSecondsLeft] = useState(0);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const authLogin = useAuthStore((s) => s.login);
-  const authRegister = useAuthStore((s) => s.register);
+  const startSignup = useAuthStore((s) => s.startSignup);
+  const verifySignupCode = useAuthStore((s) => s.verifySignupCode);
+  const resendSignupCode = useAuthStore((s) => s.resendSignupCode);
   const addLog = useLogStore((s) => s.addLog);
 
   const resetForm = useCallback(() => {
+    setSignupStep('form');
     setLogin('');
     setEmail('');
     setUsername('');
     setPassword('');
     setConfirmPassword('');
+    setVerificationCode('');
+    setSignupChallengeId(null);
+    setResendSecondsLeft(0);
+    setCodeExpiresSecondsLeft(0);
     setError('');
   }, []);
 
@@ -98,30 +110,89 @@ export function AuthModal({ onClose }: Props) {
     setIsSubmitting(true);
     setError('');
     try {
-      const user = await authRegister(username.trim(), email.trim(), password);
+      const res = await startSignup(username.trim(), email.trim(), password);
+      setSignupChallengeId(res.challenge_id);
+      setResendSecondsLeft(res.resend_after_seconds);
+      setCodeExpiresSecondsLeft(res.expires_in_seconds);
+      setVerificationCode('');
+      setSignupStep('verify');
+      addLog('success', 'Verification code sent. Check your email.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [username, email, password, confirmPassword, startSignup, addLog]);
+
+  const handleVerifyCode = useCallback(async () => {
+    if (!signupChallengeId) {
+      setError('Verification session expired. Please sign up again.');
+      setSignupStep('form');
+      return;
+    }
+    const normalizedCode = verificationCode.trim();
+    if (!/^[0-9]{6}$/.test(normalizedCode)) {
+      setError('Enter the 6-digit code from your email');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const user = await verifySignupCode(signupChallengeId, normalizedCode);
       const credentialId = (user.email || email || user.username || username).trim();
       void maybeStoreBrowserCredential({
         id: credentialId,
         password,
         name: user.username || username,
       });
-      addLog('success', 'Account created successfully!');
+      addLog('success', 'Account verified and created successfully!');
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : 'Verification failed');
     } finally {
       setIsSubmitting(false);
     }
-  }, [username, email, password, confirmPassword, authRegister, addLog, onClose]);
+  }, [signupChallengeId, verificationCode, verifySignupCode, email, username, password, addLog, onClose]);
+
+  const handleResendCode = useCallback(async () => {
+    if (!signupChallengeId || resendSecondsLeft > 0) return;
+
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const res = await resendSignupCode(signupChallengeId);
+      setResendSecondsLeft(res.resend_after_seconds);
+      setCodeExpiresSecondsLeft(res.expires_in_seconds);
+      addLog('success', 'A new verification code was sent.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to resend verification code');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [signupChallengeId, resendSecondsLeft, resendSignupCode, addLog]);
+
+  useEffect(() => {
+    if (tab !== 'signup' || signupStep !== 'verify') return;
+    if (resendSecondsLeft <= 0 && codeExpiresSecondsLeft <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setResendSecondsLeft((prev) => Math.max(prev - 1, 0));
+      setCodeExpiresSecondsLeft((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [tab, signupStep, resendSecondsLeft, codeExpiresSecondsLeft]);
 
   const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (tab === 'login') {
       void handleLogin();
+    } else if (signupStep === 'verify') {
+      void handleVerifyCode();
     } else {
       void handleRegister();
     }
-  }, [tab, handleLogin, handleRegister]);
+  }, [tab, signupStep, handleLogin, handleRegister, handleVerifyCode]);
 
   return (
     <Modal onClose={onClose} contentClassName="auth-modal">
@@ -186,7 +257,7 @@ export function AuthModal({ onClose }: Props) {
               />
             </div>
           </>
-        ) : (
+        ) : signupStep === 'form' ? (
           <>
             <div className="auth-field">
               <label htmlFor="auth-username">Username</label>
@@ -249,6 +320,61 @@ export function AuthModal({ onClose }: Props) {
               />
             </div>
           </>
+        ) : (
+          <>
+            <div className="auth-verify-note">
+              Enter the 6-digit code sent to <strong>{email}</strong>. If you do not see it,
+              check your spam or junk folder.
+            </div>
+            <div className="auth-field">
+              <label htmlFor="auth-verification-code">Verification Code</label>
+              <input
+                id="auth-verification-code"
+                type="text"
+                name="verification-code"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6-digit code"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+              />
+            </div>
+
+            <div className="auth-verify-meta">
+              <span>
+                {codeExpiresSecondsLeft > 0
+                  ? `Code expires in ${codeExpiresSecondsLeft}s`
+                  : 'Code expired. Resend to continue.'}
+              </span>
+              <button
+                type="button"
+                className="auth-secondary-btn"
+                onClick={handleResendCode}
+                disabled={isSubmitting || resendSecondsLeft > 0}
+              >
+                {resendSecondsLeft > 0 ? `Resend in ${resendSecondsLeft}s` : 'Resend code'}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="auth-secondary-btn"
+              onClick={() => {
+                setSignupStep('form');
+                setSignupChallengeId(null);
+                setVerificationCode('');
+                setResendSecondsLeft(0);
+                setCodeExpiresSecondsLeft(0);
+                setError('');
+              }}
+              disabled={isSubmitting}
+            >
+              Use different signup details
+            </button>
+          </>
         )}
 
         {error && <div className="auth-error">{error}</div>}
@@ -259,8 +385,12 @@ export function AuthModal({ onClose }: Props) {
           disabled={isSubmitting}
         >
           {isSubmitting
-            ? (tab === 'login' ? 'Logging in...' : 'Creating account...')
-            : (tab === 'login' ? 'Log In' : 'Create Account')
+            ? (tab === 'login'
+              ? 'Logging in...'
+              : (signupStep === 'verify' ? 'Verifying code...' : 'Sending code...'))
+            : (tab === 'login'
+              ? 'Log In'
+              : (signupStep === 'verify' ? 'Verify & Create Account' : 'Send Verification Code'))
           }
         </button>
       </form>
