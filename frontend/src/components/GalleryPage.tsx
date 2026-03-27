@@ -20,6 +20,7 @@ export function GalleryPage({ onOpenAuth }: GalleryPageProps = {}) {
   const sortBy = useGalleryStore((s) => s.sortBy);
   const setSortBy = useGalleryStore((s) => s.setSortBy);
   const setPage = useGalleryStore((s) => s.setPage);
+  const setOwnerUserId = useGalleryStore((s) => s.setOwnerUserId);
   const fetchPrograms = useGalleryStore((s) => s.fetchPrograms);
 
   const goToBreeding = useNavStore((s) => s.goToBreeding);
@@ -28,8 +29,9 @@ export function GalleryPage({ onOpenAuth }: GalleryPageProps = {}) {
   const { play, stop } = useStrudelPlayer(modality === 'strudel');
 
   useEffect(() => {
+    setOwnerUserId(null);
     fetchPrograms();
-  }, []);
+  }, [setOwnerUserId, fetchPrograms]);
 
   const totalPages = Math.max(1, Math.ceil(total / 20));
 

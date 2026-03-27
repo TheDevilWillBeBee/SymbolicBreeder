@@ -22,6 +22,7 @@ export function MySharedPage({ onOpenAuth }: Props) {
   const setModality = useGalleryStore((s) => s.setModality);
   const setSortBy = useGalleryStore((s) => s.setSortBy);
   const setPage = useGalleryStore((s) => s.setPage);
+  const setOwnerUserId = useGalleryStore((s) => s.setOwnerUserId);
   const fetchPrograms = useGalleryStore((s) => s.fetchPrograms);
 
   const goToBreeding = useNavStore((s) => s.goToBreeding);
@@ -30,8 +31,10 @@ export function MySharedPage({ onOpenAuth }: Props) {
   const { play, stop } = useStrudelPlayer(modality === 'strudel');
 
   useEffect(() => {
-    if (user) fetchPrograms(user.id);
-  }, [user?.id]);
+    if (!user) return;
+    setOwnerUserId(user.id);
+    fetchPrograms(user.id);
+  }, [user?.id, setOwnerUserId, fetchPrograms]);
 
   const totalPages = Math.max(1, Math.ceil(total / 20));
 

@@ -18,8 +18,8 @@ interface AuthState {
   isLoading: boolean;
   pendingShare: PendingShare | null;
 
-  login: (login: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  login: (login: string, password: string) => Promise<AuthUser>;
+  register: (username: string, email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   checkAuth: () => Promise<void>;
   setPendingShare: (data: PendingShare | null) => void;
@@ -35,12 +35,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const res = await api.post<AuthResponse>('/api/auth/login', { login, password });
     localStorage.setItem(TOKEN_KEY, res.access_token);
     set({ token: res.access_token, user: res.user });
+    return res.user;
   },
 
   register: async (username: string, email: string, password: string) => {
     const res = await api.post<AuthResponse>('/api/auth/register', { username, email, password });
     localStorage.setItem(TOKEN_KEY, res.access_token);
     set({ token: res.access_token, user: res.user });
+    return res.user;
   },
 
   logout: () => {

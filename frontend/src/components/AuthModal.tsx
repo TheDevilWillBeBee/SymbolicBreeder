@@ -7,6 +7,35 @@ interface Props {
   onClose: () => void;
 }
 
+async function maybeStoreBrowserCredential(params: {
+  id: string;
+  password: string;
+  name?: string;
+}) {
+  if (typeof window === 'undefined') return;
+
+  const PasswordCredentialCtor = (window as Window & {
+    PasswordCredential?: new (data: {
+      id: string;
+      password: string;
+      name?: string;
+    }) => Credential;
+  }).PasswordCredential;
+
+  if (!PasswordCredentialCtor || !('credentials' in navigator)) return;
+
+  try {
+    const credential = new PasswordCredentialCtor({
+      id: params.id,
+      password: params.password,
+      name: params.name,
+    });
+    await navigator.credentials.store(credential);
+  } catch {
+    // Ignore unsupported/blocked credential manager writes.
+  }
+}
+
 export function AuthModal({ onClose }: Props) {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
   const [login, setLogin] = useState('');
@@ -40,7 +69,13 @@ export function AuthModal({ onClose }: Props) {
     setIsSubmitting(true);
     setError('');
     try {
-      await authLogin(login.trim(), password);
+      const user = await authLogin(login.trim(), password);
+      const credentialId = (user.email || user.username || login).trim();
+      void maybeStoreBrowserCredential({
+        id: credentialId,
+        password,
+        name: user.username,
+      });
       addLog('success', 'Logged in successfully!');
       onClose();
     } catch (err: unknown) {
@@ -63,7 +98,13 @@ export function AuthModal({ onClose }: Props) {
     setIsSubmitting(true);
     setError('');
     try {
-      await authRegister(username.trim(), email.trim(), password);
+      const user = await authRegister(username.trim(), email.trim(), password);
+      const credentialId = (user.email || email || user.username || username).trim();
+      void maybeStoreBrowserCredential({
+        id: credentialId,
+        password,
+        name: user.username || username,
+      });
       addLog('success', 'Account created successfully!');
       onClose();
     } catch (err: unknown) {
@@ -73,10 +114,12 @@ export function AuthModal({ onClose }: Props) {
     }
   }, [username, email, password, confirmPassword, authRegister, addLog, onClose]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      if (tab === 'login') handleLogin();
-      else handleRegister();
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (tab === 'login') {
+      void handleLogin();
+    } else {
+      void handleRegister();
     }
   }, [tab, handleLogin, handleRegister]);
 
@@ -102,7 +145,14 @@ export function AuthModal({ onClose }: Props) {
         </button>
       </div>
 
-      <div className="auth-modal-body" onKeyDown={handleKeyDown}>
+      <form
+        key={tab}
+        className="auth-modal-body"
+        onSubmit={handleSubmit}
+        method="post"
+        autoComplete="on"
+        aria-label={tab === 'login' ? 'Login form' : 'Sign up form'}
+      >
         {tab === 'login' ? (
           <>
             <div className="auth-field">
@@ -110,10 +160,16 @@ export function AuthModal({ onClose }: Props) {
               <input
                 id="auth-login"
                 type="text"
+                name="username"
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
                 placeholder="Enter email or username"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
+                required
               />
             </div>
             <div className="auth-field">
@@ -121,9 +177,12 @@ export function AuthModal({ onClose }: Props) {
               <input
                 id="auth-password"
                 type="password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
+                autoComplete="current-password"
+                required
               />
             </div>
           </>
@@ -134,10 +193,16 @@ export function AuthModal({ onClose }: Props) {
               <input
                 id="auth-username"
                 type="text"
+                name="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Choose a username"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
+                required
               />
             </div>
             <div className="auth-field">
@@ -145,9 +210,15 @@ export function AuthModal({ onClose }: Props) {
               <input
                 id="auth-email"
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                required
               />
             </div>
             <div className="auth-field">
@@ -155,9 +226,13 @@ export function AuthModal({ onClose }: Props) {
               <input
                 id="auth-new-password"
                 type="password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
+                autoComplete="new-password"
+                minLength={8}
+                required
               />
             </div>
             <div className="auth-field">
@@ -165,9 +240,12 @@ export function AuthModal({ onClose }: Props) {
               <input
                 id="auth-confirm-password"
                 type="password"
+                name="password-confirmation"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
+                autoComplete="new-password"
+                required
               />
             </div>
           </>
@@ -177,7 +255,7 @@ export function AuthModal({ onClose }: Props) {
 
         <button
           className="auth-submit-btn"
-          onClick={tab === 'login' ? handleLogin : handleRegister}
+          type="submit"
           disabled={isSubmitting}
         >
           {isSubmitting
@@ -185,7 +263,7 @@ export function AuthModal({ onClose }: Props) {
             : (tab === 'login' ? 'Log In' : 'Create Account')
           }
         </button>
-      </div>
+      </form>
     </Modal>
   );
 }
