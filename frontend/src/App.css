@@ -285,6 +285,38 @@ body.modality-non-strudel .cm-panels {
   margin-bottom: 1rem;
 }
 
+/* ── Generation Info ── */
+
+.generation-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.7rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.generation-info-label {
+  font-weight: 400;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.generation-info-model {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.generation-info-guidance {
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .loading-banner {
   background: var(--bg-tertiary);
   padding: 0.65rem;

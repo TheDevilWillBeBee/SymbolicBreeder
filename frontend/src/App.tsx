@@ -4,6 +4,7 @@ import { ModelSelector } from './components/ModelSelector';
 import { ProgramGrid } from './components/ProgramGrid';
 import { GuidanceInput } from './components/GuidanceInput';
 import { GenerationNav } from './components/GenerationNav';
+import { GenerationInfo } from './components/GenerationInfo';
 import { CodeModal } from './components/CodeModal';
 import { CustomizeModal } from './components/CustomizeModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -247,6 +248,7 @@ export default function App() {
         )}
 
         <main>
+          <GenerationInfo />
           <ProgramGrid
             onPlay={handlePlay}
             onStop={handleStop}
