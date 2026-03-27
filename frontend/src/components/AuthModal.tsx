@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useLogStore } from '../store/logStore';
 import { Modal } from './Modal';
@@ -50,6 +50,19 @@ export function AuthModal({ onClose }: Props) {
   const [codeExpiresSecondsLeft, setCodeExpiresSecondsLeft] = useState(0);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  const delayedClose = useCallback(() => {
+    closeTimerRef.current = setTimeout(() => {
+      onClose();
+    }, 600);
+  }, [onClose]);
 
   const authLogin = useAuthStore((s) => s.login);
   const startSignup = useAuthStore((s) => s.startSignup);
@@ -89,13 +102,13 @@ export function AuthModal({ onClose }: Props) {
         name: user.username,
       });
       addLog('success', 'Logged in successfully!');
-      onClose();
+      delayedClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setIsSubmitting(false);
     }
-  }, [login, password, authLogin, addLog, onClose]);
+  }, [login, password, authLogin, addLog, delayedClose]);
 
   const handleRegister = useCallback(async () => {
     if (!username.trim() || !email.trim() || !password) return;
@@ -147,13 +160,13 @@ export function AuthModal({ onClose }: Props) {
         name: user.username || username,
       });
       addLog('success', 'Account verified and created successfully!');
-      onClose();
+      delayedClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Verification failed');
     } finally {
       setIsSubmitting(false);
     }
-  }, [signupChallengeId, verificationCode, verifySignupCode, email, username, password, addLog, onClose]);
+  }, [signupChallengeId, verificationCode, verifySignupCode, email, username, password, addLog, delayedClose]);
 
   const handleResendCode = useCallback(async () => {
     if (!signupChallengeId || resendSecondsLeft > 0) return;
@@ -184,10 +197,14 @@ export function AuthModal({ onClose }: Props) {
   }, [tab, signupStep, resendSecondsLeft, codeExpiresSecondsLeft]);
 
   const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    // Let login & signup forms submit natively to the hidden iframe so the
+    // browser detects a real form submission and offers "Save password?" /
+    // "Suggest strong password". Only prevent default for the verification
+    // step (no credentials to save there).
     if (tab === 'login') {
       void handleLogin();
     } else if (signupStep === 'verify') {
+      e.preventDefault();
       void handleVerifyCode();
     } else {
       void handleRegister();
@@ -216,11 +233,20 @@ export function AuthModal({ onClose }: Props) {
         </button>
       </div>
 
+      <iframe
+        name="auth-hidden-frame"
+        style={{ display: 'none' }}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+
       <form
         key={tab}
         className="auth-modal-body"
         onSubmit={handleSubmit}
         method="post"
+        action="about:blank"
+        target="auth-hidden-frame"
         autoComplete="on"
         aria-label={tab === 'login' ? 'Login form' : 'Sign up form'}
       >
