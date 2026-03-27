@@ -12,7 +12,9 @@ from .config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET_K
 from .database import get_db
 from .models.db import User
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use bcrypt_sha256 to safely handle passwords longer than bcrypt's 72-byte limit,
+# while keeping bcrypt for backward compatibility with existing hashes.
+pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
 

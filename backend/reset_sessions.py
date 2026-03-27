@@ -1,7 +1,8 @@
-"""Reset session data (sessions, programs, reactions) without affecting the gallery.
+"""Reset session data (sessions and programs) without affecting the gallery.
 
 Gallery shared_programs rows reference programs via a nullable FK — this script
 nullifies those references before deleting, so gallery entries remain intact.
+Program reactions now belong to shared gallery items, so they are preserved.
 
 Usage:
     cd backend
@@ -14,7 +15,7 @@ import os
 os.environ["DATABASE_URL"] = os.environ.get("DATABASE_URL_UNPOOLED", os.environ.get("DATABASE_URL", ""))
 
 from app.database import SessionLocal
-from app.models.db import ProgramReaction, Program, Session, SharedProgram
+from app.models.db import Program, Session, SharedProgram
 
 with SessionLocal() as db:
     # Nullify gallery FK references so shared programs survive deletion
@@ -23,9 +24,6 @@ with SessionLocal() as db:
     )
     print(f"Nullified {updated} gallery program references")
 
-    reactions = db.query(ProgramReaction).delete()
-    print(f"Deleted {reactions} program reactions")
-
     programs = db.query(Program).delete()
     print(f"Deleted {programs} programs")
 
@@ -33,4 +31,4 @@ with SessionLocal() as db:
     print(f"Deleted {sessions} sessions")
 
     db.commit()
-    print("Done — session data cleared, gallery intact")
+    print("Done — sessions/programs cleared, gallery and reactions intact")
