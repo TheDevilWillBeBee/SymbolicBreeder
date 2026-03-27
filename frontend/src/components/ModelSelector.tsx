@@ -153,6 +153,22 @@ export function ModelSelector() {
         </div>
       </div>
 
+      <div className="model-selector-row population-size-row">
+        <label className="model-selector-label">Programs per Generation (Number of Offsprings)</label>
+        <div className="population-size-selector">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`population-size-btn${llmConfig.populationSize === n ? ' active' : ''}`}
+              onClick={() => setLLMConfig({ populationSize: n })}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {(llmConfig.apiKey || serverKeyAvailable) && (
         <div className="model-selector-row stream-toggle-row">
           <label className="stream-toggle-label">

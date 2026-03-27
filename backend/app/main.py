@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import gallery, evolve, sessions, providers
+from .routers import auth, gallery, evolve, sessions, providers
 
 
 def _cors_allow_origins() -> list[str]:
@@ -37,7 +37,7 @@ def create_app(api_prefix: str = "/api") -> FastAPI:
     # serverless functions, which strip the "/api" prefix before forwarding).
     # Only the api_prefix routes are included in the OpenAPI schema to avoid
     # duplicate entries in /docs.
-    _routers = [evolve.router, sessions.router, providers.router, gallery.router]
+    _routers = [evolve.router, sessions.router, providers.router, gallery.router, auth.router]
     prefixes: list[str] = list(dict.fromkeys([api_prefix, "/api", ""]))
 
     for prefix in prefixes:

@@ -10,6 +10,7 @@ export interface LLMConfig {
   baseUrl?: string;
   contextProfile: ContextProfile;
   streamOutput: boolean;
+  populationSize: number;
 }
 
 interface SessionState {
@@ -68,6 +69,7 @@ const initialLLMConfig: LLMConfig = {
   apiKey: '',
   contextProfile: 'intermediate',
   streamOutput: true,
+  populationSize: 6,
 };
 
 const initialState = {
@@ -104,8 +106,11 @@ export const useSessionStore = create<SessionState>((set) => ({
       // Truncate any future generations when evolving from a past point
       const base = state.generations.slice(0, state.currentGeneration + 1);
       const newGens = [...base, programs];
+      // Truncate generationMeta in lockstep so it stays aligned
+      const baseMeta = state.generationMeta.slice(0, state.currentGeneration + 1);
       return {
         generations: newGens,
+        generationMeta: baseMeta,
         currentGeneration: newGens.length - 1,
         selectedProgramIds: new Set<string>(),
       };
@@ -134,10 +139,9 @@ export const useSessionStore = create<SessionState>((set) => ({
     })),
 
   addGenerationMeta: (meta) =>
-    set((state) => {
-      const base = state.generationMeta.slice(0, state.currentGeneration + 1);
-      return { generationMeta: [...base, meta] };
-    }),
+    set((state) => ({
+      generationMeta: [...state.generationMeta, meta],
+    })),
 
   setLLMConfig: (config) =>
     set((state) => ({

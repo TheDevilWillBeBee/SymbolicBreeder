@@ -3,6 +3,7 @@ import { Program, SharedProgram, LineageProgram, GenerationMeta } from '../types
 import { useSessionStore } from '../store/sessionStore';
 import { useGalleryStore } from '../store/galleryStore';
 import { useLogStore } from '../store/logStore';
+import { useAuthStore, PendingShare } from '../store/authStore';
 import { api } from '../api/client';
 import { Modal } from './Modal';
 import { formatLLMLabel } from '../utils/llmLabel';
@@ -10,6 +11,7 @@ import { formatLLMLabel } from '../utils/llmLabel';
 interface Props {
   program: Program;
   onClose: () => void;
+  onOpenAuth?: () => void;
 }
 
 function buildLineage(
@@ -71,9 +73,9 @@ function summarizeLineageField(
   return field === 'llmModel' ? 'Several models' : 'Multiple levels';
 }
 
-export function ShareModal({ program, onClose }: Props) {
-  const stored = localStorage.getItem('symbolicBreeder_sharerName') ?? '';
-  const [sharerName, setSharerName] = useState(stored);
+export function ShareModal({ program, onClose, onOpenAuth }: Props) {
+  const user = useAuthStore((s) => s.user);
+  const setPendingShare = useAuthStore((s) => s.setPendingShare);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -95,12 +97,7 @@ export function ShareModal({ program, onClose }: Props) {
     llmConfig.baseUrl,
   );
 
-  const handleShare = useCallback(async () => {
-    if (!sharerName.trim()) return;
-
-    localStorage.setItem('symbolicBreeder_sharerName', sharerName.trim());
-    setIsSharing(true);
-
+  const buildShareData = useCallback(() => {
     const lineage = buildLineage(
       program,
       generations,
@@ -109,29 +106,52 @@ export function ShareModal({ program, onClose }: Props) {
       galleryOriginId,
       galleryOriginName,
     );
-    // Update the final program's code with customized version if any
     const finalInLineage = lineage.find((p) => p.id === program.id);
     if (finalInLineage) {
       finalInLineage.code = displayCode;
     }
+    const llmLabel = summarizeLineageField(lineage, 'llmModel') || (lastEvolveSource === 'mock' ? 'Mock' : currentLLMLabel);
+    return { lineage, llmLabel };
+  }, [program, generations, generationMeta, customizedPrograms, displayCode, lastEvolveSource, currentLLMLabel, galleryOriginId, galleryOriginName]);
+
+  const handleLoginToShare = useCallback(() => {
+    const { lineage, llmLabel } = buildShareData();
+    const pending: PendingShare = {
+      programId: program.id,
+      code: displayCode,
+      modality: program.modality,
+      lineage,
+      llmModel: llmLabel,
+    };
+    setPendingShare(pending);
+    onClose();
+    onOpenAuth?.();
+  }, [buildShareData, program, displayCode, setPendingShare, onClose, onOpenAuth]);
+
+  const handleShare = useCallback(async () => {
+    if (!user) return;
+
+    setIsSharing(true);
+
+    const { lineage, llmLabel } = buildShareData();
 
     const sharedId = crypto.randomUUID();
-    const llmLabel = summarizeLineageField(lineage, 'llmModel') || (lastEvolveSource === 'mock' ? 'Mock' : currentLLMLabel);
     const sharedProgram: SharedProgram = {
       id: sharedId,
       programId: program.id,
-      sharerName: sharerName.trim(),
+      sharerName: user.username,
       modality: program.modality,
       code: displayCode,
       lineage,
       llmModel: llmLabel,
+      likeCount: 0,
+      likedByMe: false,
       createdAt: new Date().toISOString(),
     };
 
     try {
       const res = await api.post<{ id: string }>('/api/gallery/share', {
         program_id: program.id,
-        sharer_name: sharerName.trim(),
         code: displayCode,
         modality: program.modality,
         lineage,
@@ -147,7 +167,7 @@ export function ShareModal({ program, onClose }: Props) {
     setShareUrl(url);
     setIsSharing(false);
     addLog('success', 'Program shared to the gallery!');
-  }, [sharerName, program, generations, generationMeta, customizedPrograms, displayCode, lastEvolveSource, currentLLMLabel, galleryOriginId, galleryOriginName, addLog, addSharedProgram]);
+  }, [user, program, displayCode, buildShareData, addLog, addSharedProgram]);
 
   const handleCopyUrl = useCallback(() => {
     if (!shareUrl) return;
@@ -166,33 +186,34 @@ export function ShareModal({ program, onClose }: Props) {
         <div className="share-modal-body">
           {!shareUrl ? (
             <>
-              <div className="share-field">
-                <label htmlFor="sharer-name">Your name / ID</label>
-                <input
-                  id="sharer-name"
-                  type="text"
-                  value={sharerName}
-                  onChange={(e) => setSharerName(e.target.value)}
-                  placeholder="Enter your name or alias"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleShare();
-                  }}
-                  autoFocus
-                />
-              </div>
-              <div className="share-preview-info">
-                <span className="share-modality">{program.modality}</span>
-                <span className="share-gen">Generation {program.generation + 1}</span>
-                <span className="share-model">{lastEvolveSource === 'mock' ? 'Mock' : currentLLMLabel}</span>
-                <span className="share-profile">{llmConfig.contextProfile}</span>
-              </div>
-              <button
-                className="share-submit-btn"
-                onClick={handleShare}
-                disabled={!sharerName.trim() || isSharing}
-              >
-                {isSharing ? 'Sharing...' : 'Share to Gallery'}
-              </button>
+              {!user ? (
+                <div className="share-auth-prompt">
+                  <p>Sign in to share your creation to the gallery.</p>
+                  <button className="auth-submit-btn" onClick={handleLoginToShare}>
+                    Log In / Sign Up
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="share-field">
+                    <label>Sharing as</label>
+                    <span className="share-username">{user.username}</span>
+                  </div>
+                  <div className="share-preview-info">
+                    <span className="share-modality">{program.modality}</span>
+                    <span className="share-gen">Generation {program.generation + 1}</span>
+                    <span className="share-model">{lastEvolveSource === 'mock' ? 'Mock' : currentLLMLabel}</span>
+                    <span className="share-profile">{llmConfig.contextProfile}</span>
+                  </div>
+                  <button
+                    className="share-submit-btn"
+                    onClick={handleShare}
+                    disabled={isSharing}
+                  >
+                    {isSharing ? 'Sharing...' : 'Share to Gallery'}
+                  </button>
+                </>
+              )}
             </>
           ) : (
             <div className="share-success">
