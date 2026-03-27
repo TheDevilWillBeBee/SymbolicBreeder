@@ -85,6 +85,7 @@ async def create_seed_generation(
     modality: str,
     db: DBSession,
     guidance: Optional[str] = None,
+    population_size: int = 6,
     provider_key: str = "anthropic",
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
@@ -96,7 +97,7 @@ async def create_seed_generation(
     Returns (programs, source, message).
     """
     result = await generate_programs(
-        modality, [], population_size=6, guidance=guidance,
+        modality, [], population_size=population_size, guidance=guidance,
         provider_key=provider_key, model=model, api_key=api_key, base_url=base_url,
         context_profile=context_profile,
     )
@@ -111,6 +112,7 @@ async def create_seed_generation_stream(
     modality: str,
     db: DBSession,
     guidance: Optional[str] = None,
+    population_size: int = 6,
     provider_key: str = "anthropic",
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
@@ -119,7 +121,7 @@ async def create_seed_generation_stream(
 ) -> AsyncIterator[str]:
     """Stream generation-0 programs as SSE events."""
     async for event_str in _llm_stream(
-        modality, [], 6, guidance,
+        modality, [], population_size, guidance,
         provider_key=provider_key, model=model, api_key=api_key,
         base_url=base_url, context_profile=context_profile,
     ):

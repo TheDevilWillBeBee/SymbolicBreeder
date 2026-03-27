@@ -185,11 +185,12 @@ export function useEvolution() {
       store.setIsLoading(true);
 
       try {
-        const { provider, model, baseUrl, contextProfile, streamOutput } = llmConfig;
+        const { provider, model, baseUrl, contextProfile, streamOutput, populationSize } = llmConfig;
         const llmLabel = formatLLMLabel(provider, model, baseUrl);
         const requestBody = {
           modality,
           prompt: initialPrompt || undefined,
+          population_size: populationSize,
           provider,
           model,
           ...(baseUrl ? { base_url: baseUrl } : {}),
@@ -211,13 +212,13 @@ export function useEvolution() {
           message: string | null;
         };
 
-        store.setLastRequestParams({ parentCodes: [], populationSize: 6 });
+        store.setLastRequestParams({ parentCodes: [], populationSize });
         store.setLastPromptText(null);
         void prefetchPromptText({
           modality,
           parents: [],
           guidance: initialPrompt,
-          populationSize: 6,
+          populationSize,
           contextProfile: contextProfile || 'intermediate',
         });
 
@@ -379,7 +380,7 @@ export function useEvolution() {
           modality,
           parents: parentPayload,
           guidance,
-          population_size: 6,
+          population_size: store.llmConfig.populationSize,
           session_id: store.session?.id,
           provider,
           model,
@@ -402,13 +403,13 @@ export function useEvolution() {
           message: string | null;
         };
 
-        store.setLastRequestParams({ parentCodes: parentPayload.map((p) => p.code), populationSize: 6 });
+        store.setLastRequestParams({ parentCodes: parentPayload.map((p) => p.code), populationSize: store.llmConfig.populationSize });
         store.setLastPromptText(null);
         void prefetchPromptText({
           modality,
           parents: parentPayload,
           guidance,
-          populationSize: 6,
+          populationSize: store.llmConfig.populationSize,
           contextProfile: contextProfile || 'intermediate',
         });
 

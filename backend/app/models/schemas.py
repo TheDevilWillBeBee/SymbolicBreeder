@@ -25,7 +25,7 @@ class EvolveRequest(BaseModel):
     modality: str = "strudel"
     parents: list[ParentProgram]
     guidance: Optional[str] = None
-    population_size: int = Field(default=6, ge=1, le=20)
+    population_size: int = Field(default=6, ge=1, le=6)
     session_id: Optional[str] = None
     provider: str = "anthropic"
     model: str = "claude-sonnet-4-20250514"
@@ -44,7 +44,7 @@ class PromptRequest(BaseModel):
     modality: str = "strudel"
     parents: list[ParentProgram] = []
     guidance: Optional[str] = None
-    population_size: int = Field(default=6, ge=1, le=20)
+    population_size: int = Field(default=6, ge=1, le=6)
     context_profile: str = "intermediate"
 
 
@@ -165,6 +165,7 @@ class CreateSessionRequest(BaseModel):
     modality: str = "strudel"
     name: Optional[str] = "Untitled Session"
     prompt: Optional[str] = None
+    population_size: int = Field(default=6, ge=1, le=6)
     provider: str = "anthropic"
     model: str = "claude-sonnet-4-20250514"
     base_url: Optional[str] = None

@@ -1442,6 +1442,39 @@ body.modality-non-strudel .cm-panels {
   accent-color: var(--accent);
 }
 
+.population-size-row {
+  margin-top: 0.75rem;
+}
+
+.population-size-selector {
+  display: flex;
+  flex-direction: row;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.population-size-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.population-size-btn:hover {
+  border-color: var(--accent);
+}
+
+.population-size-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 /* ── Log Toasts ── */
 
 .log-toast-container {

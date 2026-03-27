@@ -10,6 +10,7 @@ export interface LLMConfig {
   baseUrl?: string;
   contextProfile: ContextProfile;
   streamOutput: boolean;
+  populationSize: number;
 }
 
 interface SessionState {
@@ -68,6 +69,7 @@ const initialLLMConfig: LLMConfig = {
   apiKey: '',
   contextProfile: 'intermediate',
   streamOutput: true,
+  populationSize: 6,
 };
 
 const initialState = {
