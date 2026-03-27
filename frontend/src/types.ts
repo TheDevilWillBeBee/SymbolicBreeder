@@ -77,11 +77,28 @@ export interface SharedProgram {
   id: string;
   programId: string;
   sharerName: string;
+  sharerUserId?: string;
   modality: string;
   code: string;
   lineage: LineageProgram[];
   llmModel: string;
+  likeCount?: number;
+  likedByMe?: boolean;
   createdAt: string;
+}
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
 }
 
 // ── Render options passed to plugin render methods ──

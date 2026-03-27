@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Column,
     DateTime,
@@ -29,8 +30,11 @@ class User(Base):
 
     id = Column(String, primary_key=True, default=_uuid)
     external_id = Column(String, nullable=False, unique=True, index=True)
+    username = Column(String(40), nullable=True, unique=True, index=True)
     email = Column(String, nullable=True, unique=True)
     display_name = Column(String, nullable=True)
+    password_hash = Column(String, nullable=True)
+    is_verified = Column(Boolean, nullable=False, server_default="false")
     created_at = Column(DateTime, default=_now)
     updated_at = Column(DateTime, default=_now, onupdate=_now)
 
@@ -69,6 +73,8 @@ class SharedProgram(Base):
     code = Column(Text, nullable=False)
     lineage = Column(JSON, default=list)
     llm_model = Column(String, nullable=True)
+    sharer_user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    like_count = Column(Integer, nullable=False, server_default="0")
     created_at = Column(DateTime, default=_now)
 
 
@@ -77,12 +83,12 @@ class ProgramReaction(Base):
 
     id = Column(String, primary_key=True, default=_uuid)
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
-    program_id = Column(String, ForeignKey("programs.id"), nullable=False, index=True)
+    shared_program_id = Column(String, ForeignKey("shared_programs.id"), nullable=False, index=True)
     reaction = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=_now)
     updated_at = Column(DateTime, default=_now, onupdate=_now)
 
     __table_args__ = (
-        UniqueConstraint("user_id", "program_id", name="uq_program_reactions_user_program"),
+        UniqueConstraint("user_id", "shared_program_id", name="uq_reactions_user_shared_program"),
         CheckConstraint("reaction IN (-1, 1)", name="ck_program_reactions_reaction_value"),
     )

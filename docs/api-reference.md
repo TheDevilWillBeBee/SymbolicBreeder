@@ -250,20 +250,94 @@ Returns available LLM providers, their supported models, and whether the server 
 
 ---
 
+## Authentication
+
+All auth endpoints return JWT tokens. Include the token as `Authorization: Bearer <token>` in subsequent requests that require authentication.
+
+### `POST /api/auth/register`
+
+Creates a new user account.
+
+**Request body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `username` | string | Yes | 3-40 chars, alphanumeric + underscore/hyphen |
+| `email` | string | Yes | Valid email address |
+| `password` | string | Yes | 8-128 characters |
+
+**Response `201`**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "user": {
+    "id": "a3f1c2d4-...",
+    "username": "alice",
+    "email": "alice@example.com",
+    "is_verified": false,
+    "created_at": "2026-03-27T10:00:00Z"
+  }
+}
+```
+
+**Response `409`** — username or email already taken.
+
+---
+
+### `POST /api/auth/login`
+
+Authenticates with email or username + password.
+
+**Request body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `login` | string | Yes | Email address or username |
+| `password` | string | Yes | Account password |
+
+**Response `200`** — same shape as register response.
+
+**Response `401`** — invalid credentials.
+
+---
+
+### `GET /api/auth/me`
+
+Returns the current authenticated user. Requires `Authorization: Bearer <token>` header.
+
+**Response `200`**
+
+```json
+{
+  "id": "a3f1c2d4-...",
+  "username": "alice",
+  "email": "alice@example.com",
+  "is_verified": false,
+  "created_at": "2026-03-27T10:00:00Z"
+}
+```
+
+**Response `401`** — missing or invalid token.
+
+---
+
 ## Gallery
 
 ### `POST /api/gallery/share`
 
-Shares a program to the public gallery.
+Shares a program to the public gallery. **Requires authentication.**
+
+The `sharer_name` is derived from the authenticated user's username.
 
 **Request body**
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `program_id` | string | No | UUID of the original program |
-| `sharer_name` | string | Yes | Display name of the sharer |
 | `code` | string | Yes | Program source code |
-| `modality` | string | Yes | `"strudel"` or `"shader"` |
+| `modality` | string | Yes | `"strudel"`, `"shader"`, `"openscad"`, or `"svg"` |
 | `lineage` | array | No | Ancestry chain of parent programs (see `LineageProgramSchema` below) |
 | `llm_model` | string | No | Model used to generate the program |
 
@@ -285,7 +359,8 @@ Shares a program to the public gallery.
 {
   "id": "d4e5f6a7-...",
   "program_id": "b7e2a1f9-...",
-  "sharer_name": "Alice",
+  "sharer_name": "alice",
+  "sharer_user_id": "a3f1c2d4-...",
   "modality": "shader",
   "code": "void mainImage(...) { ... }",
   "lineage": [
@@ -300,29 +375,51 @@ Shares a program to the public gallery.
     }
   ],
   "llm_model": "claude-sonnet-4-20250514",
+  "like_count": 0,
+  "liked_by_me": false,
   "created_at": "2026-03-16T10:00:00Z"
 }
+```
+
+**Response `401`** — not authenticated.
 ```
 
 ---
 
 ### `GET /api/gallery/programs`
 
-Lists shared programs, paginated and filtered by modality.
+Lists shared programs, paginated and filtered by modality. Optionally accepts an `Authorization` header to populate `liked_by_me` per item.
 
 **Query parameters**
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `modality` | string | `"shader"` | Filter by modality |
+| `sort_by` | string | `"newest"` | Sort order: `"newest"` or `"most_liked"` |
+| `user_id` | string | — | Filter to a specific user's shared items |
 | `page` | int | `1` | Page number (1-indexed) |
 | `per_page` | int | `20` | Items per page (max 100) |
+
+When `sort_by=most_liked`, items with equal like counts are sorted newest first.
 
 **Response `200`**
 
 ```json
 {
-  "items": [ /* SharedProgram objects */ ],
+  "items": [
+    {
+      "id": "...",
+      "sharer_name": "alice",
+      "sharer_user_id": "...",
+      "modality": "shader",
+      "code": "...",
+      "lineage": [],
+      "llm_model": "...",
+      "like_count": 5,
+      "liked_by_me": true,
+      "created_at": "..."
+    }
+  ],
   "total": 42,
   "page": 1,
   "per_page": 20
@@ -333,15 +430,35 @@ Lists shared programs, paginated and filtered by modality.
 
 ### `GET /api/gallery/programs/{program_id}`
 
-Retrieves a single shared program.
+Retrieves a single shared program. Optionally accepts an `Authorization` header for `liked_by_me`.
 
-**Response `200`** — same shape as the `POST /api/gallery/share` response.
+**Response `200`** — same shape as individual items in the list response.
 
 **Response `404`**
 
 ```json
 { "detail": "Shared program not found" }
 ```
+
+---
+
+### `POST /api/gallery/programs/{shared_program_id}/like`
+
+Toggles a like on a shared program. **Requires a verified account.** Calling this endpoint when the user has already liked the item will unlike it.
+
+**Response `200`**
+
+```json
+{
+  "shared_program_id": "d4e5f6a7-...",
+  "liked": true,
+  "like_count": 6
+}
+```
+
+**Response `401`** — not authenticated.
+**Response `403`** — account not verified.
+**Response `404`** — shared program not found.
 
 ---
 

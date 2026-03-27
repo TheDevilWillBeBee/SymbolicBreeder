@@ -42,6 +42,14 @@ frontend/src/
 │   ├── LoadingOverlay.tsx   # Full-screen loading state
 │   ├── CodeModal.tsx        # View-only code display
 │   ├── Modal.tsx            # Shared modal shell (overlay + ESC key handler)
+│   ├── AuthModal.tsx        # Login/signup modal with tabbed form
+│   ├── UserMenu.tsx         # Header user icon + dropdown (My Shared Items, Logout)
+│   ├── LikeButton.tsx       # Heart icon with count, optimistic toggle
+│   ├── ShareModal.tsx       # Auth-aware share-to-gallery dialog
+│   ├── GalleryPage.tsx      # Gallery grid with sort dropdown + like buttons
+│   ├── GalleryCard.tsx      # Gallery item card with like + breed controls
+│   ├── MySharedPage.tsx     # Filtered gallery showing only user's shared items
+│   ├── ProgramDetailPage.tsx # Detail view with lineage tree + like button
 │   └── detail/              # Lineage tree sub-components
 │       ├── LineageCard.tsx  # Single program node in the lineage tree
 │       ├── LayeredTreeView.tsx # DAG layout with generation rows and edges
@@ -54,7 +62,11 @@ frontend/src/
 │   └── useVisualPlayback.ts # render + pause/resume/reset for visual modality cards
 │
 └── store/
-    └── sessionStore.ts      # Zustand store — all client state
+    ├── sessionStore.ts      # Zustand store — breeding session state
+    ├── authStore.ts         # Zustand store — authentication state
+    ├── galleryStore.ts      # Zustand store — gallery browsing + likes
+    ├── navStore.ts          # Zustand store — view routing
+    └── logStore.ts          # Zustand store — toast notifications
 ```
 
 ---

@@ -12,6 +12,8 @@ function buildHeaders(body?: unknown): Record<string, string> {
   const h: Record<string, string> = {};
   if (body) h['Content-Type'] = 'application/json';
   if (_llmConfig?.apiKey) h['X-Api-Key'] = _llmConfig.apiKey;
+  const token = localStorage.getItem('symbolicBreeder_authToken');
+  if (token) h['Authorization'] = `Bearer ${token}`;
   return h;
 }
 
