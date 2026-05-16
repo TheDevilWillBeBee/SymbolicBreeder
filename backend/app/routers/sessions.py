@@ -31,13 +31,13 @@ async def create_session(
         modality=request.modality,
         db=db,
         guidance=request.prompt,
+        population_size=request.population_size,
         provider_key=request.provider,
         model=request.model,
         api_key=x_api_key,
         base_url=request.base_url,
         context_profile=request.context_profile,
         context_version=request.context_version,
-        population_size=request.population_size,
     )
 
     return SessionResponse(
@@ -80,13 +80,13 @@ async def create_session_stream(
             modality=request.modality,
             db=db,
             guidance=request.prompt,
+            population_size=request.population_size,
             provider_key=request.provider,
             model=request.model,
             api_key=x_api_key,
             base_url=request.base_url,
             context_profile=request.context_profile,
             context_version=request.context_version,
-            population_size=request.population_size,
         ):
             yield event_str
 

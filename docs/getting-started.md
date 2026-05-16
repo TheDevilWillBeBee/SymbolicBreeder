@@ -51,6 +51,9 @@ Dependencies installed:
 | `google-genai` | Google Gemini SDK |
 | `dashscope` | Qwen (Alibaba) SDK |
 | `pyyaml` | Context manifest parsing |
+| `passlib[bcrypt]` | Secure password hashing |
+| `PyJWT` | JWT token creation and verification |
+| `pydantic[email]` | Email validation for auth |
 
 ### 3. Frontend setup
 
@@ -79,11 +82,16 @@ DASHSCOPE_API_KEY=sk-...
 
 LLM_MODEL=claude-sonnet-4-20250514    # Default model
 CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
+# Authentication (required for user login/signup and gallery sharing)
+JWT_SECRET_KEY=your-secret-key-here   # Generate with: python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
 | `DATABASE_URL` | — | Yes | PostgreSQL connection string |
+| `JWT_SECRET_KEY` | — | Yes | Secret key for signing JWT tokens. Generate with `python -c "import secrets; print(secrets.token_urlsafe(64))"` |
+| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `1440` | No | JWT token expiry in minutes (default: 24 hours) |
 | `ANTHROPIC_API_KEY` | — | No | Anthropic API key |
 | `OPENAI_API_KEY` | — | No | OpenAI API key |
 | `GOOGLE_API_KEY` | — | No | Google Gemini API key |
@@ -178,6 +186,9 @@ curl -s -X POST http://localhost:8000/api/sessions \
 5. Open the app (`http://localhost:3000`) and verify:
    - create a session
    - evolve at least one generation
+   - register an account and log in
+   - share a program to the gallery
+   - like a program in the gallery
    - no backend errors in terminal
 
 ---
@@ -215,11 +226,28 @@ Set these in Vercel Project Settings (Neon integration usually injects Postgres 
 | Variable | Notes |
 |---|---|
 | `DATABASE_URL` and/or `POSTGRES_*` | Required — database connection |
+| `JWT_SECRET_KEY` | Required — JWT signing key (see below for automated setup) |
 | `CORS_ALLOW_ORIGINS` | Comma-separated production origins |
 | `ANTHROPIC_API_KEY` | Optional — Anthropic provider |
 | `OPENAI_API_KEY` | Optional — OpenAI provider |
 | `GOOGLE_API_KEY` | Optional — Google Gemini provider |
 | `DASHSCOPE_API_KEY` | Optional — Qwen provider |
+
+#### Setting JWT_SECRET_KEY automatically
+
+**Locally** — generate and save to your `.env` file:
+
+```bash
+python -c "import secrets; print('JWT_SECRET_KEY=' + secrets.token_urlsafe(64))" >> backend/.env
+```
+
+**On Vercel** — generate and set via CLI in one command:
+
+```bash
+npx vercel@latest env add JWT_SECRET_KEY production <<< "$(python -c 'import secrets; print(secrets.token_urlsafe(64))')"
+```
+
+Or set it in the Vercel dashboard under Project Settings > Environment Variables.
 
 ### 3. Initialize Database Schema (required)
 
@@ -271,10 +299,19 @@ curl -s -X POST https://<your-vercel-domain>/api/sessions \
     -d '{"modality":"shader","name":"prod-smoke"}'
 ```
 
-3. Frontend flow:
+3. Auth endpoint:
+
+```bash
+curl -s -X POST https://<your-vercel-domain>/api/auth/register \
+    -H "Content-Type: application/json" \
+    -d '{"username":"testuser","email":"test@example.com","password":"testpass123"}'
+```
+
+4. Frontend flow:
    - open deployed app
    - set provider/model/API key as needed
    - create session and evolve one generation
+   - register/login and share a program to the gallery
 
 If you get `relation "sessions" does not exist`, migrations have not been applied to the production database yet.
 

@@ -149,6 +149,27 @@ function mockEvolve(
   return shuffled.slice(0, count);
 }
 
+async function prefetchPromptText(params: {
+  modality: string;
+  parents: Array<{ id: string; code: string }>;
+  guidance?: string;
+  populationSize: number;
+  contextProfile: string;
+}) {
+  try {
+    const result = await api.post<{ combined: string }>('/api/evolve/prompt', {
+      modality: params.modality,
+      parents: params.parents,
+      guidance: params.guidance || undefined,
+      population_size: params.populationSize,
+      context_profile: params.contextProfile || 'intermediate',
+    });
+    useSessionStore.getState().setLastPromptText(result.combined);
+  } catch {
+    // Best effort only; copy button can still attempt to fetch on-demand.
+  }
+}
+
 // ── Hook ──
 
 export function useEvolution() {
@@ -164,11 +185,12 @@ export function useEvolution() {
       store.setIsLoading(true);
 
       try {
-        const { provider, model, baseUrl, contextProfile, streamOutput } = llmConfig;
+        const { provider, model, baseUrl, contextProfile, streamOutput, populationSize } = llmConfig;
         const llmLabel = formatLLMLabel(provider, model, baseUrl);
         const requestBody = {
           modality,
           prompt: initialPrompt || undefined,
+          population_size: populationSize,
           provider,
           model,
           ...(baseUrl ? { base_url: baseUrl } : {}),
@@ -189,6 +211,16 @@ export function useEvolution() {
           source: string;
           message: string | null;
         };
+
+        store.setLastRequestParams({ parentCodes: [], populationSize });
+        store.setLastPromptText(null);
+        void prefetchPromptText({
+          modality,
+          parents: [],
+          guidance: initialPrompt,
+          populationSize,
+          contextProfile: contextProfile || 'intermediate',
+        });
 
         if (streamOutput) {
           // Streaming path
@@ -348,7 +380,7 @@ export function useEvolution() {
           modality,
           parents: parentPayload,
           guidance,
-          population_size: 6,
+          population_size: store.llmConfig.populationSize,
           session_id: store.session?.id,
           provider,
           model,
@@ -370,6 +402,16 @@ export function useEvolution() {
           source: string;
           message: string | null;
         };
+
+        store.setLastRequestParams({ parentCodes: parentPayload.map((p) => p.code), populationSize: store.llmConfig.populationSize });
+        store.setLastPromptText(null);
+        void prefetchPromptText({
+          modality,
+          parents: parentPayload,
+          guidance,
+          populationSize: store.llmConfig.populationSize,
+          contextProfile: contextProfile || 'intermediate',
+        });
 
         let res: EvolveResult;
 
@@ -408,12 +450,15 @@ export function useEvolution() {
           }
         }
 
+        // Use the frontend's generation index (not the backend's DB-based
+        // number) so that generationMeta indices stay aligned after branching.
+        const nextGen = store.currentGeneration + 1;
         store.addGeneration(
           res.programs.map((p) => ({
             id: p.id,
             code: p.code,
             modality: p.modality,
-            generation: p.generation,
+            generation: nextGen,
             parentIds: p.parent_ids ?? [],
             sessionId: p.session_id ?? store.session?.id ?? '',
             createdAt: p.created_at ?? new Date().toISOString(),
@@ -437,7 +482,7 @@ export function useEvolution() {
       } catch (err) {
         // Mock evolution
         store.setLastEvolveSource('mock');
-        const gen = store.generations.length;
+        const gen = store.currentGeneration + 1;
         const sessionId = store.session?.id ?? '';
         const codes = mockEvolve(modality, parents, 6);
         store.addGeneration(

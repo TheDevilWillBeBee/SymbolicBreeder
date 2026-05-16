@@ -12,8 +12,13 @@ import { LayeredTreeView } from './detail/LayeredTreeView';
 import { LineageCodeModal } from './detail/LineageCodeModal';
 import type { LineageProgram } from '../types';
 import type { LineageCodeSource } from '../utils/lineageCode';
+import { LikeButton } from './LikeButton';
 
-export function ProgramDetailPage() {
+interface ProgramDetailPageProps {
+  onOpenAuth?: () => void;
+}
+
+export function ProgramDetailPage({ onOpenAuth }: ProgramDetailPageProps = {}) {
   const detailId = useNavStore((s) => s.detailProgramId);
   const goToGallery = useNavStore((s) => s.goToGallery);
   const goToBreeding = useNavStore((s) => s.goToBreeding);
@@ -116,6 +121,10 @@ export function ProgramDetailPage() {
     const store = useSessionStore.getState();
     store.reset();
     store.setModality(program.modality);
+    store.setGalleryOrigin(program.id, program.sharerName);
+    // Add empty meta for gen 0 so subsequent addGenerationMeta calls
+    // align with generation indices (gen 1 meta lands at index 1, etc.)
+    store.addGenerationMeta({ guidance: '', llmModel: '', contextProfile: '' });
     store.addGeneration([{
       id: crypto.randomUUID(),
       code: program.code,
@@ -190,6 +199,12 @@ export function ProgramDetailPage() {
                 </button>
               ) : null}
             </div>
+            <LikeButton
+              sharedProgramId={program.id}
+              likeCount={program.likeCount}
+              likedByMe={program.likedByMe}
+              onOpenAuth={onOpenAuth}
+            />
             <button className="breed-btn breed-btn-lg" onClick={handleBreed} title="Start a new breeding session using this program as seed">
               Breed from this
             </button>

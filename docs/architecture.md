@@ -31,8 +31,12 @@ Symbolic Breeder has a classic client-server architecture. The React frontend ha
 │  GET  /api/programs/:id                                   │
 │  POST /api/evolve     { modality, parents, guidance? }    │
 │  GET  /api/providers                                      │
-│  POST /api/gallery/share                                  │
+│  POST /api/gallery/share    (auth required)                │
 │  GET  /api/gallery/programs                               │
+│  POST /api/gallery/programs/:id/like  (auth required)     │
+│  POST /api/auth/register                                  │
+│  POST /api/auth/login                                     │
+│  GET  /api/auth/me          (auth required)               │
 │  GET  /api/health                                         │
 └──────────────┬────────────────────────────────────────────┘
                │
@@ -64,14 +68,17 @@ Schema creation is migration-driven (Alembic), not startup-driven.
 
 SQLAlchemy ORM models, defined in `app/models/db.py`:
 
-**User** — future-proof identity table for login and personalization.
+**User** — identity table for authentication and personalization.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | string (UUID) | Primary key |
-| `external_id` | string | Provider identity subject; unique |
+| `external_id` | string | Provider identity subject; unique (`local:<uuid>` for email/password users) |
+| `username` | string(40) | Unique; shown on shared items and in the UI |
 | `email` | string | Optional; unique |
 | `display_name` | string | Optional |
+| `password_hash` | string | bcrypt hash; nullable (for future OAuth-only users) |
+| `is_verified` | boolean | Default `false`; unverified users cannot like gallery items |
 | `created_at` / `updated_at` | datetime | Audit timestamps |
 
 **Session** — groups all programs created in one breeding run.
@@ -98,30 +105,32 @@ SQLAlchemy ORM models, defined in `app/models/db.py`:
 | `creator_user_id` | string | Optional FK → User |
 | `created_at` | datetime | Auto-set on creation |
 
-**ProgramReaction** — stores like/dislike-style per-user reactions.
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | string (UUID) | Primary key |
-| `user_id` | string | FK → User |
-| `program_id` | string | FK → Program |
-| `reaction` | int | Constrained to `-1` or `1` |
-| `created_at` / `updated_at` | datetime | Audit timestamps |
-
-Unique constraint: `(user_id, program_id)` ensures one reaction per user per program.
-
 **SharedProgram** — a program shared to the public gallery.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | string (UUID) | Primary key |
 | `program_id` | string | Optional FK → Program |
-| `sharer_name` | string | Display name of sharer |
+| `sharer_name` | string | Display name of sharer (derived from authenticated user's username) |
+| `sharer_user_id` | string | FK → User; the authenticated user who shared this program |
 | `modality` | string | `"strudel"`, `"shader"`, `"openscad"`, or `"svg"` |
 | `code` | text | Program source code |
 | `lineage` | JSON | Ancestry chain of parent programs. Each entry includes optional per-generation metadata: `guidance` (user prompt text), `llmModel` (provider/model used), and `contextProfile` (simple/intermediate/advanced) |
 | `llm_model` | string | Model used to generate the program (top-level, for the final generation) |
+| `like_count` | int | Denormalized count of likes (default 0); atomically updated on like/unlike |
 | `created_at` | datetime | Auto-set on creation |
+
+**ProgramReaction** — stores per-user likes on shared gallery programs.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | string (UUID) | Primary key |
+| `user_id` | string | FK → User |
+| `shared_program_id` | string | FK → SharedProgram |
+| `reaction` | int | Constrained to `-1` or `1` |
+| `created_at` / `updated_at` | datetime | Audit timestamps |
+
+Unique constraint: `(user_id, shared_program_id)` ensures one reaction per user per shared program.
 
 ### Routers
 
@@ -132,10 +141,16 @@ Unique constraint: `(user_id, program_id)` ensures one reaction per user per pro
 **`routers/evolve.py`** — Handles evolution:
 - `POST /api/evolve` — takes parent programs + optional guidance text, calls the LLM, persists and returns the new generation
 
+**`routers/auth.py`** — Handles user authentication:
+- `POST /api/auth/register` — create a new account (username, email, password)
+- `POST /api/auth/login` — authenticate with email/username + password, returns JWT
+- `GET /api/auth/me` — retrieve current user info (requires JWT)
+
 **`routers/gallery.py`** — Handles the public gallery:
-- `POST /api/gallery/share` — share a program to the gallery
-- `GET /api/gallery/programs` — list shared programs (paginated, filterable by modality)
+- `POST /api/gallery/share` — share a program to the gallery (requires authentication)
+- `GET /api/gallery/programs` — list shared programs (paginated, filterable by modality, sortable by newest or most liked)
 - `GET /api/gallery/programs/:id` — retrieve a single shared program
+- `POST /api/gallery/programs/:id/like` — toggle like on a shared program (requires verified account)
 
 **`routers/providers.py`** — Exposes available LLM providers:
 - `GET /api/providers` — returns the list of supported providers and their models, plus whether server-side API keys are configured
@@ -154,6 +169,36 @@ Supports multiple LLM providers through a pluggable provider system in `services
 Each provider implements a common `LLMProvider` interface. The provider and model are selected per-request by the frontend. If no API keys are configured, mock mode returns pre-written programs from a built-in pool.
 
 The `DEFAULT_MODEL` is read from the `LLM_MODEL` environment variable, defaulting to `claude-sonnet-4-20250514`.
+
+### Authentication (`auth.py`)
+
+The auth system uses JWT (JSON Web Tokens) with bcrypt password hashing.
+
+**Dependencies:** `passlib[bcrypt]` for password hashing, `PyJWT` for token management.
+
+**Configuration** (environment variables):
+- `JWT_SECRET_KEY` — required; the app will not start without it
+- `JWT_ALGORITHM` — defaults to `HS256`
+- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` — defaults to `1440` (24 hours)
+
+**FastAPI dependencies** (defined in `auth.py`):
+- `get_current_user` — extracts Bearer token from `Authorization` header, decodes JWT, returns User or 401
+- `get_optional_user` — same but returns `None` on missing token (still 401 on invalid token); used for public endpoints that optionally personalize responses (e.g., `liked_by_me` on gallery items)
+- `get_verified_user` — wraps `get_current_user`, returns 403 if `is_verified` is `False`
+
+**Auth flow:**
+1. User registers via `POST /auth/register` with username, email, password
+2. Password is hashed with bcrypt and stored in `users.password_hash`
+3. A JWT is returned containing `{"sub": user_id, "exp": expiry}`
+4. Frontend stores the token in `localStorage` and attaches it as `Authorization: Bearer <token>` on all requests
+5. `POST /auth/login` accepts email or username + password
+
+**Access tiers:**
+| Tier | Dependency | Used by |
+|---|---|---|
+| Public | none | Gallery browsing, breeding, evolution |
+| Authenticated | `get_current_user` | Sharing to gallery |
+| Verified | `get_verified_user` | Liking gallery items |
 
 ### Modality Context System (`services/context.py`)
 
@@ -240,7 +285,7 @@ Run `python backend/scripts/estimate_tokens.py` to see token counts per modality
 
 ### State Management
 
-Zustand is used for a single global store (`store/sessionStore.ts`). Key state:
+Zustand is used for multiple focused stores. Key stores:
 
 | Field | Type | Purpose |
 |---|---|---|
@@ -253,6 +298,26 @@ Zustand is used for a single global store (`store/sessionStore.ts`). Key state:
 | `isLoading` | `boolean` | True during any LLM call |
 | `isEvolving` | `boolean` | True during an evolve call specifically |
 | `customizedPrograms` | `Record<string, string>` | User-edited code overrides (programId → code) |
+
+**`store/authStore.ts`** — authentication state:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `user` | `AuthUser \| null` | Current authenticated user |
+| `token` | `string \| null` | JWT token (also in localStorage) |
+| `pendingShare` | `PendingShare \| null` | Share data deferred until login |
+
+Key actions: `login`, `register`, `logout`, `checkAuth` (validates stored token on app mount), `setPendingShare`.
+
+**`store/galleryStore.ts`** — gallery state:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `programs` | `SharedProgram[]` | Current page of gallery items |
+| `sortBy` | `'newest' \| 'most_liked'` | Sort order |
+| `modality` | string | Active modality tab |
+
+Key actions: `fetchPrograms`, `setSortBy`, `updateLike`.
 
 ### Modality Plugin Interface
 
@@ -388,3 +453,33 @@ Adding a new modality requires:
 **Frontend** — implement `ModalityPlugin` in `src/modalities/<key>/index.ts`, add one line to `src/modalityRegistry.ts`, and add a tile to `ModalitySelector.tsx`.
 
 No changes needed to `ProgramGrid`, `ProgramCard`, `CustomizeModal`, `useEvolution`, the store, or any backend service code.
+
+---
+
+## Future Work: Authentication & User System
+
+The current auth implementation covers Phase 1. The following features are planned for subsequent phases:
+
+### Phase 2: Email Verification
+
+- Send a verification email with a one-time code or link after registration
+- The `is_verified` flag already exists on the User model (defaults to `false`)
+- Unverified users can browse and share but cannot like gallery items
+- Options: integrate with a transactional email service (SendGrid, AWS SES, Resend) or use a lightweight SMTP setup
+
+### Phase 2: OAuth Providers (Google, GitHub)
+
+- The User model already has an `external_id` field designed for this (`local:<uuid>` for password users, `google:<id>` or `github:<id>` for OAuth)
+- Implementation would add:
+  - `GET /api/auth/google` — redirect to Google OAuth consent
+  - `GET /api/auth/google/callback` — exchange code for tokens, create/link user
+  - Same pattern for GitHub and other providers
+- Frontend would add OAuth buttons to the AuthModal alongside the email/password form
+- Users who sign up via OAuth would have `password_hash = NULL` and authenticate only via their provider
+
+### Phase 2: Account Management
+
+- Password reset flow (forgot password → email link → new password)
+- Username/email change
+- Account deletion
+- Profile settings page

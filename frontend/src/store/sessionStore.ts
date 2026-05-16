@@ -10,6 +10,7 @@ export interface LLMConfig {
   baseUrl?: string;
   contextProfile: ContextProfile;
   streamOutput: boolean;
+  populationSize: number;
 }
 
 interface SessionState {
@@ -20,6 +21,8 @@ interface SessionState {
   currentGeneration: number;
   generationMeta: GenerationMeta[];
   lastEvolveSource: 'llm' | 'mock';
+  galleryOriginId: string | null;
+  galleryOriginName: string | null;
 
   // ── UI state (transient interaction state, cleared on reset) ──
   selectedProgramIds: Set<string>;
@@ -30,6 +33,8 @@ interface SessionState {
   customizedPrograms: Record<string, string>;
   streamingText: string;
   streamingPhase: string;
+  lastRequestParams: { parentCodes: string[]; populationSize: number } | null;
+  lastPromptText: string | null;
 
   // ── Settings (user preferences, preserved across resets — see reset()) ──
   llmConfig: LLMConfig;
@@ -49,9 +54,12 @@ interface SessionState {
   addGenerationMeta: (meta: GenerationMeta) => void;
   setLLMConfig: (config: Partial<LLMConfig>) => void;
   setLastEvolveSource: (source: 'llm' | 'mock') => void;
+  setGalleryOrigin: (id: string | null, name: string | null) => void;
   setStreamingText: (text: string) => void;
   appendStreamingText: (delta: string) => void;
   setStreamingPhase: (phase: string) => void;
+  setLastRequestParams: (params: { parentCodes: string[]; populationSize: number }) => void;
+  setLastPromptText: (text: string | null) => void;
   reset: () => void;
 }
 
@@ -61,6 +69,7 @@ const initialLLMConfig: LLMConfig = {
   apiKey: '',
   contextProfile: 'intermediate',
   streamOutput: true,
+  populationSize: 6,
 };
 
 const initialState = {
@@ -76,9 +85,13 @@ const initialState = {
   customizedPrograms: {} as Record<string, string>,
   streamingText: '',
   streamingPhase: '',
+  lastRequestParams: null,
+  lastPromptText: null,
   generationMeta: [] as GenerationMeta[],
   llmConfig: { ...initialLLMConfig },
   lastEvolveSource: 'llm' as const,
+  galleryOriginId: null,
+  galleryOriginName: null,
 };
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -93,8 +106,11 @@ export const useSessionStore = create<SessionState>((set) => ({
       // Truncate any future generations when evolving from a past point
       const base = state.generations.slice(0, state.currentGeneration + 1);
       const newGens = [...base, programs];
+      // Truncate generationMeta in lockstep so it stays aligned
+      const baseMeta = state.generationMeta.slice(0, state.currentGeneration + 1);
       return {
         generations: newGens,
+        generationMeta: baseMeta,
         currentGeneration: newGens.length - 1,
         selectedProgramIds: new Set<string>(),
       };
@@ -123,10 +139,9 @@ export const useSessionStore = create<SessionState>((set) => ({
     })),
 
   addGenerationMeta: (meta) =>
-    set((state) => {
-      const base = state.generationMeta.slice(0, state.currentGeneration + 1);
-      return { generationMeta: [...base, meta] };
-    }),
+    set((state) => ({
+      generationMeta: [...state.generationMeta, meta],
+    })),
 
   setLLMConfig: (config) =>
     set((state) => ({
@@ -134,11 +149,14 @@ export const useSessionStore = create<SessionState>((set) => ({
     })),
 
   setLastEvolveSource: (source) => set({ lastEvolveSource: source }),
+  setGalleryOrigin: (id, name) => set({ galleryOriginId: id, galleryOriginName: name }),
 
   setStreamingText: (text) => set({ streamingText: text }),
   appendStreamingText: (delta) =>
     set((state) => ({ streamingText: state.streamingText + delta })),
   setStreamingPhase: (phase) => set({ streamingPhase: phase }),
+  setLastRequestParams: (params) => set({ lastRequestParams: params }),
+  setLastPromptText: (text) => set({ lastPromptText: text }),
 
   reset: () =>
     set((state) => ({

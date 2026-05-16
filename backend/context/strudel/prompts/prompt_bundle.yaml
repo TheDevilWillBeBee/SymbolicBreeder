@@ -16,6 +16,8 @@ role: |
     - `._scope()` for drums, percussion, noise, and other mostly unpitched layers
     - `._pianoroll()` or `._punchcard()` for pitched, harmonic, or melodic layers
   - Keep pitched parts harmonically coherent through a shared scale, chord progression, or harmonic field
+  - For major/minor scales, always spell mode names as `:major` or `:minor` (never `:maj` or `:min`)
+  - Comma mini-notation such as `"0,.07"` is valid only inside quoted pattern strings (never write unquoted calls like `note(0,.07)`)
   - Use only built-in Strudel sounds, banks, synths, GM instruments, noise sources, wavetables, and documented pattern functions
   - Do not use `slider()`, `initHydra()`, mouse interaction, or other UI/interactive extras
   - Do not use arbitrary remote sample URLs or custom external sample packs

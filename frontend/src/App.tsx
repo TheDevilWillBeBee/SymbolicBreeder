@@ -4,6 +4,7 @@ import { ModelSelector } from './components/ModelSelector';
 import { ProgramGrid } from './components/ProgramGrid';
 import { GuidanceInput } from './components/GuidanceInput';
 import { GenerationNav } from './components/GenerationNav';
+import { GenerationInfo } from './components/GenerationInfo';
 import { CodeModal } from './components/CodeModal';
 import { CustomizeModal } from './components/CustomizeModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -13,11 +14,18 @@ import { ShareModal } from './components/ShareModal';
 import { GalleryPage } from './components/GalleryPage';
 import { ProgramDetailPage } from './components/ProgramDetailPage';
 import { AboutPage } from './components/AboutPage';
+import { AuthModal } from './components/AuthModal';
+import { UserMenu } from './components/UserMenu';
+import { MySharedPage } from './components/MySharedPage';
 import { useStrudelPlayer } from './hooks/useStrudelPlayer';
 import { useEvolution } from './hooks/useEvolution';
 import { useSessionStore } from './store/sessionStore';
+import { useAuthStore } from './store/authStore';
+import { formatLLMLabel } from './utils/llmLabel';
 import { useNavStore } from './store/navStore';
 import { useGalleryStore } from './store/galleryStore';
+import { useLogStore } from './store/logStore';
+import { api } from './api/client';
 import { Program } from './types';
 import './App.css';
 
@@ -38,6 +46,39 @@ export default function App() {
   const [customizeProgram, setCustomizeProgram] = useState<Program | null>(null);
   const [shareProgram, setShareProgram] = useState<Program | null>(null);
   const [initialPrompt, setInitialPrompt] = useState('');
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const authUser = useAuthStore((s) => s.user);
+  const pendingShare = useAuthStore((s) => s.pendingShare);
+  const setPendingShare = useAuthStore((s) => s.setPendingShare);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+  const addLog = useLogStore((s) => s.addLog);
+
+  // Check auth on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  // Auto-submit pending share after login
+  useEffect(() => {
+    if (authUser && pendingShare) {
+      api.post('/api/gallery/share', {
+        program_id: pendingShare.programId,
+        code: pendingShare.code,
+        modality: pendingShare.modality,
+        lineage: pendingShare.lineage,
+        llm_model: pendingShare.llmModel,
+      }).then((res: unknown) => {
+        const data = res as { id: string };
+        const url = `${window.location.origin}/gallery/${data.id}`;
+        addLog('success', `Program shared to the gallery! ${url}`);
+      }).catch(() => {
+        addLog('error', 'Failed to share program after login.');
+      }).finally(() => {
+        setPendingShare(null);
+      });
+    }
+  }, [authUser, pendingShare]);
 
   const generations = useSessionStore((s) => s.generations);
   const currentGeneration = useSessionStore((s) => s.currentGeneration);
@@ -122,8 +163,9 @@ export default function App() {
 
   // Render the active view content
   const renderView = () => {
-    if (view === 'gallery') return <GalleryPage />;
-    if (view === 'program-detail') return <ProgramDetailPage />;
+    if (view === 'gallery') return <GalleryPage onOpenAuth={() => setAuthModalOpen(true)} />;
+    if (view === 'program-detail') return <ProgramDetailPage onOpenAuth={() => setAuthModalOpen(true)} />;
+    if (view === 'my-shared') return <MySharedPage onOpenAuth={() => setAuthModalOpen(true)} />;
     if (view === 'about') return <AboutPage />;
 
     // Landing or breeding
@@ -206,6 +248,7 @@ export default function App() {
         )}
 
         <main>
+          <GenerationInfo />
           <ProgramGrid
             onPlay={handlePlay}
             onStop={handleStop}
@@ -233,7 +276,7 @@ export default function App() {
             title="Model settings"
           >
             {!llmConfig.apiKey && <span className="header-model-warning">&#9888;</span>}
-            <span className="header-model-label">{llmConfig.provider}/{llmConfig.model}</span>
+            <span className="header-model-label">{formatLLMLabel(llmConfig.provider, llmConfig.model, llmConfig.baseUrl).toLowerCase()}</span>
             <span className="header-model-arrow">{modelPanelOpen ? '\u25B4' : '\u25BE'}</span>
           </button>
           <button
@@ -258,6 +301,7 @@ export default function App() {
                 New Session
               </button>
             )}
+            <UserMenu onOpenAuth={() => setAuthModalOpen(true)} />
             <button
               className="theme-toggle"
               onClick={() => setTheme((t) => t === 'dark' ? 'light' : 'dark')}
@@ -280,6 +324,7 @@ export default function App() {
                 New Session
               </button>
             )}
+            <UserMenu onOpenAuth={() => setAuthModalOpen(true)} onMenuAction={() => setMenuOpen(false)} />
             <button
               className="theme-toggle"
               onClick={() => { setTheme((t) => t === 'dark' ? 'light' : 'dark'); setMenuOpen(false); }}
@@ -312,7 +357,12 @@ export default function App() {
         <ShareModal
           program={shareProgram}
           onClose={() => setShareProgram(null)}
+          onOpenAuth={() => setAuthModalOpen(true)}
         />
+      )}
+
+      {authModalOpen && (
+        <AuthModal onClose={() => setAuthModalOpen(false)} />
       )}
 
       <LogToasts />

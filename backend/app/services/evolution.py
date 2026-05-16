@@ -85,13 +85,13 @@ async def create_seed_generation(
     modality: str,
     db: DBSession,
     guidance: Optional[str] = None,
+    population_size: int = 6,
     provider_key: str = "anthropic",
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
     context_version: Optional[str] = None,
-    population_size: int = 6,
 ) -> tuple[list[models.Program], str, str | None]:
     """Create generation-0 programs for a brand-new session.
 
@@ -114,13 +114,13 @@ async def create_seed_generation_stream(
     modality: str,
     db: DBSession,
     guidance: Optional[str] = None,
+    population_size: int = 6,
     provider_key: str = "anthropic",
     model: str = "claude-sonnet-4-20250514",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     context_profile: str = "intermediate",
     context_version: Optional[str] = None,
-    population_size: int = 6,
 ) -> AsyncIterator[str]:
     """Stream generation-0 programs as SSE events."""
     async for event_str in _llm_stream(

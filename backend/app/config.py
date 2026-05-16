@@ -5,6 +5,7 @@ provider names or key names only need to happen here.
 """
 
 import os
+from functools import lru_cache
 
 # Maps provider key → expected environment variable name.
 # Used by both the LLM service (to look up the active key) and the
@@ -15,6 +16,29 @@ PROVIDER_ENV_KEYS: dict[str, str] = {
     "gemini": "GOOGLE_API_KEY",
     "qwen": "DASHSCOPE_API_KEY",
 }
+
+
+# ---------------------------------------------------------------------------
+# Auth / JWT settings
+# ---------------------------------------------------------------------------
+JWT_SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "")
+JWT_ALGORITHM: str = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
+    os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
+)
+
+
+# ---------------------------------------------------------------------------
+# Signup OTP / Email settings
+# ---------------------------------------------------------------------------
+OTP_CODE_LENGTH: int = 6
+OTP_EXPIRE_SECONDS: int = 300
+OTP_RESEND_COOLDOWN_SECONDS: int = 30
+OTP_MAX_VERIFY_ATTEMPTS: int = 5
+
+RESEND_API_BASE: str = os.getenv("RESEND_API_BASE", "https://api.resend.com")
+RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
 
 
 def get_server_api_key() -> str | None:

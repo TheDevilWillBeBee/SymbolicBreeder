@@ -100,22 +100,14 @@ def _build_system_prompt(modality: str, context_profile: str, context_version: O
     return role
 
 
-async def _llm_generate(
+def _build_user_prompt(
     modality: str,
     parent_codes: list[str],
     population_size: int,
     guidance: Optional[str],
-    provider_key: str,
-    model: str,
-    api_key: str,
-    base_url: Optional[str],
-    context_profile: str,
-    context_version: Optional[str],
-) -> list[str]:
-    provider = get_provider(provider_key, model, base_url)
-    context_key = f"{modality}@{context_version}" if context_version else modality
-    config = get_prompt_config(context_key)
-    system_prompt = _build_system_prompt(modality, context_profile, context_version)
+    config: dict,
+) -> str:
+    """Build the user-turn prompt from parent codes, guidance, and config templates."""
     fence = _MODALITY_FENCES.get(modality, "")
 
     if parent_codes:
@@ -124,7 +116,6 @@ async def _llm_generate(
             f"Parent {i + 1}:\n```{fence}\n{code}\n```"
             for i, code in enumerate(parent_codes)
         )
-
         prompt = (
             f"Here are the parent programs the user selected:\n\n"
             f"{parent_section}\n\n"
@@ -141,6 +132,44 @@ async def _llm_generate(
     if variety:
         prompt += "\n\n" + variety.format(n=population_size)
 
+    return prompt
+
+
+def get_prompt_texts(
+    modality: str,
+    parent_codes: list[str],
+    population_size: int,
+    guidance: Optional[str],
+    context_profile: str,
+    context_version: Optional[str] = None,
+) -> dict[str, str]:
+    """Return the system and user prompt texts without calling the LLM."""
+    context_key = f"{modality}@{context_version}" if context_version else modality
+    config = get_prompt_config(context_key)
+    system = _build_system_prompt(modality, context_profile, context_version)
+    user = _build_user_prompt(modality, parent_codes, population_size, guidance, config)
+    combined = f"SYSTEM:\n{system}\n\nUSER:\n{user}"
+    return {"system": system, "user": user, "combined": combined}
+
+
+async def _llm_generate(
+    modality: str,
+    parent_codes: list[str],
+    population_size: int,
+    guidance: Optional[str],
+    provider_key: str,
+    model: str,
+    api_key: str,
+    base_url: Optional[str],
+    context_profile: str,
+    context_version: Optional[str],
+) -> list[str]:
+    provider = get_provider(provider_key, model, base_url)
+    context_key = f"{modality}@{context_version}" if context_version else modality
+    config = get_prompt_config(context_key)
+    system_prompt = _build_system_prompt(modality, context_profile, context_version)
+    prompt = _build_user_prompt(modality, parent_codes, population_size, guidance, config)
+
     logger.info(
         "Sending LLM request (provider=%s, model=%s, modality=%s, profile=%s, system=%d chars, user=%d chars)",
         provider_key,
@@ -151,6 +180,7 @@ async def _llm_generate(
         len(prompt),
     )
 
+    fence = _MODALITY_FENCES.get(modality, "")
     llm_request = LLMRequest(system=system_prompt, user=prompt)
     response = await provider.complete(llm_request, api_key)
 
@@ -209,28 +239,8 @@ async def generate_programs_stream(
         context_key = f"{modality}@{context_version}" if context_version else modality
         config = get_prompt_config(context_key)
         system_prompt = _build_system_prompt(modality, context_profile, context_version)
+        prompt = _build_user_prompt(modality, parent_codes, population_size, guidance, config)
         fence = _MODALITY_FENCES.get(modality, "")
-
-        if parent_codes:
-            parent_section = "\n\n".join(
-                f"Parent {i + 1}:\n```{fence}\n{code}\n```"
-                for i, code in enumerate(parent_codes)
-            )
-            prompt = (
-                f"Here are the parent programs the user selected:\n\n"
-                f"{parent_section}\n\n"
-                + config.get("evolve_prompt", "").format(n=population_size)
-            )
-        else:
-            prompt = config.get("seed_prompt", "").format(n=population_size)
-
-        if guidance:
-            prompt += f'\n\nThe user requested: "{guidance}"'
-
-        variety = config.get("variety_suffix", "")
-        if variety:
-            prompt += "\n\n" + variety.format(n=population_size)
-
         prompt_flat = _flatten_prompt(system_prompt, prompt)
 
         yield _sse_event("status", {"phase": "sending"})

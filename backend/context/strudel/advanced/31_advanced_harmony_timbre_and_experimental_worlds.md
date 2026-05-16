@@ -42,13 +42,13 @@ Use voicings to create smoothness first, then add rhythmic complexity.
 Major seventh softness:
 
 ```strudel
-chord("<Cmaj7 Amaj7>")
+chord("<C^7 A^7>")
 ```
 
 Minor ninth depth:
 
 ```strudel
-chord("<Cm9 Abmaj7>")
+chord("<Cm9 Ab^7>")
 ```
 
 Suspended tension:
@@ -76,7 +76,7 @@ note("c2@4")
 ```
 
 ```strudel
-chord("<Cm Dbmaj7 Ab Bb>").voicing()
+chord("<Cm Db^7 Ab Bb>").voicing()
 ```
 
 ## 3) Borrowed Color and Modal Drift

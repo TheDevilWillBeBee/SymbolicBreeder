@@ -4,6 +4,7 @@ import { StrudelHighlight } from './StrudelHighlight';
 import { useNavStore } from '../store/navStore';
 import { ManifoldToggle } from './ManifoldToggle';
 import { useVisualPlayback } from '../hooks/useVisualPlayback';
+import { LikeButton } from './LikeButton';
 
 function summarizeLineageModels(lineage: LineageProgram[]): string {
   const models = new Set(lineage.map((p) => p.llmModel).filter(Boolean));
@@ -25,9 +26,10 @@ interface Props {
   onStop?: () => void;
   isPlaying?: boolean;
   onBreed?: (program: SharedProgram) => void;
+  onOpenAuth?: () => void;
 }
 
-export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Props) {
+export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed, onOpenAuth }: Props) {
   const isStrudel = program.modality === 'strudel';
   const isOpenSCAD = program.modality === 'openscad';
   const hasVisualRender = !isStrudel;
@@ -92,15 +94,23 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed }: Pro
             </button>
           ) : null}
         </div>
-        {onBreed && (
-          <button
-            className="breed-btn"
-            onClick={(e) => { e.stopPropagation(); onBreed(program); }}
-            title="Start a new breeding session from this program"
-          >
-            Breed
-          </button>
-        )}
+        <div className="gallery-card-controls-right">
+          <LikeButton
+            sharedProgramId={program.id}
+            likeCount={program.likeCount}
+            likedByMe={program.likedByMe}
+            onOpenAuth={onOpenAuth}
+          />
+          {onBreed && (
+            <button
+              className="breed-btn"
+              onClick={(e) => { e.stopPropagation(); onBreed(program); }}
+              title="Start a new breeding session from this program"
+            >
+              Breed
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Labels rows: non-interactive */}
