@@ -33,8 +33,13 @@ build/
 
 # ── Database ──
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
+
+# ── Sandbox ──
+backend/context_lib/_trash/
 
 # ── Node / Frontend ──
 frontend/node_modules/

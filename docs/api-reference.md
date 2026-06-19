@@ -232,7 +232,7 @@ Returns available LLM providers, their supported models, and whether the server 
     {
       "key": "openai",
       "label": "OpenAI",
-      "models": ["gpt-4o", "gpt-4o-mini", "o3-mini"]
+      "models": ["gpt-4o", "gpt-4o-mini", "gpt-5", "gpt-5-nano", "o3-mini"]
     },
     {
       "key": "gemini",

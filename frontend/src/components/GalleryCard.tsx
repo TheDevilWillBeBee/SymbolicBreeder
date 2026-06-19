@@ -27,9 +27,26 @@ interface Props {
   isPlaying?: boolean;
   onBreed?: (program: SharedProgram) => void;
   onOpenAuth?: () => void;
+  /**
+   * Preview-only mode: render only the visual surface (no controls, labels,
+   * manifold toggle, or detail-page navigation). When set, clicking the
+   * preview calls `onPreviewClick` instead of navigating to the detail page.
+   * Used by sandbox grids and modal zoom.
+   */
+  previewOnly?: boolean;
+  onPreviewClick?: (program: SharedProgram) => void;
 }
 
-export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed, onOpenAuth }: Props) {
+export function GalleryCard({
+  program,
+  onPlay,
+  onStop,
+  isPlaying,
+  onBreed,
+  onOpenAuth,
+  previewOnly = false,
+  onPreviewClick,
+}: Props) {
   const isStrudel = program.modality === 'strudel';
   const isOpenSCAD = program.modality === 'openscad';
   const hasVisualRender = !isStrudel;
@@ -44,15 +61,25 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed, onOpe
 
   const goToDetail = useNavStore((s) => s.goToDetail);
   const handleCardClick = useCallback(() => {
+    if (previewOnly) {
+      onPreviewClick?.(program);
+      return;
+    }
     goToDetail(program.id);
-  }, [goToDetail, program.id]);
+  }, [previewOnly, onPreviewClick, goToDetail, program]);
 
   return (
-    <div className={'gallery-card' + (isPlaying ? ' playing' : '')}>
+    <div
+      className={
+        'gallery-card' +
+        (isPlaying ? ' playing' : '') +
+        (previewOnly ? ' gallery-card--preview-only' : '')
+      }
+    >
       {hasVisualRender ? (
         <div className="gallery-card-preview-wrapper" onClick={handleCardClick}>
           <div className={'gallery-card-preview ' + program.modality + '-preview'} ref={containerRef} />
-          {isOpenSCAD && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
+          {isOpenSCAD && !previewOnly && <ManifoldToggle checked={useManifold} onChange={setUseManifold} />}
         </div>
       ) : (
         <div className="gallery-card-preview strudel-preview" onClick={handleCardClick}>
@@ -61,6 +88,8 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed, onOpe
         </div>
       )}
 
+      {previewOnly ? null : (
+        <>
       {/* Controls row: play/pause+reset left, breed right */}
       <div className="gallery-card-controls">
         <div className="gallery-card-controls-left">
@@ -126,6 +155,8 @@ export function GalleryCard({ program, onPlay, onStop, isPlaying, onBreed, onOpe
           return complexity ? <span className="gallery-card-complexity">{complexity}</span> : null;
         })()}
       </div>
+        </>
+      )}
     </div>
   );
 }

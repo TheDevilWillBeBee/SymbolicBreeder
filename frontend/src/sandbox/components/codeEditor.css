@@ -1,0 +1,51 @@
+/* Minimal Prism color scheme adapted to the app's CSS variables. */
+
+.sbx-yaml-editor-wrap .token.comment,
+.sbx-yaml-editor-wrap .token.prolog,
+.sbx-yaml-editor-wrap .token.doctype,
+.sbx-yaml-editor-wrap .token.cdata {
+  color: color-mix(in srgb, var(--text-secondary) 80%, transparent);
+  font-style: italic;
+}
+
+.sbx-yaml-editor-wrap .token.punctuation {
+  color: var(--text-secondary);
+}
+
+.sbx-yaml-editor-wrap .token.tag,
+.sbx-yaml-editor-wrap .token.key {
+  color: color-mix(in srgb, var(--accent) 90%, white);
+}
+
+.sbx-yaml-editor-wrap .token.boolean,
+.sbx-yaml-editor-wrap .token.number {
+  color: rgb(217, 119, 6);
+}
+
+.sbx-yaml-editor-wrap .token.selector,
+.sbx-yaml-editor-wrap .token.attr-name,
+.sbx-yaml-editor-wrap .token.string,
+.sbx-yaml-editor-wrap .token.char,
+.sbx-yaml-editor-wrap .token.builtin {
+  color: rgb(16, 185, 129);
+}
+
+.sbx-yaml-editor-wrap .token.title,
+.sbx-yaml-editor-wrap .token.heading {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sbx-yaml-editor-wrap .token.bold {
+  font-weight: 700;
+}
+
+.sbx-yaml-editor-wrap .token.italic {
+  font-style: italic;
+}
+
+.sbx-yaml-editor-wrap .token.url,
+.sbx-yaml-editor-wrap .token.link {
+  color: rgb(56, 189, 248);
+  text-decoration: underline;
+}

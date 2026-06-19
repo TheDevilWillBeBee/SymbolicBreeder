@@ -1,9 +1,22 @@
+import logging
 import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth, context, evolve, gallery, providers, sessions
+from .sandbox.database import init_sandbox_db
+from .sandbox.routers import (
+    contexts as sandbox_contexts,
+    jobs as sandbox_jobs,
+    parents as sandbox_parents,
+    prompts as sandbox_prompts,
+    quick_test as sandbox_quick_test,
+    samples as sandbox_samples,
+)
+from .sandbox.services.job_manager import sweep_orphans as sandbox_sweep_orphans
+
+logger = logging.getLogger(__name__)
 
 
 def _cors_allow_origins() -> list[str]:
@@ -44,6 +57,12 @@ def create_app(api_prefix: str = "/api") -> FastAPI:
         gallery.router,
         auth.router,
         context.router,
+        sandbox_contexts.router,
+        sandbox_jobs.router,
+        sandbox_parents.router,
+        sandbox_prompts.router,
+        sandbox_quick_test.router,
+        sandbox_samples.router,
     ]
     prefixes: list[str] = list(dict.fromkeys([api_prefix, "/api", ""]))
 
@@ -67,6 +86,16 @@ def create_app(api_prefix: str = "/api") -> FastAPI:
             methods=["GET"],
             include_in_schema=(prefix == api_prefix),
         )
+
+    @app.on_event("startup")
+    async def _sandbox_startup() -> None:
+        try:
+            init_sandbox_db()
+            n_interrupted = sandbox_sweep_orphans()
+            if n_interrupted:
+                logger.info("Sandbox: marked %d orphan jobs as interrupted", n_interrupted)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Sandbox startup failed: %s", exc)
 
     return app
 

@@ -17,6 +17,10 @@
       "dest": "/api/[...path].py"
     },
     {
+      "src": "/sandbox(/.*)?",
+      "dest": "/sandbox.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
